@@ -970,18 +970,22 @@ const PedidoForm = ({ onReturnToMenu }) => {
         }
         .totals {
           display: flex;
-          justify-content: space-between;
+          flex-direction: column;
+          align-items: flex-end;
           margin-top: 20px;
           font-weight: bold;
         }
         .total {
+          display: flex;
+          flex-direction: column;
           color: #006400;
           font-size: 18px;
+          margin-bottom: 20px;
         }
         .signatures {
           display: flex;
           justify-content: space-between;
-          margin-top: 20px;
+          margin-top: 40px;
         }
         .signature {
           width: 200px;
