@@ -898,13 +898,13 @@ const PedidoForm = ({ onReturnToMenu }) => {
         }
         .container {
           max-width: 800px;
-          margin: 0 auto;
+          margin: 5px auto;
           border: 1px solid #ccc;
-          padding: 20px;
+          padding: 10px;
         }
         .header {
           text-align: center;
-          margin-bottom: 20px;
+          margin-bottom: 10px;
         }
         .header h1 {
           color: #1e3a5f;
@@ -916,14 +916,18 @@ const PedidoForm = ({ onReturnToMenu }) => {
           margin-top: 0;
         }
         .fecha {
-          margin-bottom: 15px;
-          font-size: 14px;
+          margin-bottom: 8px;
+          font-size: 12px;
         }
         .info-row {
           display: flex;
-          margin-bottom: 10px;
+          margin-bottom: 5px;
           border-bottom: 1px solid #eee;
-          padding-bottom: 5px;
+          padding-bottom: 3px;
+        }
+        .info-label, .info-value {
+          font-size: 12px;
+          text-transform: uppercase;
         }
         .info-label {
           font-weight: bold;
@@ -943,17 +947,20 @@ const PedidoForm = ({ onReturnToMenu }) => {
         table {
           width: 100%;
           border-collapse: collapse;
-          margin-bottom: 20px;
+          margin-bottom: 5px;
+          font-size: 11px;
+          line-height: 1.2;
         }
         th {
           background-color: #f2f2f2;
           text-align: left;
-          padding: 8px;
-          border-bottom: 2px solid #ddd;
+          padding: 4px;
+          border-bottom: 1px solid #ddd;
+          font-size: 12px;
         }
         td {
-          padding: 8px;
-          border-bottom: 1px solid #ddd;
+          padding: 4px;
+          border-bottom: 1px solid #eee;
         }
         .text-right {
           text-align: right;
@@ -974,7 +981,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
         .signatures {
           display: flex;
           justify-content: space-between;
-          margin-top: 50px;
+          margin-top: 20px;
         }
         .signature {
           width: 200px;
@@ -983,7 +990,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
           padding-top: 5px;
         }
         .observations {
-          margin-top: 30px;
+          margin-top: 15px;
         }
         .observations-box {
           border: 1px solid #ccc;
@@ -991,7 +998,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
           min-height: 60px;
         }
         .delivery-date {
-          margin-top: 20px;
+          margin-top: 10px;
         }
       </style>
     </head>
