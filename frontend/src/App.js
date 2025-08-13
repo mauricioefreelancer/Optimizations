@@ -1,7 +1,31 @@
 import React, { useState } from "react";
 
 // Define la URL base de tu backend desplegado en Render
-const API_BASE_URL = "https://excel-analyser-backend.onrender.com";
+const API_BASE_URL = "https://optimizations-backend.onrender.com";
+
+const ZONES = [
+  "Soacha",
+  "Suba",
+  "Engativa",
+  "Usme",
+  "Ciudad Bolivar",
+  "Kennedy",
+  "Fontibon",
+  "Costa Atlantica",
+  "Oficina"
+];
+
+const SELLERS = [
+  "Nohora Triana",
+  "Alejandra Niño",
+  "Pilar Molano",
+  "Jhon Prada",
+  "Dayana Leon",
+  "Johana Salazar",
+  "Ingrid Rojas",
+  "Enrique Herrera",
+  "Sebastian Torres"
+];
 
 // Datos de productos consolidados de los archivos CSV.
 const PRODUCT_DATA = {
@@ -27,39 +51,39 @@ const PRODUCT_DATA = {
   // Productos organizados por grupo
   products: {
     "FRASCO SHAMPOO COLOR PROTECT TONO SOBRE TONO": [
-      { cod: "NC16", description: "SH BEIGE PERLA", unitPrice: 18750 },
-      { cod: "NC18", description: "SH CHOCOLATE LIGTH", unitPrice: 18750 },
-      { cod: "NC12", description: "SH GRIS SILVER", unitPrice: 18750 },
-      { cod: "NC14", description: "SH NEGRO NIGHT", unitPrice: 18750 },
-      { cod: "NC9", description: "SH ROJO INTENSE", unitPrice: 18750 },
-      { cod: "NC10", description: "SH VIOLETA ULTRA", unitPrice: 18750 },
-      { cod: "NC05", description: "SH CENIZO SPECIAL", unitPrice: 18750 },
-      { cod: "NC64", description: "SH COBRE DEEP", unitPrice: 18750 },
-      { cod: "NC235", description: "SH MECHAS BLANCAS", unitPrice: 18750 },
+      { cod: "NC16", description: "SH BEIGE PERLA 300ml", unitPrice: 18750 },
+      { cod: "NC18", description: "SH CHOCOLATE LIGTH 300ml", unitPrice: 18750 },
+      { cod: "NC12", description: "SH GRIS SILVER 300ml", unitPrice: 18750 },
+      { cod: "NC14", description: "SH NEGRO NIGHT 300ml", unitPrice: 18750 },
+      { cod: "NC9", description: "SH ROJO INTENSE 300ml", unitPrice: 18750 },
+      { cod: "NC10", description: "SH VIOLETA ULTRA 300ml", unitPrice: 18750 },
+      { cod: "NC05", description: "SH CENIZO SPECIAL 300ml", unitPrice: 18750 },
+      { cod: "NC64", description: "SH COBRE DEEP 300ml", unitPrice: 18750 },
+      { cod: "NC235", description: "SH MECHAS BLANCAS 300ml", unitPrice: 18750 },
     ],
     "FRASCO MASCARILLA COLOR PROTECT TONO SOBRE TONO": [
-      { cod: "NC15", description: "MSC BEIGE PERLA", unitPrice: 18750 },
-      { cod: "NC17", description: "MSC CHOCOLATE LIGTH", unitPrice: 18750 },
-      { cod: "NC11", description: "MSC GRIS SILVER", unitPrice: 18750 },
-      { cod: "NC13", description: "MSC NEGRO NIGHT", unitPrice: 18750 },
-      { cod: "NC08", description: "MSC ROJO INTENSE", unitPrice: 18750 },
-      { cod: "NC07", description: "MSC VIOLETA ULTRA", unitPrice: 18750 },
-      { cod: "NC06", description: "MSC CENIZO SPECIAL", unitPrice: 18750 },
-      { cod: "NC65", description: "MSC COBRE DEEP", unitPrice: 18750 },
-      { cod: "NC67", description: "MSC AZUL PLATINO", unitPrice: 18750 },
-      { cod: "NC202", description: "MSC MECHAS BLANCAS", unitPrice: 18750 },
+      { cod: "NC15", description: "MSC BEIGE PERLA 285ml", unitPrice: 18750 },
+      { cod: "NC17", description: "MSC CHOCOLATE LIGTH 285ml", unitPrice: 18750 },
+      { cod: "NC11", description: "MSC GRIS SILVER 285ml", unitPrice: 18750 },
+      { cod: "NC13", description: "MSC NEGRO NIGHT 285ml", unitPrice: 18750 },
+      { cod: "NC08", description: "MSC ROJO INTENSE 285ml", unitPrice: 18750 },
+      { cod: "NC07", description: "MSC VIOLETA ULTRA 285ml", unitPrice: 18750 },
+      { cod: "NC06", description: "MSC CENIZO SPECIAL 285ml", unitPrice: 18750 },
+      { cod: "NC65", description: "MSC COBRE DEEP 285ml", unitPrice: 18750 },
+      { cod: "NC67", description: "MSC AZUL PLATINO 285ml", unitPrice: 18750 },
+      { cod: "NC202", description: "MSC MECHAS BLANCAS 285ml", unitPrice: 18750 },
     ],
     "DOYPACK MASCARILLA COLOR PROTECT TONO SOBRE TONO X 100 ML": [
-      { cod: "NC39", description: "MSC BEIGE PERLA", unitPrice: 6600 },
-      { cod: "NC40", description: "MSC CHOCOLATE LIGTH", unitPrice: 6600 },
-      { cod: "NC41", description: "MSC GRIS SILVER", unitPrice: 6600 },
-      { cod: "NC42", description: "MSC NEGRO NIGHT", unitPrice: 6600 },
-      { cod: "NC43", description: "MSC ROJO INTENSE", unitPrice: 6600 },
-      { cod: "NC44", description: "MSC VIOLETA ULTRA", unitPrice: 6600 },
-      { cod: "NC45", description: "MSC CENIZO SPECIAL", unitPrice: 6600 },
-      { cod: "NC85", description: "MSC COBRE DEEP", unitPrice: 6600 },
-      { cod: "NC86", description: "MSC AZUL PLATINO", unitPrice: 6600 },
-      { cod: "NC214", description: "MSC MECHAS BLANCAS", unitPrice: 6600 },
+      { cod: "NC39", description: "MSC BEIGE PERLA 100ml", unitPrice: 6600 },
+      { cod: "NC40", description: "MSC CHOCOLATE LIGTH 100ml", unitPrice: 6600 },
+      { cod: "NC41", description: "MSC GRIS SILVER 100ml", unitPrice: 6600 },
+      { cod: "NC42", description: "MSC NEGRO NIGHT 100ml", unitPrice: 6600 },
+      { cod: "NC43", description: "MSC ROJO INTENSE 100ml", unitPrice: 6600 },
+      { cod: "NC44", description: "MSC VIOLETA ULTRA 100ml", unitPrice: 6600 },
+      { cod: "NC45", description: "MSC CENIZO SPECIAL 100ml", unitPrice: 6600 },
+      { cod: "NC85", description: "MSC COBRE DEEP 100ml", unitPrice: 6600 },
+      { cod: "NC86", description: "MSC AZUL PLATINO 100ml", unitPrice: 6600 },
+      { cod: "NC214", description: "MSC MECHAS BLANCAS 100ml", unitPrice: 6600 },
     ],
     "LINEA TERMOPROTECTORA KERAMILK": [
       {
@@ -80,7 +104,7 @@ const PRODUCT_DATA = {
       },
       {
         cod: "NC04",
-        description: "TRATAMIENTO KERAMILK X 300",
+        description: "TRATAMIENTO KERAMILK X 300ML",
         unitPrice: 20000,
       },
       {
@@ -148,15 +172,15 @@ const PRODUCT_DATA = {
     ],
     // Los demás grupos estarán vacíos hasta que agregues los productos
     "DISPLAY SHAMPOO COLOR PROTECT TONO SOBRE TONO X 30ML X 14 UNID": [
-      { cod: "NC29", description: "SH BEIGE PERLA", unitPrice: 33000 },
-      { cod: "NC32", description: "SH CHOCOLATE LIGTH", unitPrice: 33000 },
-      { cod: "NC28", description: "SH GRIS SILVER", unitPrice: 33000 },
-      { cod: "NC27", description: "SH NEGRO NIGHT", unitPrice: 33000 },
-      { cod: "NC31", description: "SH ROJO INTENSE", unitPrice: 33000 },
-      { cod: "NC30", description: "SH VIOLETA ULTRA", unitPrice: 33000 },
-      { cod: "NC26", description: "SH CENIZO SPECIAL", unitPrice: 33000 },
-      { cod: "NC258", description: "SH MECHAS BLANCAS", unitPrice: 33000 },
-      { cod: "NC259", description: "SH COBRE DEEP", unitPrice: 33000 },
+      { cod: "NC29", description: "SH BEIGE PERLA (14 sobres)", unitPrice: 33000 },
+      { cod: "NC32", description: "SH CHOCOLATE LIGTH (14 sobres)", unitPrice: 33000 },
+      { cod: "NC28", description: "SH GRIS SILVER (14 sobres)", unitPrice: 33000 },
+      { cod: "NC27", description: "SH NEGRO NIGHT (14 sobres)", unitPrice: 33000 },
+      { cod: "NC31", description: "SH ROJO INTENSE (14 sobres)", unitPrice: 33000 },
+      { cod: "NC30", description: "SH VIOLETA ULTRA (14 sobres)", unitPrice: 33000 },
+      { cod: "NC26", description: "SH CENIZO SPECIAL (14 sobres)", unitPrice: 33000 },
+      { cod: "NC258", description: "SH MECHAS BLANCAS (14 sobres)", unitPrice: 33000 },
+      { cod: "NC259", description: "SH COBRE DEEP (14 sobres)", unitPrice: 33000 },
     ],
     "DISPLAY MASCARILLA COLOR PROTECT TONO SOBRE TONO X 30ML X 14 UNID": [
       { cod: "NC22", description: "MSC BEIGE PERLA", unitPrice: 33000 },
@@ -182,22 +206,22 @@ const PRODUCT_DATA = {
       { cod: "NC248", description: "MAN. CORP . CANNABIS", unitPrice: 24000 },
     ],
     "FRASCO MASCARILLA FANTASY COLOR PROTECT TONO SOBRE TONO X 160 ML": [
-      { cod: "NC71", description: "MSC AZUL FANTASY", unitPrice: 11000 },
-      { cod: "NC73", description: "MSC GREEN PASTEL", unitPrice: 11000 },
-      { cod: "NC75", description: "MSC MAGENTA PASTEL", unitPrice: 11000 },
-      { cod: "NC74", description: "MSC ORANGE FANTASY", unitPrice: 11000 },
-      { cod: "NC72", description: "MSC VIOLETA FANTASY", unitPrice: 11000 },
+      { cod: "NC71", description: "MSC AZUL FANTASY 160ml", unitPrice: 11000 },
+      { cod: "NC73", description: "MSC GREEN PASTEL 160ml", unitPrice: 11000 },
+      { cod: "NC75", description: "MSC MAGENTA PASTEL 160ml", unitPrice: 11000 },
+      { cod: "NC74", description: "MSC ORANGE FANTASY 160ml", unitPrice: 11000 },
+      { cod: "NC72", description: "MSC VIOLETA FANTASY 160ml", unitPrice: 11000 },
     ],
     "DISPLAY MASCARILLA FANTASY COLOR PROTECT TONO SOBRE TONO X 30 ML": [
-      { cod: "NC158", description: "MSC AZUL FANTASY", unitPrice: 34500 },
-      { cod: "NC156", description: "MSC MAGENTA FANTASY", unitPrice: 34500 },
+      { cod: "NC158", description: "MSC AZUL FANTASY (14 sobres)", unitPrice: 34500 },
+      { cod: "NC156", description: "MSC MAGENTA FANTASY (14 sobres)", unitPrice: 34500 },
       {
         cod: "NC159",
-        description: "MSC ORANGE PASTEL FANTASY",
+        description: "MSC ORANGE PASTEL FANTASY (14 sobres)",
         unitPrice: 34500,
       },
-      { cod: "NC155", description: "MSC VERDE FANTASY", unitPrice: 34500 },
-      { cod: "NC157", description: "MSC VIOLETA FANTASY", unitPrice: 34500 },
+      { cod: "NC155", description: "MSC VERDE FANTASY (14 sobres)", unitPrice: 34500 },
+      { cod: "NC157", description: "MSC VIOLETA FANTASY (14 sobres)", unitPrice: 34500 },
     ],
     "LINEA SUERO EMERGENCIA CAPILAR SOS": [
       {
@@ -591,6 +615,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
     correo: "",
     ordenSalida: "facturado",
     observaciones: "",
+    zone: "",
   });
 
   const [orderItems, setOrderItems] = useState([]);
@@ -769,6 +794,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
         <div class="header">
           <h1>NATURAL COLORS</h1>
           <h2>ORDEN DE PEDIDO</h2>
+          <div class="zone">Zona: ${clientInfo.zone}</div>
         </div>
         
         <div class="fecha">Fecha: ${clientInfo.fecha}</div>
@@ -940,13 +966,19 @@ const PedidoForm = ({ onReturnToMenu }) => {
               <label className="text-sm font-medium text-gray-600 mb-1">
                 Vendedor:
               </label>
-              <input
-                type="text"
+              <select
                 name="vendedor"
                 value={clientInfo.vendedor}
                 onChange={handleClientInfoChange}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              />
+              >
+                <option value="">Seleccione un vendedor</option>
+                {SELLERS.map((seller, index) => (
+                  <option key={index} value={seller}>
+                    {seller}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
@@ -1045,6 +1077,22 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 onChange={handleClientInfoChange}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-600 mb-1">
+                Zona:
+              </label>
+              <select
+                name="zone"
+                value={clientInfo.zone}
+                onChange={handleClientInfoChange}
+                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Seleccione una zona</option>
+                {ZONES.map((zone) => (
+                  <option key={zone} value={zone}>{zone}</option>
+                ))}
+              </select>
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
