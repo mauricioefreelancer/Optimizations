@@ -312,39 +312,225 @@ const PRODUCT_DATA = {
         unitPrice: 33000,
       },
     ],
-    "LINEA UÑAS REMOVEDOR": [
-      {
-        cod: "NC54",
-        description: "REMOVEDOR ECOLOGICO X60ML",
-        unitPrice: 3800,
-      },
-      {
-        cod: "NC48",
-        description: "REMOVEDOR ECOLOGICO X120ML",
-        unitPrice: 6200,
-      },
-      {
-        cod: "NC47",
-        description: "REMOVEDOR ECOLOGICO X 250ML",
-        unitPrice: 10500,
-      },
-      {
-        cod: "NC220",
-        description: "REMOVEDOR ECOLOGICO X 350ML",
-        unitPrice: 12000,
-      },
-      {
-        cod: "NC46",
-        description: "REMOVEDOR ECOLOGICO X500ML",
-        unitPrice: 16800,
-      },
-      {
-        cod: "NC66",
-        description: "REMOVEDOR ECOLOGICO X1000ML",
-        unitPrice: 28000,
-      },
-      { cod: "ESM009", description: "UÑAS DE FELINO", unitPrice: 6950 },
-    ],
+    "LINEA UÑAS": {
+      "Tratamiento Uñas de Felino": [
+        { cod: "ESM009", description: "UÑAS DE FELINO", unitPrice: 6950 }
+      ],
+      "Bases": [
+        { cod: "ESM010", description: "GEL ACRILICO", unitPrice: 3700 },
+        { cod: "ESM001", description: "BRILLO", unitPrice: 3100 },
+        { cod: "ESM002", description: "BRILLO SECANTE", unitPrice: 3100 },
+        { cod: "ESM004", description: "SUPER BASE", unitPrice: 3100 },
+        { cod: "ESM005", description: "BASE DE AJO", unitPrice: 3100 },
+        { cod: "ESM006", description: "BASE DE CALCIO", unitPrice: 3100 },
+        { cod: "ESM007", description: "BASE AJO Y LIMON", unitPrice: 3100 },
+        { cod: "ESM008", description: "BASE ROSADA", unitPrice: 3100 }
+      ],
+      "Kits": [
+        { cod: "ESM011", description: "KIT MADRE TIERRA", unitPrice: 9700 },
+        { cod: "ESM012", description: "KIT MADRE SELVA", unitPrice: 9700 },
+        { cod: "NC255", description: "KIT REDNUT DIAMOND", unitPrice: 9700 },
+        { cod: "NC256", description: "KIT SUNSET MINT", unitPrice: 9700 },
+        { cod: "NC257", description: "KIT AJEDREZADO", unitPrice: 9700 }
+      ],
+      "Ref. Esmalte": [
+        { cod: "ESM01P", description: "ESMALTE REF. 01 P", unitPrice: 3100 },
+        { cod: "ESM01B", description: "ESMALTE REF. 01 B", unitPrice: 3100 },
+        { cod: "ESM02", description: "ESMALTE REF. 2", unitPrice: 3100 },
+        { cod: "ESM03", description: "ESMALTE REF. 3", unitPrice: 3100 },
+        { cod: "ESM04", description: "ESMALTE REF. 4", unitPrice: 3100 },
+        { cod: "ESM05", description: "ESMALTE REF. 5", unitPrice: 3100 },
+        { cod: "ESM06", description: "ESMALTE REF. 6", unitPrice: 3100 },
+        { cod: "ESM07", description: "ESMALTE REF. 7", unitPrice: 3100 },
+        { cod: "ESM08", description: "ESMALTE REF. 8", unitPrice: 3100 },
+        { cod: "ESM09", description: "ESMALTE REF. 9", unitPrice: 3100 },
+        { cod: "ESM10", description: "ESMALTE REF. 10", unitPrice: 3100 },
+        { cod: "ESM11", description: "ESMALTE REF. 11", unitPrice: 3100 },
+        { cod: "ESM12", description: "ESMALTE REF. 12", unitPrice: 3100 },
+        { cod: "ESM13", description: "ESMALTE REF. 13", unitPrice: 3100 },
+        { cod: "ESM14", description: "ESMALTE REF. 14", unitPrice: 3100 },
+        { cod: "ESM15", description: "ESMALTE REF. 15", unitPrice: 3100 },
+        { cod: "ESM16", description: "ESMALTE REF. 16", unitPrice: 3100 },
+        { cod: "ESM17", description: "ESMALTE REF. 17", unitPrice: 3100 },
+        { cod: "ESM18", description: "ESMALTE REF. 18", unitPrice: 3100 },
+        { cod: "ESM19", description: "ESMALTE REF. 19", unitPrice: 3100 },
+        { cod: "ESM20", description: "ESMALTE REF. 20", unitPrice: 3100 },
+        { cod: "ESM21", description: "ESMALTE REF. 21", unitPrice: 3100 },
+        { cod: "ESM22", description: "ESMALTE REF. 22", unitPrice: 3100 },
+        { cod: "ESM23", description: "ESMALTE REF. 23", unitPrice: 3100 },
+        { cod: "ESM24", description: "ESMALTE REF. 24", unitPrice: 3100 },
+        { cod: "ESM25", description: "ESMALTE REF. 25", unitPrice: 3100 },
+        { cod: "ESM26", description: "ESMALTE REF. 26", unitPrice: 3100 },
+        { cod: "ESM27", description: "ESMALTE REF. 27", unitPrice: 3100 },
+        { cod: "ESM28", description: "ESMALTE REF. 28", unitPrice: 3100 },
+        { cod: "ESM29", description: "ESMALTE REF. 29", unitPrice: 3100 },
+        { cod: "ESM30", description: "ESMALTE REF. 30", unitPrice: 3100 },
+        { cod: "ESM31", description: "ESMALTE REF. 31", unitPrice: 3100 },
+        { cod: "ESM32", description: "ESMALTE REF. 32", unitPrice: 3100 },
+        { cod: "ESM33", description: "ESMALTE REF. 33", unitPrice: 3100 },
+        { cod: "ESM34", description: "ESMALTE REF. 34", unitPrice: 3100 },
+        { cod: "ESM35", description: "ESMALTE REF. 35", unitPrice: 3100 },
+        { cod: "ESM36", description: "ESMALTE REF. 36", unitPrice: 3100 },
+        { cod: "ESM37", description: "ESMALTE REF. 37", unitPrice: 3100 },
+        { cod: "ESM38", description: "ESMALTE REF. 38", unitPrice: 3100 },
+        { cod: "ESM39", description: "ESMALTE REF. 39", unitPrice: 3100 },
+        { cod: "ESM40", description: "ESMALTE REF. 40", unitPrice: 3100 },
+        { cod: "ESM41", description: "ESMALTE REF. 41", unitPrice: 3100 },
+        { cod: "ESM42", description: "ESMALTE REF. 42", unitPrice: 3100 },
+        { cod: "ESM43", description: "ESMALTE REF. 43", unitPrice: 3100 },
+        { cod: "ESM44", description: "ESMALTE REF. 44", unitPrice: 3100 },
+        { cod: "ESM45", description: "ESMALTE REF. 45", unitPrice: 3100 },
+        { cod: "ESM46", description: "ESMALTE REF. 46", unitPrice: 3100 },
+        { cod: "ESM47", description: "ESMALTE REF. 47", unitPrice: 3100 },
+        { cod: "ESM48", description: "ESMALTE REF. 48", unitPrice: 3100 },
+        { cod: "ESM49", description: "ESMALTE REF. 49", unitPrice: 3100 },
+        { cod: "ESM50", description: "ESMALTE REF. 50", unitPrice: 3100 },
+        { cod: "ESM51", description: "ESMALTE REF. 51", unitPrice: 3100 },
+        { cod: "ESM52", description: "ESMALTE REF. 52", unitPrice: 3100 },
+        { cod: "ESM53", description: "ESMALTE REF. 53", unitPrice: 3100 },
+        { cod: "ESM54", description: "ESMALTE REF. 54", unitPrice: 3100 },
+        { cod: "ESM55", description: "ESMALTE REF. 55", unitPrice: 3100 },
+        { cod: "ESM56", description: "ESMALTE REF. 56", unitPrice: 3100 },
+        { cod: "ESM57", description: "ESMALTE REF. 57", unitPrice: 3100 },
+        { cod: "ESM58", description: "ESMALTE REF. 58", unitPrice: 3100 },
+        { cod: "ESM59B", description: "ESMALTE REF. 59 B", unitPrice: 3100 },
+        { cod: "ESM59P", description: "ESMALTE REF. 59 P", unitPrice: 3100 },
+        { cod: "ESM60B", description: "ESMALTE REF. 60 B", unitPrice: 3100 },
+        { cod: "ESM60P", description: "ESMALTE REF. 60 P", unitPrice: 3100 },
+        { cod: "ESM61B", description: "ESMALTE REF. 61 B", unitPrice: 3100 },
+        { cod: "ESM61P", description: "ESMALTE REF. 61 P", unitPrice: 3100 },
+        { cod: "ESM62", description: "ESMALTE REF. 62", unitPrice: 3100 },
+        { cod: "ESM63", description: "ESMALTE REF. 63", unitPrice: 3100 },
+        { cod: "ESM64", description: "ESMALTE REF. 64", unitPrice: 3100 },
+        { cod: "ESM65", description: "ESMALTE REF. 65", unitPrice: 3100 },
+        { cod: "ESM66", description: "ESMALTE REF. 66", unitPrice: 3100 },
+        { cod: "ESM67", description: "ESMALTE REF. 67", unitPrice: 3100 },
+        { cod: "ESM68", description: "ESMALTE REF. 68", unitPrice: 3100 },
+        { cod: "ESM69", description: "ESMALTE REF. 69", unitPrice: 3100 },
+        { cod: "ESM70B", description: "ESMALTE REF. 70 B", unitPrice: 3100 },
+        { cod: "ESM70P", description: "ESMALTE REF. 70 P", unitPrice: 3100 },
+        { cod: "ESM71", description: "ESMALTE REF. 71", unitPrice: 3100 },
+        { cod: "ESM72", description: "ESMALTE REF. 72", unitPrice: 3100 },
+        { cod: "ESM73", description: "ESMALTE REF. 73", unitPrice: 3100 },
+        { cod: "ESM74", description: "ESMALTE REF. 74", unitPrice: 3100 },
+        { cod: "ESM75", description: "ESMALTE REF. 75", unitPrice: 3100 },
+        { cod: "ESM76", description: "ESMALTE REF. 76", unitPrice: 3100 },
+        { cod: "ESM77", description: "ESMALTE REF. 77", unitPrice: 3100 },
+        { cod: "ESM78", description: "ESMALTE REF. 78", unitPrice: 3100 },
+        { cod: "ESM79", description: "ESMALTE REF. 79", unitPrice: 3100 },
+        { cod: "ESM80", description: "ESMALTE REF. 80", unitPrice: 3100 },
+        { cod: "ESM81", description: "ESMALTE REF. 81", unitPrice: 3100 },
+        { cod: "ESM82", description: "ESMALTE REF. 82", unitPrice: 3100 },
+        { cod: "ESM83", description: "ESMALTE REF. 83", unitPrice: 3100 },
+        { cod: "ESM84", description: "ESMALTE REF. 84", unitPrice: 3100 },
+        { cod: "ESM85", description: "ESMALTE REF. 85", unitPrice: 3100 },
+        { cod: "ESM86", description: "ESMALTE REF. 86", unitPrice: 3100 },
+        { cod: "ESM87", description: "ESMALTE REF. 87", unitPrice: 3100 },
+        { cod: "ESM88", description: "ESMALTE REF. 88", unitPrice: 3100 },
+        { cod: "ESM89", description: "ESMALTE REF. 89", unitPrice: 3100 },
+        { cod: "ESM90", description: "ESMALTE REF. 90", unitPrice: 3100 },
+        { cod: "ESM91", description: "ESMALTE REF. 91", unitPrice: 3100 },
+        { cod: "ESM92", description: "ESMALTE REF. 92", unitPrice: 3100 },
+        { cod: "ESM93", description: "ESMALTE REF. 93", unitPrice: 3100 },
+        { cod: "ESM94", description: "ESMALTE REF. 94", unitPrice: 3100 },
+        { cod: "ESM95", description: "ESMALTE REF. 95", unitPrice: 3100 },
+        { cod: "ESM96", description: "ESMALTE REF. 96", unitPrice: 3100 },
+        { cod: "ESM97", description: "ESMALTE REF. 97", unitPrice: 3100 },
+        { cod: "ESM98", description: "ESMALTE REF. 98", unitPrice: 3100 },
+        { cod: "ESM99", description: "ESMALTE REF. 99", unitPrice: 3100 },
+        { cod: "ESM100", description: "ESMALTE REF. 100", unitPrice: 3100 },
+        { cod: "ESM101", description: "ESMALTE REF. 101", unitPrice: 3100 },
+        { cod: "ESM102", description: "ESMALTE REF. 102", unitPrice: 3100 },
+        { cod: "ESM103", description: "ESMALTE REF. 103", unitPrice: 3100 },
+        {
+          "cod": "ESM104",
+          "description": "ESMALTE REF. 104",
+          "unitPrice": 3100
+        },
+        {
+          "cod": "ESM105",
+          "description": "ESMALTE REF. 105",
+          "unitPrice": 3100
+        },
+        {
+          "cod": "ESM106",
+          "description": "ESMALTE REF. 106",
+          "unitPrice": 3100
+        },
+        {
+          "cod": "ESM107",
+          "description": "ESMALTE REF. 107",
+          "unitPrice": 3100
+        },
+        {
+          "cod": "ESM108",
+          "description": "ESMALTE REF. 108",
+          "unitPrice": 3100
+        },
+        {
+          "cod": "ESM109",
+          "description": "ESMALTE REF. 109",
+          "unitPrice": 3100
+        },
+        {
+          "cod": "ESM110",
+          "description": "ESMALTE REF. 110",
+          "unitPrice": 3100
+        },
+        {
+          "cod": "ESM111",
+          "description": "ESMALTE REF. 111",
+          "unitPrice": 3100
+        },
+        {
+          "cod": "ESM112",
+          "description": "ESMALTE REF. 112",
+          "unitPrice": 3100
+        },
+        {
+          "cod": "ESM113",
+          "description": "ESMALTE REF. 113",
+          "unitPrice": 3100
+        },
+        {
+          "cod": "ESM114",
+          "description": "ESMALTE REF. 114",
+          "unitPrice": 3100
+        }
+      ],
+      "Removedores": [
+        {
+          cod: "NC54",
+          description: "REMOVEDOR ECOLOGICO X60ML",
+          unitPrice: 3800,
+        },
+        {
+          cod: "NC48",
+          description: "REMOVEDOR ECOLOGICO X120ML",
+          unitPrice: 6200,
+        },
+        {
+          cod: "NC47",
+          description: "REMOVEDOR ECOLOGICO X 250ML",
+          unitPrice: 10500,
+        },
+        {
+          cod: "NC220",
+          description: "REMOVEDOR ECOLOGICO X 350ML",
+          unitPrice: 12000,
+        },
+        {
+          cod: "NC46",
+          description: "REMOVEDOR ECOLOGICO X500ML",
+          unitPrice: 16800,
+        },
+        {
+          cod: "NC66",
+          description: "REMOVEDOR ECOLOGICO X1000ML",
+          unitPrice: 28000,
+        }
+      ]
+    },
   },
 
   // Función auxiliar para obtener todos los productos en un array plano (para compatibilidad con código existente)
@@ -371,7 +557,7 @@ const ExcelAnalyser = ({ onReturnToMenu }) => {
     if (file) {
       if (
         file.type ===
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
         file.type === "application/vnd.ms-excel" ||
         file.type === "text/csv"
       ) {
@@ -416,8 +602,7 @@ const ExcelAnalyser = ({ onReturnToMenu }) => {
       if (response.ok) {
         const data = await response.json();
         setMessage(
-          `"${
-            selectedFile.name
+          `"${selectedFile.name
           }" subido y procesado con éxito. Columnas: ${data.columns.join(
             ", "
           )}. Filas: ${data.rows_count}`
@@ -515,9 +700,8 @@ const ExcelAnalyser = ({ onReturnToMenu }) => {
         />
         {message && (
           <p
-            className={`text-sm mt-4 text-center ${
-              fileUploaded ? "text-green-600" : "text-red-600"
-            }`}
+            className={`text-sm mt-4 text-center ${fileUploaded ? "text-green-600" : "text-red-600"
+              }`}
           >
             {message}
           </p>
@@ -527,11 +711,10 @@ const ExcelAnalyser = ({ onReturnToMenu }) => {
           disabled={!selectedFile || loadingAnswer}
           className={`w-full mt-4 py-3 px-4 rounded-lg text-white font-semibold
                        transition duration-300 ease-in-out
-                       ${
-                         !selectedFile || loadingAnswer
-                           ? "bg-gray-400 cursor-not-allowed"
-                           : "bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                       }`}
+                       ${!selectedFile || loadingAnswer
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            }`}
         >
           {loadingAnswer && !fileUploaded
             ? "Subiendo..."
@@ -567,11 +750,10 @@ const ExcelAnalyser = ({ onReturnToMenu }) => {
             disabled={loadingAnswer || !question.trim()}
             className={`w-full py-3 px-4 rounded-lg text-white font-semibold
                          transition duration-300 ease-in-out
-                         ${
-                           loadingAnswer || !question.trim()
-                             ? "bg-gray-400 cursor-not-allowed"
-                             : "bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                         }`}
+                         ${loadingAnswer || !question.trim()
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+              }`}
           >
             {loadingAnswer ? "Procesando..." : "Obtener Respuesta"}
           </button>
@@ -598,6 +780,18 @@ const ExcelAnalyser = ({ onReturnToMenu }) => {
 
 // Componente para la funcionalidad de Llenado de Toma de Pedido
 const PedidoForm = ({ onReturnToMenu }) => {
+  const SELLERS = [
+    "Nohora Triana",
+    "Alejandra Niño",
+    "Pilar Molano",
+    "Jhon Prada",
+    "Dayana Leon",
+    "Johana Salazar",
+    "Ingrid Rojas",
+    "Enrique Herrera",
+    "Sebastian Torres"
+  ];
+
   const [clientInfo, setClientInfo] = useState({
     fecha: new Date().toISOString().split("T")[0],
     nit: "",
@@ -620,6 +814,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
 
   const [orderItems, setOrderItems] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState("");
   const [selectedProduct, setSelectedProduct] = useState("");
   const [quantity, setQuantity] = useState(0);
   const [bonus, setBonus] = useState(0);
@@ -632,9 +827,20 @@ const PedidoForm = ({ onReturnToMenu }) => {
   const handleAddProduct = () => {
     if (!selectedProduct || (quantity <= 0 && bonus <= 0)) return;
 
-    const product = PRODUCT_DATA.products[selectedCategory].find(
-      (p) => p.cod === selectedProduct
-    );
+    let product;
+    if (selectedCategory === "LINEA UÑAS") {
+      // Buscar en la subcategoría seleccionada de LINEA UÑAS
+      product = PRODUCT_DATA.products[selectedCategory][selectedSubCategory].find(p => p.cod === selectedProduct);
+    } else if (typeof PRODUCT_DATA.products[selectedCategory] === 'object' && !Array.isArray(PRODUCT_DATA.products[selectedCategory])) {
+      // Buscar en las subcategorías para otras categorías
+      for (const subCategory of Object.values(PRODUCT_DATA.products[selectedCategory])) {
+        product = subCategory.find(p => p.cod === selectedProduct);
+        if (product) break;
+      }
+    } else {
+      // Buscar directamente en la categoría
+      product = PRODUCT_DATA.products[selectedCategory].find(p => p.cod === selectedProduct);
+    }
 
     if (!product) return;
 
@@ -811,17 +1017,15 @@ const PedidoForm = ({ onReturnToMenu }) => {
             </div>
             <div class="info-row">
               <div class="info-label">Barrio:</div>
-              <div class="info-value">${clientInfo.barrio} - ${
-      clientInfo.ciudad
-    }</div>
+              <div class="info-value">${clientInfo.barrio} - ${clientInfo.ciudad
+      }</div>
             </div>
             <div class="info-row">
               <div class="info-label">Orden De Salida:</div>
-              <div class="info-value">${
-                clientInfo.ordenSalida === "facturado"
-                  ? "FACTURADO"
-                  : "SALIDA DE BODEGA"
-              }</div>
+              <div class="info-value">${clientInfo.ordenSalida === "facturado"
+        ? "FACTURADO"
+        : "SALIDA DE BODEGA"
+      }</div>
             </div>
           </div>
           
@@ -844,9 +1048,8 @@ const PedidoForm = ({ onReturnToMenu }) => {
             </div>
             <div class="info-row">
               <div class="info-label">Forma De Pago:</div>
-              <div class="info-value">${
-                clientInfo.contado === "X" ? "CONTADO" : "CRÉDITO"
-              }</div>
+              <div class="info-value">${clientInfo.contado === "X" ? "CONTADO" : "CRÉDITO"
+      }</div>
             </div>
           </div>
         </div>
@@ -863,34 +1066,33 @@ const PedidoForm = ({ onReturnToMenu }) => {
           </thead>
           <tbody>
             ${orderItems
-              .map(
-                (item) => `
+        .map(
+          (item) => `
               <tr>
                 <td>${item.cod}</td>
                 <td>${item.description}</td>
                 <td class="text-center">${item.quantity}</td>
                 <td class="text-center">${item.bonus}</td>
                 <td class="text-right">$${item.subtotal?.toLocaleString(
-                  "es-CO"
-                )}</td>
+            "es-CO"
+          )}</td>
               </tr>
             `
-              )
-              .join("")}
+        )
+        .join("")}
           </tbody>
         </table>
         
         <div class="totals">
           <div>
             <div>SUBTOTAL: $${subtotalGlobal.toLocaleString("es-CO")}</div>
-            <div>DESCUENTO(${
-              clientInfo.descuento || 0
-            }%): $${descuentoGlobal.toLocaleString("es-CO")}</div>
+            <div>DESCUENTO(${clientInfo.descuento || 0
+      }%): $${descuentoGlobal.toLocaleString("es-CO")}</div>
             <div>IVA(19%): $${ivaGlobal.toLocaleString("es-CO")}</div>
           </div>
           <div class="total">TOTAL: $${totalGlobal.toLocaleString(
-            "es-CO"
-          )}</div>
+        "es-CO"
+      )}</div>
         </div>
         
         <div class="signatures">
@@ -1209,13 +1411,35 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Selecciona una categoría</option>
-                {PRODUCT_DATA.groups.map((group) => (
+                {Object.entries(PRODUCT_DATA.products).map(([group, products]) => (
                   <option key={group} value={group}>
                     {group}
                   </option>
                 ))}
               </select>
             </div>
+            {selectedCategory === "LINEA UÑAS" ? (
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-600 mb-1">
+                  Subcategoría:
+                </label>
+                <select
+                  value={selectedSubCategory || ""}
+                  onChange={(e) => {
+                    setSelectedSubCategory(e.target.value);
+                    setSelectedProduct("");
+                  }}
+                  className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Selecciona una subcategoría</option>
+                  {Object.keys(PRODUCT_DATA.products[selectedCategory]).map((subCategory) => (
+                    <option key={subCategory} value={subCategory}>
+                      {subCategory}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
                 Producto:
@@ -1224,15 +1448,33 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 value={selectedProduct}
                 onChange={(e) => setSelectedProduct(e.target.value)}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                disabled={!selectedCategory}
+                disabled={!selectedCategory || (selectedCategory === "LINEA UÑAS" && !selectedSubCategory)}
               >
                 <option value="">Selecciona un producto</option>
-                {selectedCategory &&
-                  PRODUCT_DATA.products[selectedCategory].map((product) => (
-                    <option key={product.cod} value={product.cod}>
-                      {product.cod} - {product.description}
-                    </option>
-                  ))}
+                {selectedCategory && (
+                  selectedCategory === "LINEA UÑAS" ?
+                    (selectedSubCategory && PRODUCT_DATA.products[selectedCategory][selectedSubCategory].map((product) => (
+                      <option key={product.cod} value={product.cod}>
+                        {product.cod} - {product.description}
+                      </option>
+                    ))) :
+                    (typeof PRODUCT_DATA.products[selectedCategory] === 'object' && !Array.isArray(PRODUCT_DATA.products[selectedCategory]) ?
+                      Object.entries(PRODUCT_DATA.products[selectedCategory]).map(([subCategory, products]) => (
+                        <optgroup key={subCategory} label={subCategory}>
+                          {products.map((product) => (
+                            <option key={product.cod} value={product.cod}>
+                              {product.cod} - {product.description}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )) :
+                      PRODUCT_DATA.products[selectedCategory].map((product) => (
+                        <option key={product.cod} value={product.cod}>
+                          {product.cod} - {product.description}
+                        </option>
+                      ))
+                    )
+                )}
               </select>
             </div>
             <div className="flex flex-col">
