@@ -28,7 +28,7 @@ CORS(app, origins=[
 # Configuración de Google Drive
 GOOGLE_CLIENT_ID = "1078133780101-q8dmq8l054uoguf4g7b8mltki0qtgb56.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET = "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"
-GOOGLE_REDIRECT_URI = "http://localhost:5000/callback"
+GOOGLE_REDIRECT_URI = "https://optimizations-c6pm.onrender.com/auth/callback"
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
 # Mapeo de zonas a carpetas específicas de Google Drive
@@ -315,7 +315,7 @@ def upload_to_drive():
 # Configuración de Google Drive para producción
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', "1078133780101-q8dmq8l054uoguf4g7b8mltki0qtgb56.apps.googleusercontent.com")
 GOOGLE_PRIVATE_KEY_ID = os.getenv('GOOGLE_PRIVATE_KEY_ID', "")
-GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI', "https://optimizations-c6pm.onrender.com/oauth2callback")
+GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI', "https://optimizations-c6pm.onrender.com/auth/callback")
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
 def get_google_drive_service():
