@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
-// Define la URL base de tu backend desplegado en Render
-const API_BASE_URL = "https://optimizations-backend.onrender.com";
+// Define la URL base de tu backend
+const API_BASE_URL = "https://optimizations-c6pm.onrender.com";
 
 const ZONES = [
   "Soacha",
@@ -818,6 +818,8 @@ const PedidoForm = ({ onReturnToMenu }) => {
   const [selectedProduct, setSelectedProduct] = useState("");
   const [quantity, setQuantity] = useState(0);
   const [bonus, setBonus] = useState(0);
+  const [htmlContent, setHtmlContent] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleClientInfoChange = (e) => {
     const { name, value } = e.target;
@@ -870,8 +872,25 @@ const PedidoForm = ({ onReturnToMenu }) => {
     setOrderItems(newItems);
   };
 
-  const handleDownload = () => {
-    // Calcular totales antes de usarlos
+  // Función para validar campos obligatorios para Google Drive
+  const validateForDrive = () => {
+    const errors = [];
+    
+    if (!clientInfo.zone || clientInfo.zone === "") {
+      errors.push("Zona");
+    }
+    if (!clientInfo.nit || clientInfo.nit.trim() === "") {
+      errors.push("NIT");
+    }
+    if (!clientInfo.correo || clientInfo.correo.trim() === "") {
+      errors.push("Correo");
+    }
+    
+    return errors;
+  };
+
+  // Función para generar y guardar el contenido HTML
+  const generateHtmlContent = () => {
     const subtotalGlobal = orderItems.reduce(
       (sum, item) => sum + (item.subtotal || 0),
       0
@@ -881,7 +900,6 @@ const PedidoForm = ({ onReturnToMenu }) => {
     const ivaGlobal = subtotalGlobal * 0.19;
     const totalGlobal = subtotalGlobal + ivaGlobal - descuentoGlobal;
 
-    // Crear el contenido HTML basado en la imagen proporcionada
     const htmlContent = `
     <!DOCTYPE html>
     <html lang="es">
@@ -894,47 +912,41 @@ const PedidoForm = ({ onReturnToMenu }) => {
           font-family: Arial, sans-serif;
           margin: 0;
           padding: 20px;
-          color: #333;
+          background-color: #f5f5f5;
         }
         .container {
           max-width: 800px;
-          margin: 5px auto;
-          border: 1px solid #ccc;
-          padding: 10px;
+          margin: 0 auto;
+          background-color: white;
+          padding: 20px;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .header {
           text-align: center;
-          margin-bottom: 10px;
+          border-bottom: 2px solid #333;
+          padding-bottom: 10px;
+          margin-bottom: 20px;
         }
         .header h1 {
-          color: #1e3a5f;
-          margin-bottom: 5px;
+          margin: 0;
+          color: #2c5530;
+          font-size: 24px;
         }
         .header h2 {
+          margin: 5px 0;
           color: #666;
-          font-weight: normal;
-          margin-top: 0;
+          font-size: 18px;
+        }
+        .zone {
+          text-align: right;
+          font-weight: bold;
+          margin-top: 10px;
         }
         .fecha {
-          margin-bottom: 8px;
-          font-size: 12px;
-        }
-        .info-row {
-          display: flex;
-          margin-bottom: 5px;
-          border-bottom: 1px solid #eee;
-          padding-bottom: 3px;
-        }
-        .info-label, .info-value {
-          font-size: 12px;
-          text-transform: uppercase;
-        }
-        .info-label {
+          text-align: right;
+          margin-bottom: 20px;
           font-weight: bold;
-          width: 100px;
-        }
-        .info-value {
-          flex: 1;
         }
         .info-section {
           display: flex;
@@ -942,59 +954,68 @@ const PedidoForm = ({ onReturnToMenu }) => {
           margin-bottom: 20px;
         }
         .info-column {
-          width: 48%;
+          flex: 1;
+          margin-right: 20px;
+        }
+        .info-column:last-child {
+          margin-right: 0;
+        }
+        .info-row {
+          display: flex;
+          margin-bottom: 8px;
+        }
+        .info-label {
+          font-weight: bold;
+          min-width: 120px;
+        }
+        .info-value {
+          flex: 1;
         }
         table {
           width: 100%;
           border-collapse: collapse;
-          margin-bottom: 5px;
-          font-size: 11px;
-          line-height: 1.2;
+          margin-bottom: 20px;
+        }
+        th, td {
+          border: 1px solid #ddd;
+          padding: 8px;
+          text-align: left;
         }
         th {
           background-color: #f2f2f2;
-          text-align: left;
-          padding: 4px;
-          border-bottom: 1px solid #ddd;
-          font-size: 12px;
-        }
-        td {
-          padding: 4px;
-          border-bottom: 1px solid #eee;
-        }
-        .text-right {
-          text-align: right;
+          font-weight: bold;
         }
         .text-center {
           text-align: center;
         }
+        .text-right {
+          text-align: right;
+        }
         .totals {
           display: flex;
-          flex-direction: column;
+          justify-content: space-between;
           align-items: flex-end;
-          margin-top: 20px;
-          font-weight: bold;
+          margin-bottom: 30px;
         }
         .total {
-          display: flex;
-          flex-direction: column;
-          color: #006400;
           font-size: 18px;
-          margin-bottom: 20px;
+          font-weight: bold;
+          color: #2c5530;
         }
         .signatures {
           display: flex;
           justify-content: space-between;
-          margin-top: 40px;
+          margin-bottom: 30px;
         }
         .signature {
-          width: 200px;
           text-align: center;
           border-top: 1px solid #333;
           padding-top: 5px;
+          width: 150px;
+          font-size: 12px;
         }
         .observations {
-          margin-top: 15px;
+          margin-bottom: 20px;
         }
         .observations-box {
           border: 1px solid #ccc;
@@ -1028,15 +1049,11 @@ const PedidoForm = ({ onReturnToMenu }) => {
             </div>
             <div class="info-row">
               <div class="info-label">Barrio:</div>
-              <div class="info-value">${clientInfo.barrio} - ${clientInfo.ciudad
-      }</div>
+              <div class="info-value">${clientInfo.barrio} - ${clientInfo.ciudad}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Orden De Salida:</div>
-              <div class="info-value">${clientInfo.ordenSalida === "facturado"
-        ? "FACTURADO"
-        : "SALIDA DE BODEGA"
-      }</div>
+              <div class="info-value">${clientInfo.ordenSalida === "facturado" ? "FACTURADO" : "SALIDA DE BODEGA"}</div>
             </div>
           </div>
           
@@ -1058,9 +1075,12 @@ const PedidoForm = ({ onReturnToMenu }) => {
               <div class="info-value">${clientInfo.cel}</div>
             </div>
             <div class="info-row">
+              <div class="info-label">Correo:</div>
+              <div class="info-value">${clientInfo.correo}</div>
+            </div>
+            <div class="info-row">
               <div class="info-label">Forma De Pago:</div>
-              <div class="info-value">${clientInfo.contado === "X" ? "CONTADO" : "CRÉDITO"
-      }</div>
+              <div class="info-value">${clientInfo.contado === "X" ? "CONTADO" : "CRÉDITO"}</div>
             </div>
           </div>
         </div>
@@ -1076,34 +1096,25 @@ const PedidoForm = ({ onReturnToMenu }) => {
             </tr>
           </thead>
           <tbody>
-            ${orderItems
-        .map(
-          (item) => `
+            ${orderItems.map(item => `
               <tr>
                 <td>${item.cod}</td>
                 <td>${item.description}</td>
                 <td class="text-center">${item.quantity}</td>
                 <td class="text-center">${item.bonus}</td>
-                <td class="text-right">$${item.subtotal?.toLocaleString(
-            "es-CO"
-          )}</td>
+                <td class="text-right">$${item.subtotal?.toLocaleString("es-CO")}</td>
               </tr>
-            `
-        )
-        .join("")}
+            `).join("")}
           </tbody>
         </table>
         
         <div class="totals">
           <div>
             <div>SUBTOTAL: $${subtotalGlobal.toLocaleString("es-CO")}</div>
-            <div>DESCUENTO(${clientInfo.descuento || 0
-      }%): $${descuentoGlobal.toLocaleString("es-CO")}</div>
+            <div>DESCUENTO(${clientInfo.descuento || 0}%): $${descuentoGlobal.toLocaleString("es-CO")}</div>
             <div>IVA(19%): $${ivaGlobal.toLocaleString("es-CO")}</div>
           </div>
-          <div class="total">TOTAL: $${totalGlobal.toLocaleString(
-        "es-CO"
-      )}</div>
+          <div class="total">TOTAL: $${totalGlobal.toLocaleString("es-CO")}</div>
         </div>
         
         <div class="signatures">
@@ -1112,7 +1123,6 @@ const PedidoForm = ({ onReturnToMenu }) => {
           <div class="signature">EMPACÓ</div>
           <div class="signature">FIRMA CLIENTE</div>
         </div>
-        
         
         <div class="observations">
           <div>OBSERVACIONES:</div>
@@ -1127,6 +1137,82 @@ const PedidoForm = ({ onReturnToMenu }) => {
     </html>
     `;
 
+    return htmlContent;
+  };
+
+  // Función para subir a Google Drive
+  const handleUploadToDrive = async () => {
+    const validationErrors = validateForDrive();
+    
+    if (validationErrors.length > 0) {
+      alert(`Por favor complete los siguientes campos obligatorios para subir a Drive:\n\n• ${validationErrors.join('\n• ')}`);
+      return;
+    }
+
+    if (orderItems.length === 0) {
+      alert("No hay productos en el pedido para subir.");
+      return;
+    }
+
+    setIsUploading(true);
+    
+    try {
+      // Generar el contenido HTML
+      const htmlContent = generateHtmlContent();
+      setHtmlContent(htmlContent);
+      
+      // Crear nombre del archivo con fecha y cliente
+      const fileName = `Pedido_${clientInfo.cliente.replace(/\s+/g, '_')}_${clientInfo.fecha}_${Date.now()}.html`;
+      
+      // Datos para enviar al backend
+      const uploadData = {
+        htmlContent: htmlContent,
+        filename: fileName,
+        zone: clientInfo.zone,
+        clientInfo: {
+          cliente: clientInfo.cliente,
+          nit: clientInfo.nit,
+          correo: clientInfo.correo,
+          zona: clientInfo.zone,
+          fecha: clientInfo.fecha,
+          vendedor: clientInfo.vendedor
+        },
+        orderSummary: {
+          totalItems: orderItems.length,
+          subtotal: orderItems.reduce((sum, item) => sum + (item.subtotal || 0), 0),
+          total: orderItems.reduce((sum, item) => sum + (item.subtotal || 0), 0) * 1.19 - (orderItems.reduce((sum, item) => sum + (item.subtotal || 0), 0) * (parseInt(clientInfo.descuento || 0) / 100))
+        }
+      };
+      
+      // Llamada al backend
+      const response = await fetch(`${API_BASE_URL}/upload-to-drive`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(uploadData)
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        alert(`¡Pedido subido exitosamente a Google Drive!\n\nCarpeta: ${clientInfo.zone}\nArchivo: ${fileName}\nID: ${result.fileId || 'N/A'}`);
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || 'Error al subir el archivo');
+      }
+      
+    } catch (error) {
+      console.error('Error uploading to Drive:', error);
+      alert(`Error al subir a Google Drive: ${error.message}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDownload = () => {
+    const htmlContent = generateHtmlContent();
+    setHtmlContent(htmlContent); // Guardar para uso posterior
+    
     // Crear el blob y descargar
     const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -1629,7 +1715,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
           })()}
         </div>
 
-        {/* Botón de descarga y regresar */}
+        {/* Botones de descarga y subir a Drive */}
         <div className="flex justify-center space-x-4">
           <button
             onClick={handleDownload}
@@ -1637,6 +1723,19 @@ const PedidoForm = ({ onReturnToMenu }) => {
           >
             Generar Orden de Pedido
           </button>
+          
+          <button
+            onClick={handleUploadToDrive}
+            disabled={isUploading}
+            className={`font-bold text-lg py-3 px-8 rounded-full shadow-lg transition duration-300 transform hover:scale-105 ${
+              isUploading 
+                ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            {isUploading ? 'Subiendo...' : 'Subir a Drive'}
+          </button>
+          
           <button
             onClick={onReturnToMenu}
             className="bg-gray-500 text-white font-bold text-lg py-3 px-8 rounded-full shadow-lg hover:bg-gray-600 transition duration-300 transform hover:scale-105"

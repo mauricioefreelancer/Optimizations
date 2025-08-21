@@ -6,11 +6,38 @@ import json
 import os
 import requests
 import re
+# Activamos las importaciones de Google Drive
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
+from google.auth.transport.requests import Request
+import tempfile
+from datetime import datetime
 
 # Inicializa la aplicación Flask
 app = Flask(__name__)
 # Habilita CORS para permitir solicitudes desde el frontend
 CORS(app)
+
+# Configuración de Google Drive
+GOOGLE_CLIENT_ID = "1078133780101-q8dmq8l054uoguf4g7b8mltki0qtgb56.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET = "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"
+GOOGLE_REDIRECT_URI = "http://localhost:5000/callback"
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
+
+# Mapeo de zonas a carpetas específicas de Google Drive
+ZONE_FOLDER_MAPPING = {
+    "Soacha": "13tmRQBn3gA9cw37bdg47OAjg-MhaM0rv",
+    "Suba": "1uqfklUp5qddn5eKDfqPCfJbIiyPmcAor", 
+    "Engativa": "1Ro-QkNgezvGRngLH9ALvyIDBiYIroDiz",
+    "Usme": "1Isr1JaNtfZUR9Cf7t0BRn1ssaigz641-",
+    "Ciudad Bolivar": "1jnM2SpW9avRLUD0VHhNK3bl3JRjpH5i8",
+    "Kennedy": "1pNweDshOpW6B1ZZXCY5HnItH7ScEnVlP",
+    "Fontibon": "14uzyTwVy1codpnqbUEYoRLvx6xtCHavZ",
+    "Costa Atlantica": "1KCguGNzgqg_rb4VOkqBYxLIYtiMsQ1Rn",
+    "Oficina": "14h87NczLeUH-wm9F9lI9ehmZ1EZP0W8f"
+}
 
 # Variable global para almacenar los datos del archivo Excel en memoria.
 # Nota: En una aplicación de producción, sería mejor usar una base de datos o un sistema
@@ -213,8 +240,133 @@ def ask_question():
         print(f"Error al procesar la pregunta: {e}")
         return jsonify({"error": f"Error interno: {str(e)}"}), 500
 
+@app.route('/upload-to-drive', methods=['POST'])
+def upload_to_drive():
+    """Sube archivos directamente a Google Drive en carpetas específicas por zona."""
+    try:
+        data = request.get_json()
+        
+        # Validar datos requeridos
+        required_fields = ['htmlContent', 'filename', 'zone', 'clientInfo']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Campo requerido faltante: {field}"}), 400
+        
+        html_content = data['htmlContent']
+        filename = data['filename']
+        zone = data['zone']
+        client_info = data['clientInfo']
+        
+        # Verificar que la zona tenga una carpeta asignada
+        if zone not in ZONE_FOLDER_MAPPING:
+            return jsonify({"error": f"Zona '{zone}' no tiene carpeta asignada"}), 400
+        
+        folder_id = ZONE_FOLDER_MAPPING[zone]
+        
+        # Intentar subir a Google Drive
+        drive_file = upload_file_to_drive(html_content, filename, folder_id)
+        
+        if drive_file:
+            # Éxito - archivo subido a Google Drive
+            print(f"✅ Pedido subido a Google Drive: {drive_file['name']}")
+            print(f"👤 Cliente: {client_info.get('cliente', 'N/A')}")
+            print(f"📍 Zona: {zone}")
+            print(f"🔗 Link: {drive_file.get('webViewLink', 'N/A')}")
+            
+            return jsonify({
+                "success": True,
+                "message": f"Pedido subido exitosamente a Google Drive - Zona {zone}",
+                "filename": filename,
+                "zone": zone,
+                "fileId": drive_file['id'],
+                "webViewLink": drive_file.get('webViewLink'),
+                "client": client_info.get('cliente', 'N/A')
+            }), 200
+        else:
+            # Fallback - guardar localmente si falla Google Drive
+            zone_folder = f"pedidos_{zone.lower().replace(' ', '_')}"
+            if not os.path.exists(zone_folder):
+                os.makedirs(zone_folder)
+            
+            file_path = os.path.join(zone_folder, filename)
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+            
+            print(f"⚠️ Guardado localmente (Google Drive falló): {file_path}")
+            
+            return jsonify({
+                "success": True,
+                "message": f"Pedido guardado localmente - Zona {zone} (Google Drive no disponible)",
+                "filename": filename,
+                "zone": zone,
+                "local_path": file_path,
+                "client": client_info.get('cliente', 'N/A')
+            }), 200
+        
+    except Exception as e:
+        print(f"❌ Error al procesar pedido: {e}")
+        return jsonify({"error": f"Error al procesar pedido: {str(e)}"}), 500
+
+# Configuración de Google Drive para producción
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', "1078133780101-q8dmq8l054uoguf4g7b8mltki0qtgb56.apps.googleusercontent.com")
+GOOGLE_PRIVATE_KEY_ID = os.getenv('GOOGLE_PRIVATE_KEY_ID', "")
+GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI', "https://optimizations-c6pm.onrender.com/oauth2callback")
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
+
+def get_google_drive_service():
+    """Obtiene el servicio de Google Drive autenticado para producción."""
+    try:
+        # Usar credenciales de cuenta de servicio desde variables de entorno
+        credentials_json = os.getenv('GOOGLE_APPLICATION_CREDENTIALS_JSON')
+        
+        if credentials_json:
+            # Producción: usar service account desde variable de entorno
+            credentials_info = json.loads(credentials_json)
+            credentials = service_account.Credentials.from_service_account_info(
+                credentials_info,
+                scopes=SCOPES
+            )
+            service = build('drive', 'v3', credentials=credentials)
+            print("✅ Google Drive autenticado con service account")
+            return service
+        else:
+            # Desarrollo: fallback local
+            print("⚠️ No se encontraron credenciales de Google Drive, usando fallback local")
+            return None
+            
+    except Exception as e:
+        print(f"❌ Error al autenticar con Google Drive: {e}")
+        return None
+
+def upload_file_to_drive(file_content, filename, folder_id):
+    """Sube un archivo a una carpeta específica de Google Drive."""
+    try:
+        service = get_google_drive_service()
+        if not service:
+            return None
+            
+        # Crear metadata del archivo
+        file_metadata = {
+            'name': filename,
+            'parents': [folder_id]
+        }
+        
+        # Crear el archivo en memoria
+        file_stream = io.BytesIO(file_content.encode('utf-8'))
+        media = MediaIoBaseUpload(file_stream, mimetype='text/html')
+        
+        # Subir archivo
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id,name,webViewLink'
+        ).execute()
+        
+        return file
+    except Exception as e:
+        print(f"Error al subir archivo a Drive: {e}")
+        return None
+
 if __name__ == '__main__':
-    # El servicio de hosting proporcionará el puerto a través de una variable de entorno 'PORT'
     port = int(os.environ.get("PORT", 5000))
-    # host='0.0.0.0' para que el servidor escuche conexiones desde cualquier IP externa
     app.run(debug=True, host='0.0.0.0', port=port)
