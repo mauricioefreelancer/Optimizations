@@ -627,5 +627,5 @@ def get_google_drive_service_oauth(access_token):
         return None
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 10000))  # Cambiado de 5000 a 10000 para Render
     app.run(debug=True, host='0.0.0.0', port=port)
