@@ -18,7 +18,11 @@ from datetime import datetime
 # Inicializa la aplicación Flask
 app = Flask(__name__)
 # Habilita CORS para permitir solicitudes desde el frontend
-CORS(app)
+CORS(app, origins=[
+    "https://naturalcolorsopti.netlify.app",
+    "http://localhost:3000",
+    "*"  # Para desarrollo, remover en producción
+])
 
 # Configuración de Google Drive
 GOOGLE_CLIENT_ID = "1078133780101-q8dmq8l054uoguf4g7b8mltki0qtgb56.apps.googleusercontent.com"
