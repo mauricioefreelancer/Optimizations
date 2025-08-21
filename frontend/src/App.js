@@ -1140,6 +1140,64 @@ const PedidoForm = ({ onReturnToMenu }) => {
     return htmlContent;
   };
 
+  // Función para autenticar con Google
+  const authenticateWithGoogle = async () => {
+    try {
+      console.log('🔐 Iniciando autenticación OAuth2...');
+      
+      const response = await fetch(`${API_BASE_URL}/auth/google`);
+      const data = await response.json();
+      
+      if (data.auth_url) {
+        // Abrir ventana de autenticación
+        const authWindow = window.open(
+          data.auth_url, 
+          'google-auth', 
+          'width=500,height=600,scrollbars=yes,resizable=yes'
+        );
+        
+        // Esperar a que se complete la autenticación
+        return new Promise((resolve, reject) => {
+          const checkClosed = setInterval(() => {
+            try {
+              // Verificar si la ventana se cerró
+              if (authWindow.closed) {
+                clearInterval(checkClosed);
+                
+                // Simular obtención del token (en producción, esto vendría del callback)
+                // Por ahora, pediremos al usuario que pegue el token
+                const token = prompt('Por favor, pega el access_token que obtuviste de la autenticación:');
+                
+                if (token) {
+                  console.log('✅ Token OAuth2 obtenido');
+                  resolve(token);
+                } else {
+                  reject(new Error('No se proporcionó el token'));
+                }
+              }
+            } catch (error) {
+              // Error de acceso cross-origin es normal
+            }
+          }, 1000);
+          
+          // Timeout después de 5 minutos
+          setTimeout(() => {
+            clearInterval(checkClosed);
+            if (!authWindow.closed) {
+              authWindow.close();
+            }
+            reject(new Error('Timeout de autenticación'));
+          }, 300000);
+        });
+      } else {
+        throw new Error('No se pudo obtener URL de autenticación');
+      }
+    } catch (error) {
+      console.error('❌ Error en autenticación:', error);
+      throw error;
+    }
+  };
+
   // Función para subir a Google Drive
   const handleUploadToDrive = async () => {
     const validationErrors = validateForDrive();
@@ -1157,6 +1215,15 @@ const PedidoForm = ({ onReturnToMenu }) => {
     setIsUploading(true);
     
     try {
+      console.log('🚀 Iniciando proceso de subida OAuth2...');
+      
+      // Primero autenticar con Google y obtener token
+      const accessToken = await authenticateWithGoogle();
+      
+      if (!accessToken) {
+        throw new Error('No se pudo obtener el token de acceso');
+      }
+      
       // Generar el contenido HTML
       const htmlContent = generateHtmlContent();
       setHtmlContent(htmlContent);
@@ -1164,11 +1231,12 @@ const PedidoForm = ({ onReturnToMenu }) => {
       // Crear nombre del archivo con fecha y cliente
       const fileName = `Pedido_${clientInfo.cliente.replace(/\s+/g, '_')}_${clientInfo.fecha}_${Date.now()}.html`;
       
-      // Datos para enviar al backend
+      // Datos para enviar al backend (usando el nuevo endpoint OAuth2)
       const uploadData = {
         htmlContent: htmlContent,
         filename: fileName,
         zone: clientInfo.zone,
+        access_token: accessToken,
         clientInfo: {
           cliente: clientInfo.cliente,
           nit: clientInfo.nit,
@@ -1184,8 +1252,10 @@ const PedidoForm = ({ onReturnToMenu }) => {
         }
       };
       
-      // Llamada al backend
-      const response = await fetch(`${API_BASE_URL}/upload-to-drive`, {
+      console.log('📤 Enviando archivo con OAuth2...');
+      
+      // Llamada al nuevo endpoint OAuth2
+      const response = await fetch(`${API_BASE_URL}/upload-to-drive-oauth`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1195,14 +1265,14 @@ const PedidoForm = ({ onReturnToMenu }) => {
       
       if (response.ok) {
         const result = await response.json();
-        alert(`¡Pedido subido exitosamente a Google Drive!\n\nCarpeta: ${clientInfo.zone}\nArchivo: ${fileName}\nID: ${result.fileId || 'N/A'}`);
+        alert(`¡Pedido subido exitosamente a Google Drive con OAuth2!\n\nCarpeta: ${clientInfo.zone}\nArchivo: ${fileName}\nID: ${result.fileId || 'N/A'}\nMétodo: ${result.method || 'OAuth2'}`);
       } else {
         const error = await response.json();
-        throw new Error(error.message || 'Error al subir el archivo');
+        throw new Error(error.error || 'Error al subir el archivo');
       }
       
     } catch (error) {
-      console.error('Error uploading to Drive:', error);
+      console.error('❌ Error uploading to Drive:', error);
       alert(`Error al subir a Google Drive: ${error.message}`);
     } finally {
       setIsUploading(false);
