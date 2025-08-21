@@ -28,7 +28,7 @@ const SELLERS = [
 ];
 
 // Datos de productos consolidados de los archivos CSV.
-const PRODUCT_DATA = {
+const PRODUCT_DATA = { 
   // Grupos de productos
   groups: [
     "FRASCO SHAMPOO COLOR PROTECT TONO SOBRE TONO",
@@ -161,7 +161,7 @@ const PRODUCT_DATA = {
       },
       {
         cod: "NC59",
-        description: "LACA SUAVE X 160ML (Rosada)",
+        description: "LACA SUAVE X 160ML (Rosada )",
         unitPrice: 11600,
       },
       {
