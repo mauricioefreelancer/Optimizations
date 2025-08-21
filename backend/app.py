@@ -21,8 +21,8 @@ app = Flask(__name__)
 # Habilita CORS para permitir solicitudes desde el frontend
 CORS(app, origins=[
     "https://naturalcolorsopti.netlify.app",
-    "http://localhost:3000",
-    "*"  # Para desarrollo, remover en producción
+    "https://localhost:3000",
+    # "*"  # Comentado para producción
 ])
 
 # Configuración de Google Drive
