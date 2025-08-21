@@ -1140,10 +1140,10 @@ const PedidoForm = ({ onReturnToMenu }) => {
     return htmlContent;
   };
 
-  // Función para autenticar con Google
+  // Función para autenticar con Google (AUTOMATIZADA)
   const authenticateWithGoogle = async () => {
     try {
-      console.log('🔐 Iniciando autenticación OAuth2...');
+      console.log('🔐 Iniciando autenticación OAuth2 automatizada...');
       
       const response = await fetch(`${API_BASE_URL}/auth/google`);
       const data = await response.json();
@@ -1156,33 +1156,44 @@ const PedidoForm = ({ onReturnToMenu }) => {
           'width=500,height=600,scrollbars=yes,resizable=yes'
         );
         
-        // Esperar a que se complete la autenticación
+        // Automatizar captura del token
         return new Promise((resolve, reject) => {
+          // Escuchar mensajes de la ventana de autenticación
+          const messageListener = (event) => {
+            // Verificar origen por seguridad
+            if (event.origin !== window.location.origin && 
+                !event.origin.includes('optimizations-c6pm.onrender.com')) {
+              return;
+            }
+            
+            if (event.data.type === 'OAUTH_SUCCESS' && event.data.access_token) {
+              console.log('✅ Token OAuth2 obtenido automáticamente');
+              window.removeEventListener('message', messageListener);
+              authWindow.close();
+              resolve(event.data.access_token);
+            } else if (event.data.type === 'OAUTH_ERROR') {
+              console.error('❌ Error en OAuth2:', event.data.error);
+              window.removeEventListener('message', messageListener);
+              authWindow.close();
+              reject(new Error(event.data.error || 'Error en autenticación'));
+            }
+          };
+          
+          window.addEventListener('message', messageListener);
+          
+          // Verificar si la ventana se cerró sin completar autenticación
           const checkClosed = setInterval(() => {
-            try {
-              // Verificar si la ventana se cerró
-              if (authWindow.closed) {
-                clearInterval(checkClosed);
-                
-                // Simular obtención del token (en producción, esto vendría del callback)
-                // Por ahora, pediremos al usuario que pegue el token
-                const token = prompt('Por favor, pega el access_token que obtuviste de la autenticación:');
-                
-                if (token) {
-                  console.log('✅ Token OAuth2 obtenido');
-                  resolve(token);
-                } else {
-                  reject(new Error('No se proporcionó el token'));
-                }
-              }
-            } catch (error) {
-              // Error de acceso cross-origin es normal
+            if (authWindow.closed) {
+              clearInterval(checkClosed);
+              window.removeEventListener('message', messageListener);
+              reject(new Error('Autenticación cancelada por el usuario'));
             }
           }, 1000);
           
-          // Timeout después de 5 minutos
+          // Timeout de seguridad (5 minutos)
           setTimeout(() => {
             clearInterval(checkClosed);
+            window.removeEventListener('message', messageListener);
             if (!authWindow.closed) {
               authWindow.close();
             }

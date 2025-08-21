@@ -428,7 +428,7 @@ def google_auth():
 
 @app.route('/auth/callback')
 def oauth_callback():
-    """Maneja el callback de OAuth2."""
+    """Maneja el callback de OAuth2 y envía el token a la ventana padre."""
     try:
         flow = Flow.from_client_config(
             {
@@ -447,17 +447,56 @@ def oauth_callback():
         # Obtener el token de acceso
         flow.fetch_token(authorization_response=request.url)
         
-        # Guardar credenciales (en producción, usar base de datos)
+        # Guardar credenciales
         credentials = flow.credentials
         
-        return jsonify({
-            "success": True,
-            "message": "Autenticación exitosa",
-            "access_token": credentials.token
-        })
+        # Retornar HTML que envía el token a la ventana padre
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Autenticación Exitosa</title>
+        </head>
+        <body>
+            <h2>✅ Autenticación exitosa</h2>
+            <p>Cerrando ventana...</p>
+            <script>
+                // Enviar token a la ventana padre
+                if (window.opener) {{
+                    window.opener.postMessage({{
+                        type: 'OAUTH_SUCCESS',
+                        access_token: '{credentials.token}'
+                    }}, '*');
+                }}
+                // Cerrar ventana automáticamente
+                setTimeout(() => window.close(), 1000);
+            </script>
+        </body>
+        </html>
+        '''
         
     except Exception as e:
-        return jsonify({"error": f"Error en autenticación: {str(e)}"}), 500
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Error de Autenticación</title>
+        </head>
+        <body>
+            <h2>❌ Error en autenticación</h2>
+            <p>Error: {str(e)}</p>
+            <script>
+                if (window.opener) {{
+                    window.opener.postMessage({{
+                        type: 'OAUTH_ERROR',
+                        error: '{str(e)}'
+                    }}, '*');
+                }}
+                setTimeout(() => window.close(), 3000);
+            </script>
+        </body>
+        </html>
+        '''
 
 # Reemplazar la función get_google_drive_service_oauth (línea 462)
 def get_google_drive_service_oauth(access_token):
