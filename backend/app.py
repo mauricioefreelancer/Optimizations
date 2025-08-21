@@ -8,6 +8,7 @@ import requests
 import re
 # Activamos las importaciones de Google Drive
 from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account  # ← AGREGAR ESTA LÍNEA
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
