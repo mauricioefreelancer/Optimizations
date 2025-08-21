@@ -320,12 +320,21 @@ SCOPES = ['https://www.googleapis.com/auth/drive.file']
 def get_google_drive_service():
     """Obtiene el servicio de Google Drive autenticado para producción."""
     try:
-        # Usar credenciales de cuenta de servicio desde variables de entorno
+        # Verificar variables de entorno
         credentials_json = os.getenv('GOOGLE_APPLICATION_CREDENTIALS_JSON')
+        client_id = os.getenv('GOOGLE_CLIENT_ID')
+        private_key_id = os.getenv('GOOGLE_PRIVATE_KEY_ID')
+        
+        print(f"🔍 Verificando credenciales:")
+        print(f"   - CLIENT_ID: {'✅ Configurado' if client_id else '❌ Faltante'}")
+        print(f"   - PRIVATE_KEY_ID: {'✅ Configurado' if private_key_id else '❌ Faltante'}")
+        print(f"   - CREDENTIALS_JSON: {'✅ Configurado' if credentials_json else '❌ Faltante'}")
         
         if credentials_json:
             # Producción: usar service account desde variable de entorno
             credentials_info = json.loads(credentials_json)
+            print(f"📧 Service Account Email: {credentials_info.get('client_email', 'N/A')}")
+            
             credentials = service_account.Credentials.from_service_account_info(
                 credentials_info,
                 scopes=SCOPES
@@ -338,15 +347,23 @@ def get_google_drive_service():
             print("⚠️ No se encontraron credenciales de Google Drive, usando fallback local")
             return None
             
+    except json.JSONDecodeError as e:
+        print(f"❌ Error al parsear JSON de credenciales: {e}")
+        return None
     except Exception as e:
         print(f"❌ Error al autenticar con Google Drive: {e}")
+        print(f"❌ Tipo de error: {type(e).__name__}")
         return None
 
 def upload_file_to_drive(file_content, filename, folder_id):
     """Sube un archivo a una carpeta específica de Google Drive."""
     try:
+        print(f"🚀 Intentando subir archivo: {filename}")
+        print(f"📁 Carpeta destino: {folder_id}")
+        
         service = get_google_drive_service()
         if not service:
+            print("❌ No se pudo obtener servicio de Google Drive")
             return None
             
         # Crear metadata del archivo
@@ -355,20 +372,29 @@ def upload_file_to_drive(file_content, filename, folder_id):
             'parents': [folder_id]
         }
         
+        print(f"📄 Metadata del archivo: {file_metadata}")
+        
         # Crear el archivo en memoria
         file_stream = io.BytesIO(file_content.encode('utf-8'))
         media = MediaIoBaseUpload(file_stream, mimetype='text/html')
         
         # Subir archivo
+        print("⬆️ Subiendo archivo a Google Drive...")
         file = service.files().create(
             body=file_metadata,
             media_body=media,
             fields='id,name,webViewLink'
         ).execute()
         
+        print(f"✅ Archivo subido exitosamente: {file}")
         return file
+        
     except Exception as e:
-        print(f"Error al subir archivo a Drive: {e}")
+        print(f"❌ Error detallado al subir archivo a Drive:")
+        print(f"   - Error: {e}")
+        print(f"   - Tipo: {type(e).__name__}")
+        print(f"   - Archivo: {filename}")
+        print(f"   - Carpeta: {folder_id}")
         return None
 
 if __name__ == '__main__':
