@@ -6,6 +6,8 @@ import json
 import os
 import requests
 import re
+# Importaciones de WeasyPrint para conversión HTML a PDF
+from weasyprint import HTML, CSS
 # Activamos las importaciones de Google Drive
 from google.oauth2.credentials import Credentials
 from google.oauth2 import service_account
