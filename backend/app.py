@@ -29,7 +29,11 @@ CORS(app, origins=[
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
 GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI')
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
+# Línea 32 - Ampliar los scopes para tener acceso completo a Drive
+SCOPES = [
+    'https://www.googleapis.com/auth/drive.file',
+    'https://www.googleapis.com/auth/drive'  # Acceso completo a Google Drive
+]
 
 # Mapeo de zonas a carpetas específicas de Google Drive
 ZONE_FOLDER_MAPPING = {
@@ -446,7 +450,7 @@ def oauth_callback():
 
 @app.route('/upload-to-drive-oauth', methods=['POST'])
 def upload_to_drive_oauth():
-    """Sube archivos a Google Drive usando OAuth2."""
+    """Sube archivos a Google Drive usando OAuth2 con manejo mejorado de errores."""
     try:
         data = request.get_json()
         
@@ -459,19 +463,21 @@ def upload_to_drive_oauth():
         filename = data['filename']
         zone = data['zone']
         client_info = data['clientInfo']
-        access_token = data['access_token']  # Cambiado de 'accessToken' a 'access_token'
+        access_token = data['access_token']
+        
+        print(f"🔄 Procesando pedido OAuth2 para zona: {zone}")
+        print(f"👤 Cliente: {client_info.get('cliente', 'N/A')}")
         
         if zone not in ZONE_FOLDER_MAPPING:
             return jsonify({"error": f"Zona '{zone}' no tiene carpeta asignada"}), 400
         
         folder_id = ZONE_FOLDER_MAPPING[zone]
+        print(f"📁 ID de carpeta para {zone}: {folder_id}")
         
         drive_file = upload_file_to_drive_oauth(html_content, filename, folder_id, access_token)
         
         if drive_file:
             print(f"✅ Pedido subido a Google Drive (OAuth): {drive_file['name']}")
-            print(f"👤 Cliente: {client_info.get('cliente', 'N/A')}")
-            print(f"📍 Zona: {zone}")
             
             return jsonify({
                 "success": True,
@@ -480,9 +486,13 @@ def upload_to_drive_oauth():
                 "zone": zone,
                 "fileId": drive_file['id'],
                 "webViewLink": drive_file.get('webViewLink'),
-                "client": client_info.get('cliente', 'N/A')
+                "client": client_info.get('cliente', 'N/A'),
+                "folder_id": folder_id
             }), 200
         else:
+            print(f"❌ Fallo la subida a Google Drive, guardando localmente...")
+            
+            # Guardar localmente como fallback
             zone_folder = f"pedidos_{zone.lower().replace(' ', '_')}"
             if not os.path.exists(zone_folder):
                 os.makedirs(zone_folder)
@@ -493,11 +503,12 @@ def upload_to_drive_oauth():
             
             return jsonify({
                 "success": True,
-                "message": f"Pedido guardado localmente - Zona {zone} (Google Drive no disponible)",
+                "message": f"Pedido guardado localmente - Zona {zone} (Error en Google Drive)",
                 "filename": filename,
                 "zone": zone,
                 "local_path": file_path,
-                "client": client_info.get('cliente', 'N/A')
+                "client": client_info.get('cliente', 'N/A'),
+                "warning": "Google Drive no disponible - revisar permisos OAuth2"
             }), 200
         
     except Exception as e:
@@ -505,8 +516,12 @@ def upload_to_drive_oauth():
         return jsonify({"error": f"Error al procesar pedido: {str(e)}"}), 500
 
 def get_google_drive_service_oauth(access_token):
-    """Obtiene el servicio de Google Drive usando OAuth2."""
+    """Obtiene el servicio de Google Drive usando OAuth2 con validación mejorada."""
     try:
+        print(f"🔄 Creando servicio OAuth2...")
+        print(f"🔑 Client ID: {GOOGLE_CLIENT_ID[:20]}...")
+        print(f"🔑 Token: {access_token[:20]}...")
+        
         credentials = Credentials(
             token=access_token,
             token_uri="https://oauth2.googleapis.com/token",
@@ -515,21 +530,54 @@ def get_google_drive_service_oauth(access_token):
             scopes=SCOPES
         )
         
+        # Verificar que las credenciales sean válidas
+        if not credentials.valid:
+            print("⚠️ Credenciales no válidas, intentando refrescar...")
+            if credentials.expired and credentials.refresh_token:
+                credentials.refresh(Request())
+                print("✅ Token refrescado exitosamente")
+            else:
+                print("❌ No se puede refrescar el token")
+                return None
+        
         service = build('drive', 'v3', credentials=credentials)
-        print(f"✅ Servicio OAuth2 creado exitosamente")
+        
+        # Probar el servicio con una consulta simple
+        try:
+            about = service.about().get(fields='user').execute()
+            user_email = about.get('user', {}).get('emailAddress', 'Desconocido')
+            print(f"✅ Servicio OAuth2 creado exitosamente para: {user_email}")
+        except Exception as test_error:
+            print(f"⚠️ Servicio creado pero con advertencias: {test_error}")
+        
         return service
         
     except Exception as e:
         print(f"❌ Error al crear servicio OAuth2: {e}")
+        print(f"❌ Tipo de error: {type(e).__name__}")
         return None
 
 def upload_file_to_drive_oauth(file_content, filename, folder_id, access_token):
-    """Sube un archivo a Google Drive usando OAuth2."""
+    """Sube un archivo a Google Drive usando OAuth2 con manejo mejorado de permisos."""
     try:
+        print(f"🔄 Iniciando subida OAuth2: {filename}")
+        print(f"📁 Carpeta destino: {folder_id}")
+        print(f"🔑 Token recibido: {access_token[:20]}...")
+        
         service = get_google_drive_service_oauth(access_token)
         if not service:
+            print("❌ No se pudo crear el servicio de Google Drive")
             return None
-            
+        
+        # Verificar permisos de la carpeta primero
+        try:
+            folder_info = service.files().get(fileId=folder_id, fields='id,name,permissions').execute()
+            print(f"✅ Carpeta encontrada: {folder_info.get('name', 'Sin nombre')}")
+        except Exception as folder_check_error:
+            print(f"⚠️ No se puede acceder a la carpeta: {folder_check_error}")
+            # Continuar con el intento de subida
+        
+        # Intentar crear el archivo en la carpeta específica
         file_metadata = {
             'name': filename,
             'parents': [folder_id]
@@ -538,16 +586,33 @@ def upload_file_to_drive_oauth(file_content, filename, folder_id, access_token):
         file_stream = io.BytesIO(file_content.encode('utf-8'))
         media = MediaIoBaseUpload(file_stream, mimetype='text/html')
         
+        print(f"📤 Subiendo archivo a carpeta específica...")
         file = service.files().create(
             body=file_metadata,
             media_body=media,
-            fields='id,name,webViewLink'
+            fields='id,name,webViewLink,parents'
         ).execute()
         
+        print(f"✅ Archivo subido exitosamente: {file['id']}")
+        print(f"🔗 Link: {file.get('webViewLink', 'No disponible')}")
         return file
         
     except Exception as e:
-        print(f"❌ Error al subir archivo OAuth: {e}")
+        error_msg = str(e)
+        print(f"❌ Error detallado al subir archivo OAuth: {error_msg}")
+        print(f"❌ Tipo de error: {type(e).__name__}")
+        
+        # Análisis específico del error
+        if "insufficientParentPermissions" in error_msg:
+            print("🔍 Diagnóstico: La aplicación OAuth2 no tiene permisos para escribir en esta carpeta")
+            print("💡 Solución: Compartir la carpeta con el Client ID de OAuth2")
+        elif "403" in error_msg:
+            print("🔍 Diagnóstico: Error de permisos 403")
+            print("💡 Verificar que los scopes incluyan 'https://www.googleapis.com/auth/drive'")
+        elif "401" in error_msg:
+            print("🔍 Diagnóstico: Token de acceso inválido o expirado")
+            print("💡 Solicitar nueva autenticación")
+        
         return None
 
 def validateForDrive(data):
