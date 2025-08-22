@@ -768,7 +768,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(debug=True, host='0.0.0.0', port=port)
 
-# MANTENER las funciones con timeout (líneas 670-800)
+# FUNCIONES DE TIMEOUT - MOVER AQUÍ AL INICIO
 def timeout_handler(signum, frame):
     raise TimeoutError("Operación timeout")
 
@@ -788,6 +788,7 @@ def with_timeout(seconds):
                 print(f"⏰ Timeout en {func.__name__} después de {seconds} segundos")
                 return None
             finally:
+                # Cancelar alarma
                 if hasattr(signal, 'SIGALRM'):
                     signal.alarm(0)
         return wrapper
