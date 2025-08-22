@@ -15,6 +15,8 @@ from googleapiclient.http import MediaIoBaseUpload
 from google.auth.transport.requests import Request
 import tempfile
 from datetime import datetime
+import signal
+from functools import wraps
 
 # Inicializa la aplicación Flask
 app = Flask(__name__)
@@ -536,7 +538,7 @@ def upload_to_drive_oauth():
         return jsonify({"error": f"Error al procesar pedido: {str(e)}"}), 500
 
 def get_google_drive_service_oauth(access_token):
-    """Obtiene el servicio de Google Drive usando OAuth2 con validación mejorada."""
+    """Obtiene el servicio de Google Drive usando OAuth2 con timeout."""
     try:
         print(f"🔄 Creando servicio OAuth2...")
         print(f"🔑 Client ID: {GOOGLE_CLIENT_ID[:20]}...")
@@ -663,3 +665,136 @@ def validateForDrive(data):
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(debug=True, host='0.0.0.0', port=port)
+
+# Agregar al inicio del archivo después de los imports
+def timeout_handler(signum, frame):
+    raise TimeoutError("Operación timeout")
+
+def with_timeout(seconds):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Configurar timeout solo en sistemas Unix-like
+            if hasattr(signal, 'SIGALRM'):
+                signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(seconds)
+            
+            try:
+                result = func(*args, **kwargs)
+                return result
+            except TimeoutError:
+                print(f"⏰ Timeout en {func.__name__} después de {seconds} segundos")
+                return None
+            finally:
+                if hasattr(signal, 'SIGALRM'):
+                    signal.alarm(0)
+        return wrapper
+    return decorator
+
+# Modificar get_google_drive_service_oauth
+@with_timeout(15)  # 15 segundos timeout
+def get_google_drive_service_oauth(access_token):
+    """Obtiene el servicio de Google Drive usando OAuth2 con timeout."""
+    try:
+        print(f"🔄 Creando servicio OAuth2...")
+        print(f"🔑 Client ID: {GOOGLE_CLIENT_ID[:20] if GOOGLE_CLIENT_ID else 'No configurado'}...")
+        print(f"🔑 Token: {access_token[:20] if access_token else 'No token'}...")
+        
+        if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+            print("❌ Variables de entorno OAuth2 no configuradas")
+            return None
+            
+        if not access_token:
+            print("❌ Token de acceso no proporcionado")
+            return None
+        
+        credentials = Credentials(
+            token=access_token,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=GOOGLE_CLIENT_ID,
+            client_secret=GOOGLE_CLIENT_SECRET,
+            scopes=SCOPES
+        )
+        
+        # Verificar que las credenciales sean válidas
+        if not credentials.valid:
+            print("⚠️ Credenciales no válidas")
+            return None
+        
+        # Crear servicio con timeout
+        service = build('drive', 'v3', credentials=credentials, cache_discovery=False)
+        
+        # Probar el servicio con timeout reducido
+        try:
+            about = service.about().get(fields='user').execute()
+            user_email = about.get('user', {}).get('emailAddress', 'Desconocido')
+            print(f"✅ Servicio OAuth2 creado exitosamente para: {user_email}")
+            return service
+        except Exception as test_error:
+            print(f"⚠️ Error al probar servicio: {test_error}")
+            return None
+        
+    except Exception as e:
+        print(f"❌ Error al crear servicio OAuth2: {e}")
+        print(f"❌ Tipo de error: {type(e).__name__}")
+        return None
+
+# Modificar upload_file_to_drive_oauth
+@with_timeout(30)  # 30 segundos timeout
+def upload_file_to_drive_oauth(file_content, filename, folder_id, access_token):
+    """Sube un archivo a Google Drive usando OAuth2 con timeout."""
+    try:
+        print(f"🔄 Iniciando subida OAuth2: {filename}")
+        print(f"📁 Carpeta destino: {folder_id}")
+        
+        service = get_google_drive_service_oauth(access_token)
+        if not service:
+            print("❌ No se pudo crear el servicio de Google Drive")
+            return None
+        
+        # Verificar carpeta con timeout reducido
+        try:
+            folder_info = service.files().get(
+                fileId=folder_id, 
+                fields='id,name'
+            ).execute()
+            print(f"✅ Carpeta encontrada: {folder_info.get('name', 'Sin nombre')}")
+        except Exception as folder_check_error:
+            print(f"⚠️ No se puede acceder a la carpeta: {folder_check_error}")
+            return None
+        
+        # Crear archivo con timeout
+        file_metadata = {
+            'name': filename,
+            'parents': [folder_id]
+        }
+        
+        file_stream = io.BytesIO(file_content.encode('utf-8'))
+        media = MediaIoBaseUpload(file_stream, mimetype='text/html', resumable=False)
+        
+        print(f"📤 Subiendo archivo...")
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id,name,webViewLink'
+        ).execute()
+        
+        print(f"✅ Archivo subido exitosamente: {file['id']}")
+        return file
+        
+    except TimeoutError:
+        print(f"⏰ Timeout al subir archivo OAuth2")
+        return None
+    except Exception as e:
+        error_msg = str(e)
+        print(f"❌ Error al subir archivo OAuth: {error_msg}")
+        
+        # Análisis específico del error
+        if "insufficientParentPermissions" in error_msg or "403" in error_msg:
+            print("🔍 Error de permisos - usando Service Account como respaldo")
+        elif "401" in error_msg:
+            print("🔍 Token inválido - usando Service Account como respaldo")
+        elif "timeout" in error_msg.lower():
+            print("🔍 Timeout de red - usando Service Account como respaldo")
+        
+        return None
