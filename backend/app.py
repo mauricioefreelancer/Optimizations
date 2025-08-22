@@ -450,66 +450,86 @@ def oauth_callback():
 
 @app.route('/upload-to-drive-oauth', methods=['POST'])
 def upload_to_drive_oauth():
-    """Sube archivos a Google Drive usando OAuth2 con manejo mejorado de errores."""
     try:
         data = request.get_json()
         
-        required_fields = ['htmlContent', 'filename', 'zone', 'clientInfo', 'access_token']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({"error": f"Campo requerido faltante: {field}"}), 400
+        # Validación de datos
+        validation_result = validateForDrive(data)
+        if not validation_result["valid"]:
+            return jsonify({"error": validation_result["message"]}), 400
         
-        html_content = data['htmlContent']
-        filename = data['filename']
-        zone = data['zone']
-        client_info = data['clientInfo']
-        access_token = data['access_token']
+        access_token = data.get('access_token')
+        html_content = data.get('html_content')
+        zone = data.get('zone')
+        client_info = data.get('client_info', {})
         
-        print(f"🔄 Procesando pedido OAuth2 para zona: {zone}")
-        print(f"👤 Cliente: {client_info.get('cliente', 'N/A')}")
+        if not access_token or not html_content or not zone:
+            return jsonify({"error": "Faltan datos requeridos"}), 400
         
-        if zone not in ZONE_FOLDER_MAPPING:
-            return jsonify({"error": f"Zona '{zone}' no tiene carpeta asignada"}), 400
+        folder_id = ZONE_FOLDER_MAPPING.get(zone)
+        if not folder_id:
+            return jsonify({"error": f"Zona '{zone}' no configurada"}), 400
         
-        folder_id = ZONE_FOLDER_MAPPING[zone]
-        print(f"📁 ID de carpeta para {zone}: {folder_id}")
+        timestamp = int(datetime.now().timestamp() * 1000)
+        filename = f"Pedido__{datetime.now().strftime('%Y-%m-%d')}_{timestamp}.html"
         
-        drive_file = upload_file_to_drive_oauth(html_content, filename, folder_id, access_token)
+        print(f"🔄 Procesando pedido OAuth para zona: {zone}")
+        print(f"📄 Archivo: {filename}")
         
-        if drive_file:
-            print(f"✅ Pedido subido a Google Drive (OAuth): {drive_file['name']}")
-            
+        # PRIMER INTENTO: OAuth2
+        print(f"🔄 Intentando subida con OAuth2...")
+        oauth_result = upload_file_to_drive_oauth(html_content, filename, folder_id, access_token)
+        
+        if oauth_result:
+            print(f"✅ Subida OAuth2 exitosa")
             return jsonify({
                 "success": True,
                 "message": f"Pedido subido exitosamente a Google Drive - Zona {zone}",
                 "filename": filename,
                 "zone": zone,
-                "fileId": drive_file['id'],
-                "webViewLink": drive_file.get('webViewLink'),
+                "file_id": oauth_result['id'],
+                "link": oauth_result.get('webViewLink', ''),
                 "client": client_info.get('cliente', 'N/A'),
-                "folder_id": folder_id
+                "method": "oauth2"
             }), 200
-        else:
-            print(f"❌ Fallo la subida a Google Drive, guardando localmente...")
-            
-            # Guardar localmente como fallback
-            zone_folder = f"pedidos_{zone.lower().replace(' ', '_')}"
-            if not os.path.exists(zone_folder):
-                os.makedirs(zone_folder)
-            
-            file_path = os.path.join(zone_folder, filename)
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-            
+        
+        # SEGUNDO INTENTO: Service Account (respaldo)
+        print(f"⚠️ OAuth2 falló, intentando con Service Account...")
+        service_account_result = upload_file_to_drive(html_content, filename, folder_id)
+        
+        if service_account_result:
+            print(f"✅ Subida con Service Account exitosa")
             return jsonify({
                 "success": True,
-                "message": f"Pedido guardado localmente - Zona {zone} (Error en Google Drive)",
+                "message": f"Pedido subido exitosamente a Google Drive (Service Account) - Zona {zone}",
                 "filename": filename,
                 "zone": zone,
-                "local_path": file_path,
+                "file_id": service_account_result['id'],
+                "link": service_account_result.get('webViewLink', ''),
                 "client": client_info.get('cliente', 'N/A'),
-                "warning": "Google Drive no disponible - revisar permisos OAuth2"
+                "method": "service_account_fallback"
             }), 200
+        
+        # TERCER INTENTO: Guardado local (último respaldo)
+        print(f"❌ Ambos métodos fallaron, guardando localmente...")
+        
+        zone_folder = f"pedidos_{zone.lower().replace(' ', '_')}"
+        if not os.path.exists(zone_folder):
+            os.makedirs(zone_folder)
+        
+        file_path = os.path.join(zone_folder, filename)
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Pedido guardado localmente - Zona {zone} (Google Drive no disponible)",
+            "filename": filename,
+            "zone": zone,
+            "local_path": file_path,
+            "client": client_info.get('cliente', 'N/A'),
+            "method": "local_fallback"
+        }), 200
         
     except Exception as e:
         print(f"❌ Error al procesar pedido OAuth: {e}")
