@@ -1240,7 +1240,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
       setHtmlContent(htmlContent);
       
       // Crear nombre del archivo con fecha y cliente
-      const fileName = `Pedido_${clientInfo.cliente.replace(/\s+/g, '_')}_${clientInfo.fecha}_${Date.now()}.html`;
+      const fileName = `Pedido_${clientInfo.cliente.replace(/\s+/g, '_')}_${clientInfo.fecha}_${Date.now()}.pdf`;
       
       // Datos para enviar al backend (usando el nuevo endpoint OAuth2)
       const uploadData = {

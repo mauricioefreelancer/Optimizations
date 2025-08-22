@@ -452,105 +452,100 @@ def oauth_callback():
 
 @app.route('/upload-to-drive-oauth', methods=['POST'])
 def upload_to_drive_oauth():
+    """Sube archivos a Google Drive usando OAuth2 con conversión a PDF."""
     try:
         data = request.get_json()
         
-        # AGREGAR LOGGING PARA DIAGNÓSTICO
-        print(f"📥 Datos recibidos: {json.dumps(data, indent=2, ensure_ascii=False)}")
+        # Validar campos requeridos
+        required_fields = ['htmlContent', 'filename', 'zone', 'access_token', 'clientInfo']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Campo requerido faltante: {field}"}), 400
         
-        # NORMALIZAR NOMBRES DE CAMPOS ANTES DE LA VALIDACIÓN
-        normalized_data = {
-            'htmlContent': data.get('html_content') or data.get('htmlContent'),
-            'filename': data.get('filename'),
-            'zone': data.get('zone'),
-            'clientInfo': data.get('client_info') or data.get('clientInfo', {})
-        }
+        html_content = data['htmlContent']
+        filename = data['filename']
+        zone = data['zone']
+        access_token = data['access_token']
+        client_info = data['clientInfo']
         
-        print(f"📋 Datos normalizados: {json.dumps(normalized_data, indent=2, ensure_ascii=False)}")
+        print(f"🚀 Procesando pedido OAuth2 para zona: {zone}")
+        print(f"👤 Cliente: {client_info.get('cliente', 'N/A')}")
+        print(f"📧 Correo: {client_info.get('correo', 'No especificado')}")
         
-        # Validación de datos - CORREGIDO
-        is_valid, validation_message = validateForDrive(normalized_data)
-        if not is_valid:
-            print(f"❌ Error de validación: {validation_message}")
-            return jsonify({"error": validation_message}), 400
+        # 🆕 CONVERTIR HTML A PDF
+        print(f"🔄 Convirtiendo HTML a PDF...")
+        pdf_content = convert_html_to_pdf(html_content)
+        if not pdf_content:
+            return jsonify({"error": "Error al convertir HTML a PDF"}), 500
         
-        access_token = data.get('access_token')
-        html_content = normalized_data.get('htmlContent')
-        zone = normalized_data.get('zone')
-        client_info = normalized_data.get('clientInfo', {})
+        # Cambiar extensión del archivo a PDF
+        pdf_filename = filename.replace('.html', '.pdf')
+        print(f"📄 Archivo PDF: {pdf_filename}")
         
-        if not access_token or not html_content or not zone:
-            return jsonify({"error": "Faltan datos requeridos"}), 400
+        # Validar datos para Drive
+        validation_errors = validateForDrive(data)
+        if validation_errors:
+            return jsonify({
+                "error": "Datos inválidos para subir a Drive",
+                "details": validation_errors
+            }), 400
         
-        folder_id = ZONE_FOLDER_MAPPING.get(zone)
-        if not folder_id:
-            return jsonify({"error": f"Zona '{zone}' no configurada"}), 400
+        # Verificar zona válida
+        if zone not in ZONE_FOLDER_MAPPING:
+            return jsonify({"error": f"Zona '{zone}' no tiene carpeta asignada"}), 400
         
-        timestamp = int(datetime.now().timestamp() * 1000)
-        filename = f"Pedido__{datetime.now().strftime('%Y-%m-%d')}_{timestamp}.html"
+        folder_id = ZONE_FOLDER_MAPPING[zone]
         
-        print(f"🔄 Procesando pedido OAuth para zona: {zone}")
-        print(f"📄 Archivo: {filename}")
-        print(f"👤 Cliente: {client_info.get('correo', 'No especificado')}")
+        # Intentar subir con OAuth2
+        print(f"📤 Intentando subida OAuth2...")
+        drive_file = upload_file_to_drive_oauth(pdf_content, pdf_filename, folder_id, access_token)
         
-        # PRIMER INTENTO: OAuth2
-        print(f"🔄 Intentando subida con OAuth2...")
-        oauth_result = upload_file_to_drive_oauth(html_content, filename, folder_id, access_token)
-        
-        if oauth_result:
-            print(f"✅ Subida OAuth2 exitosa")
+        if drive_file:
+            print(f"✅ Pedido PDF subido exitosamente a Google Drive")
+            print(f"🔗 Link: {drive_file.get('webViewLink', 'N/A')}")
+            
             return jsonify({
                 "success": True,
-                "message": f"Pedido subido exitosamente a Google Drive - Zona {zone}",
-                "filename": filename,
+                "message": f"Pedido PDF subido exitosamente a Google Drive - Zona {zone}",
+                "filename": pdf_filename,
                 "zone": zone,
-                "file_id": oauth_result['id'],
-                "link": oauth_result.get('webViewLink', ''),
-                "client": client_info.get('cliente', 'N/A'),
-                "method": "oauth2"
+                "fileId": drive_file['id'],
+                "webViewLink": drive_file.get('webViewLink'),
+                "method": "OAuth2"
             }), 200
-        
-        # SEGUNDO INTENTO: Service Account (respaldo)
-        print(f"⚠️ OAuth2 falló, intentando con Service Account...")
-        service_account_result = upload_file_to_drive(html_content, filename, folder_id)
-        
-        if service_account_result:
-            print(f"✅ Subida con Service Account exitosa")
-            return jsonify({
-                "success": True,
-                "message": f"Pedido subido exitosamente a Google Drive (Service Account) - Zona {zone}",
-                "filename": filename,
-                "zone": zone,
-                "file_id": service_account_result['id'],
-                "link": service_account_result.get('webViewLink', ''),
-                "client": client_info.get('cliente', 'N/A'),
-                "method": "service_account_fallback"
-            }), 200
-        
-        # TERCER INTENTO: Guardado local (último respaldo)
-        print(f"❌ Ambos métodos fallaron, guardando localmente...")
-        
-        zone_folder = f"pedidos_{zone.lower().replace(' ', '_')}"
-        if not os.path.exists(zone_folder):
-            os.makedirs(zone_folder)
-        
-        file_path = os.path.join(zone_folder, filename)
-        with open(file_path, 'w', encoding='utf-8') as f:
-            f.write(html_content)
-        
-        return jsonify({
-            "success": True,
-            "message": f"Pedido guardado localmente - Zona {zone} (Google Drive no disponible)",
-            "filename": filename,
-            "zone": zone,
-            "local_path": file_path,
-            "client": client_info.get('cliente', 'N/A'),
-            "method": "local_fallback"
-        }), 200
+        else:
+            # Fallback a Service Account
+            print(f"⚠️ OAuth2 falló, intentando con Service Account...")
+            drive_file = upload_file_to_drive(pdf_content, pdf_filename, folder_id)
+            
+            if drive_file:
+                print(f"✅ Pedido PDF subido con Service Account")
+                return jsonify({
+                    "success": True,
+                    "message": f"Pedido PDF subido exitosamente a Google Drive - Zona {zone} (Service Account)",
+                    "filename": pdf_filename,
+                    "zone": zone,
+                    "fileId": drive_file['id'],
+                    "webViewLink": drive_file.get('webViewLink'),
+                    "method": "Service Account"
+                }), 200
+            else:
+                # Guardar localmente como último recurso
+                print(f"⚠️ Ambos métodos fallaron, guardando localmente...")
+                local_path = save_html_locally(html_content, pdf_filename, zone)
+                
+                return jsonify({
+                    "success": True,
+                    "message": f"Pedido guardado localmente en {local_path}",
+                    "filename": pdf_filename,
+                    "zone": zone,
+                    "local_path": local_path,
+                    "method": "Local Storage"
+                }), 200
         
     except Exception as e:
-        print(f"❌ Error al procesar pedido OAuth: {e}")
-        return jsonify({"error": f"Error al procesar pedido: {str(e)}"}), 500
+        print(f"❌ Error en upload_to_drive_oauth: {e}")
+        return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
 def get_google_drive_service_oauth(access_token):
     """Obtiene el servicio de Google Drive usando OAuth2 con timeout."""
@@ -594,61 +589,70 @@ def get_google_drive_service_oauth(access_token):
         print(f"❌ Tipo de error: {type(e).__name__}")
         return None
 
+@with_timeout(30)
 def upload_file_to_drive_oauth(file_content, filename, folder_id, access_token):
-    """Sube un archivo a Google Drive usando OAuth2 con manejo mejorado de permisos."""
+    """Sube un archivo a Google Drive usando OAuth2 con soporte para PDF."""
     try:
         print(f"🔄 Iniciando subida OAuth2: {filename}")
         print(f"📁 Carpeta destino: {folder_id}")
-        print(f"🔑 Token recibido: {access_token[:20]}...")
         
         service = get_google_drive_service_oauth(access_token)
         if not service:
             print("❌ No se pudo crear el servicio de Google Drive")
             return None
         
-        # Verificar permisos de la carpeta primero
+        # Verificar carpeta
         try:
-            folder_info = service.files().get(fileId=folder_id, fields='id,name,permissions').execute()
+            folder_info = service.files().get(
+                fileId=folder_id, 
+                fields='id,name'
+            ).execute()
             print(f"✅ Carpeta encontrada: {folder_info.get('name', 'Sin nombre')}")
         except Exception as folder_check_error:
             print(f"⚠️ No se puede acceder a la carpeta: {folder_check_error}")
-            # Continuar con el intento de subida
+            return None
         
-        # Intentar crear el archivo en la carpeta específica
+        # Crear archivo con el tipo MIME correcto
         file_metadata = {
             'name': filename,
             'parents': [folder_id]
         }
         
-        file_stream = io.BytesIO(file_content.encode('utf-8'))
-        media = MediaIoBaseUpload(file_stream, mimetype='text/html')
+        # Determinar el tipo MIME y preparar el contenido
+        if filename.endswith('.pdf'):
+            mimetype = 'application/pdf'
+            # Para PDF, file_content ya son bytes
+            file_stream = io.BytesIO(file_content)
+        else:
+            mimetype = 'text/html'
+            # Para HTML, convertir string a bytes
+            file_stream = io.BytesIO(file_content.encode('utf-8'))
         
-        print(f"📤 Subiendo archivo a carpeta específica...")
+        media = MediaIoBaseUpload(file_stream, mimetype=mimetype, resumable=False)
+        
+        print(f"📤 Subiendo archivo {mimetype}...")
         file = service.files().create(
             body=file_metadata,
             media_body=media,
-            fields='id,name,webViewLink,parents'
+            fields='id,name,webViewLink'
         ).execute()
         
         print(f"✅ Archivo subido exitosamente: {file['id']}")
-        print(f"🔗 Link: {file.get('webViewLink', 'No disponible')}")
         return file
         
+    except TimeoutError:
+        print(f"⏰ Timeout al subir archivo OAuth2")
+        return None
     except Exception as e:
         error_msg = str(e)
-        print(f"❌ Error detallado al subir archivo OAuth: {error_msg}")
-        print(f"❌ Tipo de error: {type(e).__name__}")
+        print(f"❌ Error al subir archivo OAuth: {error_msg}")
         
-        # Análisis específico del error
-        if "insufficientParentPermissions" in error_msg:
-            print("🔍 Diagnóstico: La aplicación OAuth2 no tiene permisos para escribir en esta carpeta")
-            print("💡 Solución: Compartir la carpeta con el Client ID de OAuth2")
-        elif "403" in error_msg:
-            print("🔍 Diagnóstico: Error de permisos 403")
-            print("💡 Verificar que los scopes incluyan 'https://www.googleapis.com/auth/drive'")
+        if "insufficientParentPermissions" in error_msg or "403" in error_msg:
+            print("🔍 Error de permisos - usando Service Account como respaldo")
         elif "401" in error_msg:
-            print("🔍 Diagnóstico: Token de acceso inválido o expirado")
-            print("💡 Solicitar nueva autenticación")
+            print("🔍 Token inválido - usando Service Account como respaldo")
+        elif "timeout" in error_msg.lower():
+            print("🔍 Timeout de red - usando Service Account como respaldo")
         
         return None
 
@@ -688,6 +692,75 @@ def validateForDrive(data):
     
     print(f"✅ Validación exitosa para email: {email}")
     return True, "Validación exitosa"
+
+# Nueva función para convertir HTML a PDF
+def convert_html_to_pdf(html_content):
+    """Convierte contenido HTML a PDF usando WeasyPrint."""
+    try:
+        print(f"🔄 Iniciando conversión HTML a PDF...")
+        
+        # Crear CSS básico para mejorar el formato del PDF
+        css_content = """
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .info-section {
+            margin-bottom: 15px;
+        }
+        .info-value {
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        .signature {
+            text-align: center;
+            border-top: 1px solid #000;
+            padding-top: 5px;
+            width: 20%;
+        }
+        """
+        
+        # Crear objeto HTML desde el string
+        html_doc = HTML(string=html_content)
+        css_doc = CSS(string=css_content)
+        
+        # Generar el PDF en memoria
+        pdf_bytes = html_doc.write_pdf(stylesheets=[css_doc])
+        
+        print(f"✅ PDF generado exitosamente. Tamaño: {len(pdf_bytes)} bytes")
+        return pdf_bytes
+        
+    except Exception as e:
+        print(f"❌ Error al convertir HTML a PDF: {e}")
+        print(f"❌ Tipo de error: {type(e).__name__}")
+        return None
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
@@ -768,7 +841,7 @@ def get_google_drive_service_oauth(access_token):
 # Modificar upload_file_to_drive_oauth
 @with_timeout(30)  # 30 segundos timeout
 def upload_file_to_drive_oauth(file_content, filename, folder_id, access_token):
-    """Sube un archivo a Google Drive usando OAuth2 con timeout."""
+    """Sube un archivo a Google Drive usando OAuth2 con conversión a PDF."""
     try:
         print(f"🔄 Iniciando subida OAuth2: {filename}")
         print(f"📁 Carpeta destino: {folder_id}")
