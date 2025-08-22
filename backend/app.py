@@ -413,8 +413,8 @@ def oauth_callback():
             <p>Cerrando ventana...</p>
             <script>
                 window.opener.postMessage({{
-                    type: 'GOOGLE_AUTH_SUCCESS',
-                    token: '{credentials.token}'
+                    type: 'OAUTH_SUCCESS',
+                    access_token: '{credentials.token}'
                 }}, '*');
                 window.close();
             </script>
@@ -435,7 +435,7 @@ def oauth_callback():
             <p>Error: {str(e)}</p>
             <script>
                 window.opener.postMessage({{
-                    type: 'GOOGLE_AUTH_ERROR',
+                    type: 'OAUTH_ERROR',
                     error: '{str(e)}'
                 }}, '*');
                 window.close();
