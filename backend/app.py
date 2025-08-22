@@ -8,7 +8,7 @@ import requests
 import re
 # Activamos las importaciones de Google Drive
 from google.oauth2.credentials import Credentials
-from google.oauth2 import service_account  # ← AGREGAR ESTA LÍNEA
+from google.oauth2 import service_account
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
@@ -25,10 +25,10 @@ CORS(app, origins=[
     # "*"  # Comentado para producción
 ])
 
-# Configuración de Google Drive
-GOOGLE_CLIENT_ID = "1078133780101-q8dmq8l054uoguf4g7b8mltki0qtgb56.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET = "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"
-GOOGLE_REDIRECT_URI = "https://optimizations-c6pm.onrender.com/auth/callback"
+# Configuración de Google Drive usando variables de entorno
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI')
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
 # Mapeo de zonas a carpetas específicas de Google Drive
@@ -45,8 +45,6 @@ ZONE_FOLDER_MAPPING = {
 }
 
 # Variable global para almacenar los datos del archivo Excel en memoria.
-# Nota: En una aplicación de producción, sería mejor usar una base de datos o un sistema
-# de almacenamiento más robusto para manejar múltiples usuarios y sesiones.
 excel_data = None
 
 @app.route('/')
@@ -56,38 +54,28 @@ def home():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    """
-    Maneja la subida de archivos Excel o CSV.
-    Recibe el archivo, lo lee con pandas y lo almacena en la variable global.
-    """
-    # Verifica si el archivo está en la solicitud
+    """Maneja la subida de archivos Excel o CSV."""
     if 'excelFile' not in request.files:
         return jsonify({"error": "No se encontró el archivo en la solicitud."}), 400
 
     file = request.files['excelFile']
 
-    # Verifica si el nombre del archivo está vacío
     if file.filename == '':
         return jsonify({"error": "No se seleccionó ningún archivo."}), 400
 
     if file:
         try:
-            # Lee el contenido del archivo en un buffer de bytes
             file_content = io.BytesIO(file.read())
 
             if file.filename.endswith(('.xlsx', '.xls')):
-                # Lee archivos Excel, asumiendo que la fila 3 (índice 2) es el encabezado.
                 df = pd.read_excel(file_content, header=2)
             elif file.filename.endswith('.csv'):
                 try:
-                    # Intenta leer CSV con codificación UTF-8
                     df = pd.read_csv(file_content, encoding='utf-8', header=2)
                 except UnicodeDecodeError:
-                    # Si falla, intenta con codificación latin1
                     file_content.seek(0)
                     df = pd.read_csv(file_content, encoding='latin1', header=2)
             else:
-                # Retorna un error si el tipo de archivo no es compatible
                 return jsonify({"error": "Tipo de archivo no soportado. Por favor, sube .xlsx, .xls o .csv."}), 400
 
             global excel_data
@@ -112,10 +100,7 @@ def upload_file():
 
 @app.route('/calculate', methods=['POST'])
 def calculate_precise():
-    """
-    Realiza un cálculo matemático preciso sin usar el LLM.
-    Recibe una columna y una operación directamente desde la UI.
-    """
+    """Realiza un cálculo matemático preciso sin usar el LLM."""
     global excel_data
     if excel_data is None:
         return jsonify({"error": "No hay datos cargados."}), 400
@@ -145,10 +130,7 @@ def calculate_precise():
 
 @app.route('/ask', methods=['POST'])
 def ask_question():
-    """
-    Recibe una pregunta del usuario, la procesa usando el LLM y los datos cargados,
-    y devuelve una respuesta utilizando la API de Google Gemini.
-    """
+    """Recibe una pregunta del usuario y la procesa usando el LLM."""
     global excel_data
 
     if excel_data is None:
@@ -164,7 +146,6 @@ def ask_question():
         columns_info = ", ".join(excel_data.columns.astype(str).tolist())
         data_sample_string = excel_data.head(5).to_string()
 
-        # Prompt mejorado que instruye al LLM a devolver JSON para cálculos
         prompt_content = (
             f"""Eres un asistente de análisis de datos. Tu única tarea es analizar la pregunta del usuario y determinar si requiere un cálculo matemático o una respuesta general.
             
@@ -193,16 +174,13 @@ def ask_question():
 
         llm_response_text = result['candidates'][0]['content']['parts'][0]['text']
 
-        # --- DEBUGGING: Imprime la respuesta cruda del LLM para diagnóstico ---
         print("Raw LLM Response:", llm_response_text)
 
-        # Intenta encontrar un bloque JSON en la respuesta del LLM usando regex
         json_match = re.search(r'\{[\s\S]*\}', llm_response_text)
 
         if json_match:
             json_str = json_match.group(0)
             try:
-                # Intenta interpretar la cadena JSON encontrada
                 parsed_response = json.loads(json_str)
                 if parsed_response.get('calculation'):
                     col = parsed_response.get('column')
@@ -211,31 +189,26 @@ def ask_question():
                     if col not in excel_data.columns:
                         return jsonify({"answer": f"La columna '{col}' no existe en los datos. Las columnas disponibles son: {', '.join(excel_data.columns)}"}), 400
                     
-                    # Forzar la conversión a numérico, los errores se convertirán en NaN (Not a Number)
                     numeric_col = pd.to_numeric(excel_data[col], errors='coerce')
                     
-                    # Verificar cuántos valores no son numéricos y fueron convertidos a NaN
                     non_numeric_count = numeric_col.isna().sum()
                     if non_numeric_count > 0:
                         print(f"ADVERTENCIA: Se encontraron {non_numeric_count} valores no numéricos en la columna '{col}' que serán ignorados en el cálculo.")
 
                     if op == 'SUM': result = numeric_col.sum()
                     elif op == 'AVERAGE': result = numeric_col.mean()
-                    elif op == 'COUNT': result = numeric_col.count() # count ignora los NaN
+                    elif op == 'COUNT': result = numeric_col.count()
                     elif op == 'MAX': result = numeric_col.max()
                     elif op == 'MIN': result = numeric_col.min()
                     else: 
                         return jsonify({"answer": f"Operación no válida: '{op}'"}), 400
                     
-                    # Respuesta formateada para indicar que el backend hizo el cálculo
                     final_answer = f"El cálculo '{op}' en la columna '{col}' dio como resultado: {result:,.2f}"
                     return jsonify({"answer": final_answer}), 200
 
             except json.JSONDecodeError:
-                # Si se encontró algo que parecía JSON pero no lo era, se trata como respuesta conversacional.
                 pass
 
-        # Si no se encontró JSON, no era válido, o no era un cálculo, se trata como respuesta conversacional
         return jsonify({"answer": llm_response_text}), 200
 
     except requests.exceptions.RequestException as req_err:
@@ -251,7 +224,6 @@ def upload_to_drive():
     try:
         data = request.get_json()
         
-        # Validar datos requeridos
         required_fields = ['htmlContent', 'filename', 'zone', 'clientInfo']
         for field in required_fields:
             if field not in data:
@@ -262,17 +234,14 @@ def upload_to_drive():
         zone = data['zone']
         client_info = data['clientInfo']
         
-        # Verificar que la zona tenga una carpeta asignada
         if zone not in ZONE_FOLDER_MAPPING:
             return jsonify({"error": f"Zona '{zone}' no tiene carpeta asignada"}), 400
         
         folder_id = ZONE_FOLDER_MAPPING[zone]
         
-        # Intentar subir a Google Drive
         drive_file = upload_file_to_drive(html_content, filename, folder_id)
         
         if drive_file:
-            # Éxito - archivo subido a Google Drive
             print(f"✅ Pedido subido a Google Drive: {drive_file['name']}")
             print(f"👤 Cliente: {client_info.get('cliente', 'N/A')}")
             print(f"📍 Zona: {zone}")
@@ -288,7 +257,6 @@ def upload_to_drive():
                 "client": client_info.get('cliente', 'N/A')
             }), 200
         else:
-            # Fallback - guardar localmente si falla Google Drive
             zone_folder = f"pedidos_{zone.lower().replace(' ', '_')}"
             if not os.path.exists(zone_folder):
                 os.makedirs(zone_folder)
@@ -312,16 +280,9 @@ def upload_to_drive():
         print(f"❌ Error al procesar pedido: {e}")
         return jsonify({"error": f"Error al procesar pedido: {str(e)}"}), 500
 
-# Configuración de Google Drive para producción
-GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', "1078133780101-q8dmq8l054uoguf4g7b8mltki0qtgb56.apps.googleusercontent.com")
-GOOGLE_PRIVATE_KEY_ID = os.getenv('GOOGLE_PRIVATE_KEY_ID', "")
-GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI', "https://optimizations-c6pm.onrender.com/auth/callback")
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
-
 def get_google_drive_service():
     """Obtiene el servicio de Google Drive autenticado para producción."""
     try:
-        # Verificar variables de entorno
         credentials_json = os.getenv('GOOGLE_APPLICATION_CREDENTIALS_JSON')
         client_id = os.getenv('GOOGLE_CLIENT_ID')
         private_key_id = os.getenv('GOOGLE_PRIVATE_KEY_ID')
@@ -332,7 +293,6 @@ def get_google_drive_service():
         print(f"   - CREDENTIALS_JSON: {'✅ Configurado' if credentials_json else '❌ Faltante'}")
         
         if credentials_json:
-            # Producción: usar service account desde variable de entorno
             credentials_info = json.loads(credentials_json)
             print(f"📧 Service Account Email: {credentials_info.get('client_email', 'N/A')}")
             
@@ -344,7 +304,6 @@ def get_google_drive_service():
             print("✅ Google Drive autenticado con service account")
             return service
         else:
-            # Desarrollo: fallback local
             print("⚠️ No se encontraron credenciales de Google Drive, usando fallback local")
             return None
             
@@ -367,7 +326,6 @@ def upload_file_to_drive(file_content, filename, folder_id):
             print("❌ No se pudo obtener servicio de Google Drive")
             return None
             
-        # Crear metadata del archivo
         file_metadata = {
             'name': filename,
             'parents': [folder_id]
@@ -375,11 +333,9 @@ def upload_file_to_drive(file_content, filename, folder_id):
         
         print(f"📄 Metadata del archivo: {file_metadata}")
         
-        # Crear el archivo en memoria
         file_stream = io.BytesIO(file_content.encode('utf-8'))
         media = MediaIoBaseUpload(file_stream, mimetype='text/html')
         
-        # Subir archivo
         print("⬆️ Subiendo archivo a Google Drive...")
         file = service.files().create(
             body=file_metadata,
@@ -398,7 +354,6 @@ def upload_file_to_drive(file_content, filename, folder_id):
         print(f"   - Carpeta: {folder_id}")
         return None
 
-# Agregar nuevas rutas para OAuth2
 @app.route('/auth/google')
 def google_auth():
     """Inicia el flujo de autenticación OAuth2 con Google."""
@@ -406,7 +361,7 @@ def google_auth():
         {
             "web": {
                 "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": os.getenv('GOOGLE_CLIENT_SECRET', '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'),
+                "client_secret": GOOGLE_CLIENT_SECRET,
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token",
                 "redirect_uris": [GOOGLE_REDIRECT_URI]
@@ -434,7 +389,7 @@ def oauth_callback():
             {
                 "web": {
                     "client_id": GOOGLE_CLIENT_ID,
-                    "client_secret": os.getenv('GOOGLE_CLIENT_SECRET', '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'),
+                    "client_secret": GOOGLE_CLIENT_SECRET,
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
                     "redirect_uris": [GOOGLE_REDIRECT_URI]
@@ -444,13 +399,9 @@ def oauth_callback():
         )
         flow.redirect_uri = GOOGLE_REDIRECT_URI
         
-        # Obtener el token de acceso
         flow.fetch_token(authorization_response=request.url)
-        
-        # Guardar credenciales
         credentials = flow.credentials
         
-        # Retornar HTML que envía el token a la ventana padre
         return f'''
         <!DOCTYPE html>
         <html>
@@ -461,21 +412,18 @@ def oauth_callback():
             <h2>✅ Autenticación exitosa</h2>
             <p>Cerrando ventana...</p>
             <script>
-                // Enviar token a la ventana padre
-                if (window.opener) {{
-                    window.opener.postMessage({{
-                        type: 'OAUTH_SUCCESS',
-                        access_token: '{credentials.token}'
-                    }}, '*');
-                }}
-                // Cerrar ventana automáticamente
-                setTimeout(() => window.close(), 1000);
+                window.opener.postMessage({{
+                    type: 'GOOGLE_AUTH_SUCCESS',
+                    token: '{credentials.token}'
+                }}, '*');
+                window.close();
             </script>
         </body>
         </html>
         '''
         
     except Exception as e:
+        print(f"❌ Error en OAuth callback: {e}")
         return f'''
         <!DOCTYPE html>
         <html>
@@ -483,32 +431,87 @@ def oauth_callback():
             <title>Error de Autenticación</title>
         </head>
         <body>
-            <h2>❌ Error en autenticación</h2>
+            <h2>❌ Error de autenticación</h2>
             <p>Error: {str(e)}</p>
             <script>
-                if (window.opener) {{
-                    window.opener.postMessage({{
-                        type: 'OAUTH_ERROR',
-                        error: '{str(e)}'
-                    }}, '*');
-                }}
-                setTimeout(() => window.close(), 3000);
+                window.opener.postMessage({{
+                    type: 'GOOGLE_AUTH_ERROR',
+                    error: '{str(e)}'
+                }}, '*');
+                window.close();
             </script>
         </body>
         </html>
         '''
 
-# Reemplazar la función get_google_drive_service_oauth (línea 462)
-def get_google_drive_service_oauth(access_token):
-    """Obtiene el servicio de Google Drive con OAuth2."""
+@app.route('/upload-to-drive-oauth', methods=['POST'])
+def upload_to_drive_oauth():
+    """Sube archivos a Google Drive usando OAuth2."""
     try:
-        print(f"🔐 Creando servicio OAuth2 con token: {access_token[:20]}...")
+        data = request.get_json()
         
+        required_fields = ['htmlContent', 'filename', 'zone', 'clientInfo', 'accessToken']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Campo requerido faltante: {field}"}), 400
+        
+        html_content = data['htmlContent']
+        filename = data['filename']
+        zone = data['zone']
+        client_info = data['clientInfo']
+        access_token = data['accessToken']
+        
+        if zone not in ZONE_FOLDER_MAPPING:
+            return jsonify({"error": f"Zona '{zone}' no tiene carpeta asignada"}), 400
+        
+        folder_id = ZONE_FOLDER_MAPPING[zone]
+        
+        drive_file = upload_file_to_drive_oauth(html_content, filename, folder_id, access_token)
+        
+        if drive_file:
+            print(f"✅ Pedido subido a Google Drive (OAuth): {drive_file['name']}")
+            print(f"👤 Cliente: {client_info.get('cliente', 'N/A')}")
+            print(f"📍 Zona: {zone}")
+            
+            return jsonify({
+                "success": True,
+                "message": f"Pedido subido exitosamente a Google Drive - Zona {zone}",
+                "filename": filename,
+                "zone": zone,
+                "fileId": drive_file['id'],
+                "webViewLink": drive_file.get('webViewLink'),
+                "client": client_info.get('cliente', 'N/A')
+            }), 200
+        else:
+            zone_folder = f"pedidos_{zone.lower().replace(' ', '_')}"
+            if not os.path.exists(zone_folder):
+                os.makedirs(zone_folder)
+            
+            file_path = os.path.join(zone_folder, filename)
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+            
+            return jsonify({
+                "success": True,
+                "message": f"Pedido guardado localmente - Zona {zone} (Google Drive no disponible)",
+                "filename": filename,
+                "zone": zone,
+                "local_path": file_path,
+                "client": client_info.get('cliente', 'N/A')
+            }), 200
+        
+    except Exception as e:
+        print(f"❌ Error al procesar pedido OAuth: {e}")
+        return jsonify({"error": f"Error al procesar pedido: {str(e)}"}), 500
+
+def get_google_drive_service_oauth(access_token):
+    """Obtiene el servicio de Google Drive usando OAuth2."""
+    try:
         credentials = Credentials(
             token=access_token,
             token_uri="https://oauth2.googleapis.com/token",
             client_id=GOOGLE_CLIENT_ID,
-            client_secret=os.getenv('GOOGLE_CLIENT_SECRET', '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'),
+            client_secret=GOOGLE_CLIENT_SECRET,
             scopes=SCOPES
         )
         
@@ -520,112 +523,58 @@ def get_google_drive_service_oauth(access_token):
         print(f"❌ Error al crear servicio OAuth2: {e}")
         return None
 
-# Agregar después de la línea 315 (antes de las configuraciones duplicadas)
-
-@app.route('/upload-to-drive-oauth', methods=['POST'])
-def upload_to_drive_oauth():
-    """Sube archivos a Google Drive usando OAuth2 del usuario."""
+def upload_file_to_drive_oauth(file_content, filename, folder_id, access_token):
+    """Sube un archivo a Google Drive usando OAuth2."""
     try:
-        data = request.get_json()
+        service = get_google_drive_service_oauth(access_token)
+        if not service:
+            return None
+            
+        file_metadata = {
+            'name': filename,
+            'parents': [folder_id]
+        }
         
-        # Validar datos requeridos
-        required_fields = ['htmlContent', 'filename', 'zone', 'clientInfo', 'access_token']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({"error": f"Campo requerido faltante: {field}"}), 400
+        file_stream = io.BytesIO(file_content.encode('utf-8'))
+        media = MediaIoBaseUpload(file_stream, mimetype='text/html')
         
-        html_content = data['htmlContent']
-        filename = data['filename']
-        zone = data['zone']
-        client_info = data['clientInfo']
-        access_token = data['access_token']
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id,name,webViewLink'
+        ).execute()
         
-        print(f"🔐 Intentando subir con OAuth2: {filename}")
-        print(f"👤 Cliente: {client_info.get('cliente', 'N/A')}")
-        print(f"📍 Zona: {zone}")
-        
-        # Verificar que la zona tenga una carpeta asignada
-        if zone not in ZONE_FOLDER_MAPPING:
-            return jsonify({"error": f"Zona '{zone}' no tiene carpeta asignada"}), 400
-        
-        folder_id = ZONE_FOLDER_MAPPING[zone]
-        
-        # Obtener servicio de Google Drive con OAuth2
-        drive_service = get_google_drive_service_oauth(access_token)
-        
-        if not drive_service:
-            return jsonify({"error": "No se pudo autenticar con Google Drive"}), 401
-        
-        # Subir archivo a Google Drive
-        try:
-            file_metadata = {
-                'name': filename,
-                'parents': [folder_id]
-            }
-            
-            media = MediaIoBaseUpload(
-                io.BytesIO(html_content.encode('utf-8')),
-                mimetype='text/html'
-            )
-            
-            file = drive_service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields='id,name,webViewLink'
-            ).execute()
-            
-            print(f"✅ Archivo subido exitosamente con OAuth2: {file['name']}")
-            print(f"🔗 Link: {file.get('webViewLink', 'N/A')}")
-            
-            return jsonify({
-                "success": True,
-                "message": f"Pedido subido exitosamente a Google Drive - Zona {zone}",
-                "filename": filename,
-                "zone": zone,
-                "fileId": file['id'],
-                "webViewLink": file.get('webViewLink'),
-                "client": client_info.get('cliente', 'N/A'),
-                "method": "OAuth2"
-            }), 200
-            
-        except Exception as drive_error:
-            print(f"❌ Error de Google Drive OAuth2: {drive_error}")
-            
-            # Fallback - guardar localmente
-            zone_folder = f"pedidos_{zone.lower().replace(' ', '_')}"
-            if not os.path.exists(zone_folder):
-                os.makedirs(zone_folder)
-            
-            file_path = os.path.join(zone_folder, filename)
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-            
-            print(f"⚠️ Guardado localmente (OAuth2 falló): {file_path}")
-            
-            return jsonify({
-                "success": True,
-                "message": f"Pedido guardado localmente - Zona {zone} (OAuth2 falló: {str(drive_error)})",
-                "filename": filename,
-                "zone": zone,
-                "local_path": file_path,
-                "client": client_info.get('cliente', 'N/A'),
-                "error_details": str(drive_error)
-            }), 200
+        return file
         
     except Exception as e:
-        print(f"❌ Error general en upload OAuth2: {e}")
-        return jsonify({"error": f"Error al procesar pedido OAuth2: {str(e)}"}), 500
-
-def get_google_drive_service_oauth(access_token):
-    """Obtiene el servicio de Google Drive con OAuth2."""
-    try:
-        credentials = Credentials(token=access_token)
-        service = build('drive', 'v3', credentials=credentials)
-        return service
-    except Exception as e:
-        print(f"Error al crear servicio OAuth2: {e}")
+        print(f"❌ Error al subir archivo OAuth: {e}")
         return None
 
+def validateForDrive(data):
+    """Valida que los datos requeridos estén presentes para subir a Drive."""
+    required_fields = ['htmlContent', 'filename', 'zone', 'clientInfo']
+    
+    for field in required_fields:
+        if field not in data or not data[field]:
+            return False, f"Campo requerido faltante o vacío: {field}"
+    
+    # Validación específica del campo clientInfo
+    client_info = data['clientInfo']
+    if not isinstance(client_info, dict):
+        return False, "clientInfo debe ser un objeto"
+    
+    # Validar que el correo esté presente en clientInfo
+    if 'correo' not in client_info or not client_info['correo']:
+        return False, "El campo 'correo' es requerido en clientInfo"
+    
+    # Validar formato de correo electrónico
+    email = client_info['correo']
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, email):
+        return False, "El formato del correo electrónico no es válido"
+    
+    return True, "Validación exitosa"
+
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))  # Cambiado de 5000 a 10000 para Render
+    port = int(os.environ.get("PORT", 10000))
     app.run(debug=True, host='0.0.0.0', port=port)
