@@ -20,6 +20,38 @@ from datetime import datetime
 import signal
 from functools import wraps
 
+# Funciones para manejo de timeout
+def timeout_handler(signum, frame):
+    """Manejador de señal para timeout."""
+    raise TimeoutError("La operación ha excedido el tiempo límite")
+
+def with_timeout(seconds):
+    """Decorador para agregar timeout a funciones."""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Configurar la señal de alarma
+            old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(seconds)
+            
+            try:
+                result = func(*args, **kwargs)
+                return result
+            except TimeoutError:
+                print(f"⚠️ Timeout: {func.__name__} excedió {seconds} segundos")
+                return {
+                    'success': False,
+                    'error': f'Operación cancelada por timeout ({seconds}s)',
+                    'timeout': True
+                }
+            finally:
+                # Restaurar el manejador anterior y cancelar la alarma
+                signal.alarm(0)
+                signal.signal(signal.SIGALRM, old_handler)
+        
+        return wrapper
+    return decorator
+
 # Inicializa la aplicación Flask
 app = Flask(__name__)
 # Habilita CORS para permitir solicitudes desde el frontend
