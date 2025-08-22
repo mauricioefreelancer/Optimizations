@@ -666,7 +666,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(debug=True, host='0.0.0.0', port=port)
 
-# Agregar al inicio del archivo después de los imports
+# MANTENER las funciones con timeout (líneas 670-800)
 def timeout_handler(signum, frame):
     raise TimeoutError("Operación timeout")
 
@@ -691,7 +691,6 @@ def with_timeout(seconds):
         return wrapper
     return decorator
 
-# Modificar get_google_drive_service_oauth
 @with_timeout(15)  # 15 segundos timeout
 def get_google_drive_service_oauth(access_token):
     """Obtiene el servicio de Google Drive usando OAuth2 con timeout."""
