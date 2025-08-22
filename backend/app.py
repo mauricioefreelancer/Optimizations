@@ -517,11 +517,11 @@ def upload_to_drive_oauth():
         print(f"📄 Archivo PDF: {pdf_filename}")
         
         # Validar datos para Drive
-        validation_errors = validateForDrive(data)
-        if validation_errors:
+        is_valid, validation_message = validateForDrive(data)
+        if not is_valid:
             return jsonify({
                 "error": "Datos inválidos para subir a Drive",
-                "details": validation_errors
+                "details": validation_message
             }), 400
         
         # Verificar zona válida
