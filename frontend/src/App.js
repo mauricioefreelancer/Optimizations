@@ -45,7 +45,7 @@ const PRODUCT_DATA = {
     "LINEA RIZOS EFECTO MEMORIA",
     "LINEA PLUS CAPILAR",
     "LINEA SHAMPOO NEUTRO",
-    "LINEA UÑAS REMOVEDOR",
+    "LINEA UÑAS",
   ],
 
   // Productos organizados por grupo
@@ -1060,7 +1060,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
           <div class="info-column">
             <div class="info-row">
               <div class="info-label">NIT:</div>
-              <div class="info-value">${clientInfo.nit}</div>
+              <div class="info-value">${clientInfo.nit || ''}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Vendedor:</div>
@@ -1068,15 +1068,15 @@ const PedidoForm = ({ onReturnToMenu }) => {
             </div>
             <div class="info-row">
               <div class="info-label">Tel:</div>
-              <div class="info-value">${clientInfo.telefono}</div>
+              <div class="info-value">${clientInfo.telefono || ''}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Cel:</div>
-              <div class="info-value">${clientInfo.cel}</div>
+              <div class="info-value">${clientInfo.cel || ''}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Correo:</div>
-              <div class="info-value">${clientInfo.correo}</div>
+              <div class="info-value">${clientInfo.correo && clientInfo.correo.trim() !== '' ? clientInfo.correo : ''}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Forma De Pago:</div>
