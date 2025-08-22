@@ -450,7 +450,7 @@ def upload_to_drive_oauth():
     try:
         data = request.get_json()
         
-        required_fields = ['htmlContent', 'filename', 'zone', 'clientInfo', 'accessToken']
+        required_fields = ['htmlContent', 'filename', 'zone', 'clientInfo', 'access_token']
         for field in required_fields:
             if field not in data:
                 return jsonify({"error": f"Campo requerido faltante: {field}"}), 400
@@ -459,7 +459,7 @@ def upload_to_drive_oauth():
         filename = data['filename']
         zone = data['zone']
         client_info = data['clientInfo']
-        access_token = data['accessToken']
+        access_token = data['access_token']  # Cambiado de 'accessToken' a 'access_token'
         
         if zone not in ZONE_FOLDER_MAPPING:
             return jsonify({"error": f"Zona '{zone}' no tiene carpeta asignada"}), 400
