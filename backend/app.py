@@ -694,7 +694,8 @@ def validateForDrive(data):
     """Valida que los datos requeridos estén presentes para subir a Drive."""
     print(f"🔍 Validando datos: {json.dumps(data, indent=2, ensure_ascii=False)}")
     
-    required_fields = ['htmlContent', 'filename', 'zone', 'clientInfo']
+    # Remover 'htmlContent' de los campos requeridos ya que se convierte a PDF
+    required_fields = ['filename', 'zone', 'clientInfo']
     
     for field in required_fields:
         if field not in data or not data[field]:
