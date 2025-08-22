@@ -455,15 +455,29 @@ def upload_to_drive_oauth():
     try:
         data = request.get_json()
         
+        # AGREGAR LOGGING PARA DIAGNÓSTICO
+        print(f"📥 Datos recibidos: {json.dumps(data, indent=2, ensure_ascii=False)}")
+        
+        # NORMALIZAR NOMBRES DE CAMPOS ANTES DE LA VALIDACIÓN
+        normalized_data = {
+            'htmlContent': data.get('html_content') or data.get('htmlContent'),
+            'filename': data.get('filename'),
+            'zone': data.get('zone'),
+            'clientInfo': data.get('client_info') or data.get('clientInfo', {})
+        }
+        
+        print(f"📋 Datos normalizados: {json.dumps(normalized_data, indent=2, ensure_ascii=False)}")
+        
         # Validación de datos - CORREGIDO
-        is_valid, validation_message = validateForDrive(data)
+        is_valid, validation_message = validateForDrive(normalized_data)
         if not is_valid:
+            print(f"❌ Error de validación: {validation_message}")
             return jsonify({"error": validation_message}), 400
         
         access_token = data.get('access_token')
-        html_content = data.get('html_content')
-        zone = data.get('zone')
-        client_info = data.get('client_info', {})
+        html_content = normalized_data.get('htmlContent')
+        zone = normalized_data.get('zone')
+        client_info = normalized_data.get('clientInfo', {})
         
         if not access_token or not html_content or not zone:
             return jsonify({"error": "Faltan datos requeridos"}), 400
@@ -477,6 +491,7 @@ def upload_to_drive_oauth():
         
         print(f"🔄 Procesando pedido OAuth para zona: {zone}")
         print(f"📄 Archivo: {filename}")
+        print(f"👤 Cliente: {client_info.get('correo', 'No especificado')}")
         
         # PRIMER INTENTO: OAuth2
         print(f"🔄 Intentando subida con OAuth2...")
@@ -639,27 +654,39 @@ def upload_file_to_drive_oauth(file_content, filename, folder_id, access_token):
 
 def validateForDrive(data):
     """Valida que los datos requeridos estén presentes para subir a Drive."""
+    print(f"🔍 Validando datos: {json.dumps(data, indent=2, ensure_ascii=False)}")
+    
     required_fields = ['htmlContent', 'filename', 'zone', 'clientInfo']
     
     for field in required_fields:
         if field not in data or not data[field]:
+            print(f"❌ Campo faltante: {field}")
             return False, f"Campo requerido faltante o vacío: {field}"
     
     # Validación específica del campo clientInfo
     client_info = data['clientInfo']
     if not isinstance(client_info, dict):
+        print(f"❌ clientInfo no es un objeto: {type(client_info)}")
         return False, "clientInfo debe ser un objeto"
     
     # Validar que el correo esté presente en clientInfo
     if 'correo' not in client_info or not client_info['correo']:
+        print(f"❌ Campo correo faltante en clientInfo: {client_info}")
         return False, "El campo 'correo' es requerido en clientInfo"
     
     # Validar formato de correo electrónico
     email = client_info['correo']
+    print(f"📧 Validando email: '{email}'")
+    
+    # Limpiar espacios en blanco
+    email = email.strip() if isinstance(email, str) else str(email)
+    
     email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     if not re.match(email_pattern, email):
-        return False, "El formato del correo electrónico no es válido"
+        print(f"❌ Formato de email inválido: '{email}'")
+        return False, f"El formato del correo electrónico no es válido: '{email}'"
     
+    print(f"✅ Validación exitosa para email: {email}")
     return True, "Validación exitosa"
 
 if __name__ == '__main__':
