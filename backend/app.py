@@ -455,10 +455,10 @@ def upload_to_drive_oauth():
     try:
         data = request.get_json()
         
-        # Validación de datos
-        validation_result = validateForDrive(data)
-        if not validation_result["valid"]:
-            return jsonify({"error": validation_result["message"]}), 400
+        # Validación de datos - CORREGIDO
+        is_valid, validation_message = validateForDrive(data)
+        if not is_valid:
+            return jsonify({"error": validation_message}), 400
         
         access_token = data.get('access_token')
         html_content = data.get('html_content')
