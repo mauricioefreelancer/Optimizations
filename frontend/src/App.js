@@ -915,70 +915,64 @@ const PedidoForm = ({ onReturnToMenu }) => {
           font-family: Arial, sans-serif;
           margin: 0;
           padding: 16px;
-          background-color: #f5f5f5;
-          font-size: 11.2px; /* 80% del tamaño original (14px * 0.8) */
+          font-size: 8.96px;
         }
         .container {
           max-width: 800px;
           margin: 0 auto;
-          background-color: white;
           padding: 16px;
-          border-radius: 8px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .header {
           text-align: center;
-          border-bottom: 2px solid #333;
+          margin-bottom: 16px;
+          border-bottom: 2px solid #000;
           padding-bottom: 8px;
-          margin-bottom: 8px;
         }
         .header-title {
           display: flex;
           justify-content: center;
           align-items: center;
-          gap: 20px;
-          margin-bottom: 8px;
+          gap: 0;
         }
         .header h1 {
           margin: 0;
-          color: #2c5530;
-          font-size: 19.2px; /* 80% de 24px */
+          font-size: 16px;
+          font-weight: bold;
+          color: green;
         }
         .header h1::after {
           content: " -";
-          margin-left: 10px;
+          color: green;
         }
         .header h2 {
           margin: 0;
-          color: #666;
-          font-size: 14.4px; /* 80% de 18px */
+          font-size: 16px;
+          font-weight: bold;
+          color: green;
+          margin-left: 4px;
         }
         .info-line {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-weight: bold;
-          margin-bottom: 8px;
-          font-size: 11.2px;
-          line-height: 1.2; /* Añadir altura de línea consistente */
+          margin-bottom: 12.8px;
+          font-size: 8.96px;
+          line-height: 1.2;
         }
         .info-line .left {
-          text-align: left;
           display: flex;
-          align-items: center; /* Centrar verticalmente */
+          align-items: center;
+          text-align: left;
         }
         .info-line .center {
-          text-align: center;
-          flex: 1;
           display: flex;
-          align-items: center; /* Centrar verticalmente */
-          justify-content: center;
+          align-items: center;
+          text-align: center;
         }
         .info-line .right {
-          text-align: right;
           display: flex;
-          align-items: center; /* Centrar verticalmente */
-          justify-content: flex-end;
+          align-items: center;
+          text-align: right;
         }
         .info-section {
           display: flex;
@@ -1008,18 +1002,18 @@ const PedidoForm = ({ onReturnToMenu }) => {
         table {
           width: 100%;
           border-collapse: collapse;
-          margin-bottom: 16px;
-          font-size: 11.2px;
+          margin-bottom: 12.8px;
+          font-size: 6.72px;
         }
         th, td {
-          border: 1px solid #ddd;
-          padding: 6.4px; /* 80% de 8px */
+          border: 1px solid #000;
+          padding: 3.84px;
           text-align: left;
+          font-size: 6.72px;
         }
         th {
           background-color: #f2f2f2;
           font-weight: bold;
-          font-size: 11.2px;
         }
         .text-center {
           text-align: center;
@@ -1072,7 +1066,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
         <div class="header">
           <div class="header-title">
             <h1>NATURAL COLORS</h1>
-            <h2>ORDEN DE PEDIDO</h2>
+            <h2> ORDEN DE PEDIDO</h2>
           </div>
         </div>
         
