@@ -960,16 +960,25 @@ const PedidoForm = ({ onReturnToMenu }) => {
           font-weight: bold;
           margin-bottom: 8px;
           font-size: 11.2px;
+          line-height: 1.2; /* Añadir altura de línea consistente */
         }
         .info-line .left {
           text-align: left;
+          display: flex;
+          align-items: center; /* Centrar verticalmente */
         }
         .info-line .center {
           text-align: center;
           flex: 1;
+          display: flex;
+          align-items: center; /* Centrar verticalmente */
+          justify-content: center;
         }
         .info-line .right {
           text-align: right;
+          display: flex;
+          align-items: center; /* Centrar verticalmente */
+          justify-content: flex-end;
         }
         .info-section {
           display: flex;
