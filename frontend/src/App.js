@@ -794,17 +794,15 @@ const PedidoForm = ({ onReturnToMenu }) => {
 
   const [clientInfo, setClientInfo] = useState({
     fecha: new Date().toISOString().split("T")[0],
+    cliente: "",
     nit: "",
     vendedor: "",
-    cliente: "",
-    telefono: "",
     contado: "X",
     credito: "",
     direccion: "",
     ciudad: "",
     listaPrecios: "",
     descuento: 0,
-    barrio: "",
     cel: "",
     correo: "",
     ordenSalida: "facturado",
@@ -956,7 +954,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
           justify-content: space-between;
           align-items: center;
           margin-bottom: 4px;
-          font-size: 8.96px;
+          font-size: 11px;
           line-height: 1.2;
         }
         .info-line .left {
@@ -1085,16 +1083,13 @@ const PedidoForm = ({ onReturnToMenu }) => {
         <div class="info-section">
           <div class="info-column">
             <div class="info-row">
-              <div class="info-label">CLIENTE:</div>
-              <div class="info-value">${clientInfo.cliente}</div>
+              <span><strong>CLIENTE:</strong> ${clientInfo.cliente}</span>
             </div>
             <div class="info-row">
-              <div class="info-label">DIRECCIÓN:</div>
-              <div class="info-value">${clientInfo.direccion}</div>
+              <span><strong>DIRECCIÓN:</strong> ${clientInfo.direccion}</span>
             </div>
             <div class="info-row">
-              <div class="info-label">Barrio:</div>
-              <div class="info-value">${clientInfo.barrio} - ${clientInfo.ciudad}</div>
+              <span><strong>Ciudad:</strong> ${clientInfo.ciudad}</span>
             </div>
             <div class="info-row">
               <div class="info-label">Orden De Salida:</div>
@@ -1162,7 +1157,6 @@ const PedidoForm = ({ onReturnToMenu }) => {
           <div class="signature">ALISTÓ</div>
           <div class="signature">VERIFICÓ</div>
           <div class="signature">EMPACÓ</div>
-          <div class="signature">FIRMA CLIENTE</div>
         </div>
         
         <div class="observations">
@@ -1426,6 +1420,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
               <input
                 type="text"
                 name="telefono"
+                placeholder="Teléfono"
                 value={clientInfo.telefono}
                 onChange={handleClientInfoChange}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -1438,6 +1433,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
               <input
                 type="text"
                 name="direccion"
+                placeholder="Dirección"
                 value={clientInfo.direccion}
                 onChange={handleClientInfoChange}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -1450,6 +1446,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
               <input
                 type="text"
                 name="ciudad"
+                placeholder="Ciudad"
                 value={clientInfo.ciudad}
                 onChange={handleClientInfoChange}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
