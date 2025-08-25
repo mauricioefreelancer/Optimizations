@@ -1101,10 +1101,6 @@ const PedidoForm = ({ onReturnToMenu }) => {
               <div class="info-label">Forma de pago:</div>
               <div class="info-value">${clientInfo.contado === "X" ? "CONTADO" : "CRÉDITO"}</div>
             </div>
-            <div class="info-row">
-              <div class="info-label">Correo:</div>
-              <div class="info-value">${clientInfo.correo && clientInfo.correo.trim() !== '' ? clientInfo.correo : ''}</div>
-            </div>
           </div>
           
           <div class="info-column">
@@ -1119,6 +1115,10 @@ const PedidoForm = ({ onReturnToMenu }) => {
             <div class="info-row">
               <div class="info-label">Cel:</div>
               <div class="info-value">${clientInfo.cel || ''}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Correo:</div>
+              <div class="info-value">${clientInfo.correo && clientInfo.correo.trim() !== '' ? clientInfo.correo : ''}</div>
             </div>
           </div>
         </div>
