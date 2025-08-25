@@ -1306,18 +1306,18 @@ const PedidoForm = ({ onReturnToMenu }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="container mx-auto p-8 bg-white rounded-lg shadow-xl">
-        <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
+    <div className="min-h-screen bg-gray-100 p-2 sm:p-4">
+      <div className="container mx-auto p-4 sm:p-8 bg-white rounded-lg shadow-xl">
+        <h1 className="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-6 text-gray-800">
           Generador de Toma de Pedido
         </h1>
 
         {/* Formulario de información del cliente */}
-        <div className="bg-gray-50 p-6 rounded-lg mb-8">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">
+        <div className="bg-gray-50 p-4 sm:p-6 rounded-lg mb-6 sm:mb-8">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">
             Información del Cliente
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
                 Fecha:
@@ -1695,28 +1695,28 @@ const PedidoForm = ({ onReturnToMenu }) => {
               Productos en el pedido
             </h2>
             <div className="overflow-x-auto">
-              <table className="w-full bg-white text-xs sm:text-sm">
+              <table className="w-full border-collapse border border-gray-300 text-xs sm:text-sm">
                 <thead>
                   <tr className="bg-gray-200">
-                    <th className="py-1 px-1 sm:py-2 sm:px-2 border-b text-left">
+                    <th className="py-1 px-1 sm:py-2 sm:px-2 border-b text-left text-xs sm:text-sm">
                       Código
                     </th>
-                    <th className="py-1 px-1 sm:py-2 sm:px-2 border-b text-left">
+                    <th className="py-1 px-1 sm:py-2 sm:px-2 border-b text-left text-xs sm:text-sm">
                       Producto
                     </th>
-                    <th className="py-1 px-1 sm:py-2 sm:px-2 border-b text-center">
+                    <th className="py-1 px-1 sm:py-2 sm:px-2 border-b text-center text-xs sm:text-sm">
                       Cant.
                     </th>
-                    <th className="py-1 px-1 sm:py-2 sm:px-2 border-b text-center">
+                    <th className="py-1 px-1 sm:py-2 sm:px-2 border-b text-center text-xs sm:text-sm hidden sm:table-cell">
                       Bonif.
                     </th>
-                    <th className="py-1 px-1 sm:py-2 sm:px-2 border-b text-right">
+                    <th className="py-1 px-1 sm:py-2 sm:px-2 border-b text-right text-xs sm:text-sm hidden sm:table-cell">
                       V. Unit.
                     </th>
-                    <th className="py-1 px-1 sm:py-2 sm:px-2 border-b text-right">
+                    <th className="py-1 px-1 sm:py-2 sm:px-2 border-b text-right text-xs sm:text-sm">
                       Subtotal
                     </th>
-                    <th className="py-1 px-1 sm:py-2 sm:px-2 border-b text-center">
+                    <th className="py-1 px-1 sm:py-2 sm:px-2 border-b text-center text-xs sm:text-sm">
                       Acción
                     </th>
                   </tr>
@@ -1724,30 +1724,36 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 <tbody>
                   {orderItems.map((item, index) => (
                     <tr key={index} className="hover:bg-gray-50">
-                      <td className="py-1 px-1 sm:py-2 sm:px-2 border-b">
+                      <td className="py-1 px-1 sm:py-2 sm:px-2 border-b text-xs sm:text-sm">
                         {item.cod}
                       </td>
-                      <td className="py-1 px-1 sm:py-2 sm:px-2 border-b">
-                        {item.description}
+                      <td className="py-1 px-1 sm:py-2 sm:px-2 border-b text-xs sm:text-sm">
+                        <div className="max-w-[120px] sm:max-w-none truncate sm:whitespace-normal">
+                          {item.description}
+                        </div>
+                        {/* Mostrar información adicional en móvil */}
+                        <div className="sm:hidden text-xs text-gray-500 mt-1">
+                          Bonif: {item.bonus} | V.Unit: ${item.unitPrice?.toLocaleString("es-CO")}
+                        </div>
                       </td>
-                      <td className="py-1 px-1 sm:py-2 sm:px-2 border-b text-center">
+                      <td className="py-1 px-1 sm:py-2 sm:px-2 border-b text-center text-xs sm:text-sm">
                         {item.quantity}
                       </td>
-                      <td className="py-1 px-1 sm:py-2 sm:px-2 border-b text-center">
+                      <td className="py-1 px-1 sm:py-2 sm:px-2 border-b text-center text-xs sm:text-sm hidden sm:table-cell">
                         {item.bonus}
                       </td>
-                      <td className="py-1 px-1 sm:py-2 sm:px-2 border-b text-right">
+                      <td className="py-1 px-1 sm:py-2 sm:px-2 border-b text-right text-xs sm:text-sm hidden sm:table-cell">
                         ${item.unitPrice?.toLocaleString("es-CO")}
                       </td>
-                      <td className="py-1 px-1 sm:py-2 sm:px-2 border-b text-right">
+                      <td className="py-1 px-1 sm:py-2 sm:px-2 border-b text-right text-xs sm:text-sm font-semibold">
                         ${item.subtotal?.toLocaleString("es-CO")}
                       </td>
                       <td className="py-1 px-1 sm:py-2 sm:px-2 border-b text-center">
                         <button
                           onClick={() => handleRemoveProduct(index)}
-                          className="text-red-500 hover:text-red-700"
+                          className="text-red-500 hover:text-red-700 text-sm sm:text-base"
                         >
-                          X
+                          ✕
                         </button>
                       </td>
                     </tr>
@@ -1759,8 +1765,8 @@ const PedidoForm = ({ onReturnToMenu }) => {
         )}
 
         {/* Calcular totales globales */}
-        {/* Resumen del pedido */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+        {/* Resumen del pedido - OPTIMIZADO PARA MÓVIL */}
+        <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 rounded-lg">
           {(() => {
             const subtotalGlobal = orderItems.reduce(
               (sum, item) => sum + (item.subtotal || 0),
@@ -1773,20 +1779,20 @@ const PedidoForm = ({ onReturnToMenu }) => {
 
             return (
               <>
-                <h3 className="text-lg font-semibold mb-2">
+                <h3 className="text-base sm:text-lg font-semibold mb-2">
                   Resumen del Pedido
                 </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm sm:text-base">
+                  <div className="space-y-1">
                     <p>Subtotal: ${subtotalGlobal.toLocaleString("es-CO")}</p>
                     <p>
                       Descuento ({clientInfo.descuento || 0}%): $
                       {descuentoGlobal.toLocaleString("es-CO")}
                     </p>
                   </div>
-                  <div>
+                  <div className="space-y-1">
                     <p>IVA (19%): ${ivaGlobal.toLocaleString("es-CO")}</p>
-                    <p className="font-bold">
+                    <p className="font-bold text-lg">
                       Total: ${totalGlobal.toLocaleString("es-CO")}
                     </p>
                   </div>
@@ -1796,11 +1802,11 @@ const PedidoForm = ({ onReturnToMenu }) => {
           })()}
         </div>
 
-        {/* Botones de descarga y subir a Drive */}
-        <div className="flex justify-center space-x-4">
+        {/* Botones de descarga y subir a Drive - VERSIÓN OPTIMIZADA PARA MÓVIL */}
+        <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4 px-2">
           <button
             onClick={handleDownload}
-            className="bg-green-600 text-white font-bold text-lg py-3 px-8 rounded-full shadow-lg hover:bg-green-700 transition duration-300 transform hover:scale-105"
+            className="bg-green-600 text-white font-bold text-sm sm:text-lg py-2 sm:py-3 px-4 sm:px-8 rounded-full shadow-lg hover:bg-green-700 transition duration-300 transform hover:scale-105 w-full sm:w-auto"
           >
             Generar Orden de Pedido
           </button>
@@ -1808,7 +1814,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
           <button
             onClick={handleUploadToDrive}
             disabled={isUploading}
-            className={`font-bold text-lg py-3 px-8 rounded-full shadow-lg transition duration-300 transform hover:scale-105 ${
+            className={`font-bold text-sm sm:text-lg py-2 sm:py-3 px-4 sm:px-8 rounded-full shadow-lg transition duration-300 transform hover:scale-105 w-full sm:w-auto ${
               isUploading 
                 ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
                 : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -1819,7 +1825,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
           
           <button
             onClick={onReturnToMenu}
-            className="bg-gray-500 text-white font-bold text-lg py-3 px-8 rounded-full shadow-lg hover:bg-gray-600 transition duration-300 transform hover:scale-105"
+            className="bg-gray-500 text-white font-bold text-sm sm:text-lg py-2 sm:py-3 px-4 sm:px-8 rounded-full shadow-lg hover:bg-gray-600 transition duration-300 transform hover:scale-105 w-full sm:w-auto"
           >
             Regresar al Menú
           </button>
