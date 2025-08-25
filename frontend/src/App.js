@@ -955,7 +955,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 12.8px;
+          margin-bottom: 4px;
           font-size: 8.96px;
           line-height: 1.2;
         }
