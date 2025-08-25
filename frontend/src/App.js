@@ -1050,7 +1050,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
         .observations-box {
           border: 1px solid #ccc;
           padding: 8px;
-          min-height: 48px; /* 80% de 60px */
+          min-height: 24px; /* Reducido de 48px a 24px (50% menos) */
           font-size: 11.2px;
         }
         .delivery-date {
@@ -1083,17 +1083,24 @@ const PedidoForm = ({ onReturnToMenu }) => {
         <div class="info-section">
           <div class="info-column">
             <div class="info-row">
-              <span><strong>CLIENTE:</strong> ${clientInfo.cliente}</span>
+              <div class="info-label">CLIENTE:</div>
+              <div class="info-value">${clientInfo.cliente}</div>
             </div>
             <div class="info-row">
-              <span><strong>DIRECCIÓN:</strong> ${clientInfo.direccion}</span>
+              <div class="info-label">DIRECCIÓN:</div>
+              <div class="info-value">${clientInfo.direccion}</div>
             </div>
             <div class="info-row">
-              <span><strong>Ciudad:</strong> ${clientInfo.ciudad}</span>
+              <div class="info-label">Ciudad:</div>
+              <div class="info-value">${clientInfo.ciudad}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Orden De Salida:</div>
               <div class="info-value">${clientInfo.ordenSalida === "facturado" ? "FACTURADO" : "SALIDA DE BODEGA"}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Forma De Pago:</div>
+              <div class="info-value">${clientInfo.contado === "X" ? "CONTADO" : "CRÉDITO"}</div>
             </div>
           </div>
           
@@ -1113,10 +1120,6 @@ const PedidoForm = ({ onReturnToMenu }) => {
             <div class="info-row">
               <div class="info-label">Correo:</div>
               <div class="info-value">${clientInfo.correo && clientInfo.correo.trim() !== '' ? clientInfo.correo : ''}</div>
-            </div>
-            <div class="info-row">
-              <div class="info-label">Forma De Pago:</div>
-              <div class="info-value">${clientInfo.contado === "X" ? "CONTADO" : "CRÉDITO"}</div>
             </div>
           </div>
         </div>
@@ -1162,10 +1165,6 @@ const PedidoForm = ({ onReturnToMenu }) => {
         <div class="observations">
           <div>OBSERVACIONES:</div>
           <div class="observations-box">${clientInfo.observaciones}</div>
-        </div>
-        
-        <div class="delivery-date">
-          FECHA ENTREGA: _______________
         </div>
       </div>
     </body>
