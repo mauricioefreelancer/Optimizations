@@ -914,90 +914,93 @@ const PedidoForm = ({ onReturnToMenu }) => {
         body {
           font-family: Arial, sans-serif;
           margin: 0;
-          padding: 20px;
+          padding: 16px;
           background-color: #f5f5f5;
+          font-size: 11.2px; /* 80% del tamaño original (14px * 0.8) */
         }
         .container {
           max-width: 800px;
           margin: 0 auto;
           background-color: white;
-          padding: 20px;
+          padding: 16px;
           border-radius: 8px;
           box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .header {
           text-align: center;
           border-bottom: 2px solid #333;
-          padding-bottom: 10px;
-          margin-bottom: 20px;
+          padding-bottom: 8px;
+          margin-bottom: 8px;
+        }
+        .header-title {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 20px;
+          margin-bottom: 8px;
         }
         .header h1 {
           margin: 0;
           color: #2c5530;
-          font-size: 24px;
+          font-size: 19.2px; /* 80% de 24px */
         }
         .header h2 {
-          margin: 5px 0;
+          margin: 0;
           color: #666;
-          font-size: 18px;
+          font-size: 14.4px; /* 80% de 18px */
         }
-        .zone {
-          text-align: right;
+        .info-line {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
           font-weight: bold;
-          margin-top: 10px;
+          margin-bottom: 8px;
+          font-size: 11.2px;
         }
-        .serial-number {
-          text-align: center;
-          font-weight: bold;
-          color: #2c5530;
-          font-size: 14px;
-          margin: 10px 0;
-          padding: 5px;
-          background-color: #f0f8f0;
-          border: 1px solid #2c5530;
-          border-radius: 4px;
-        }
-        .fecha {
-          text-align: right;
-          margin-bottom: 20px;
-          font-weight: bold;
+        .info-line .left {
+          display: flex;
+          gap: 15px;
         }
         .info-section {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 20px;
+          margin-bottom: 12px;
         }
         .info-column {
           flex: 1;
-          margin-right: 20px;
+          margin-right: 16px;
         }
         .info-column:last-child {
           margin-right: 0;
         }
         .info-row {
           display: flex;
-          margin-bottom: 8px;
+          margin-bottom: 4px; /* Reducido de 8px a 4px */
         }
         .info-label {
           font-weight: bold;
-          min-width: 120px;
+          min-width: 96px; /* 80% de 120px */
+          font-size: 11.2px;
         }
         .info-value {
           flex: 1;
+          font-size: 11.2px;
         }
         table {
           width: 100%;
           border-collapse: collapse;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
+          font-size: 11.2px;
         }
         th, td {
           border: 1px solid #ddd;
-          padding: 8px;
+          padding: 6.4px; /* 80% de 8px */
           text-align: left;
         }
         th {
           background-color: #f2f2f2;
           font-weight: bold;
+          font-size: 11.2px;
         }
         .text-center {
           text-align: center;
@@ -1009,51 +1012,58 @@ const PedidoForm = ({ onReturnToMenu }) => {
           display: flex;
           justify-content: space-between;
           align-items: flex-end;
-          margin-bottom: 30px;
+          margin-bottom: 24px;
+          font-size: 11.2px;
         }
         .total {
-          font-size: 18px;
+          font-size: 14.4px; /* 80% de 18px */
           font-weight: bold;
           color: #2c5530;
         }
         .signatures {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 30px;
+          margin-bottom: 24px;
         }
         .signature {
           text-align: center;
           border-top: 1px solid #333;
-          padding-top: 5px;
-          width: 150px;
-          font-size: 12px;
+          padding-top: 4px;
+          width: 120px; /* 80% de 150px */
+          font-size: 9.6px; /* 80% de 12px */
         }
         .observations {
-          margin-bottom: 20px;
+          margin-bottom: 16px;
+          font-size: 11.2px;
         }
         .observations-box {
           border: 1px solid #ccc;
-          padding: 10px;
-          min-height: 60px;
+          padding: 8px;
+          min-height: 48px; /* 80% de 60px */
+          font-size: 11.2px;
         }
         .delivery-date {
-          margin-top: 10px;
+          margin-top: 8px;
+          font-size: 11.2px;
         }
       </style>
     </head>
     <body>
       <div class="container">
         <div class="header">
-          <h1>NATURAL COLORS</h1>
-          <h2>ORDEN DE PEDIDO</h2>
-          <div class="zone">Zona: ${clientInfo.zone}</div>
+          <div class="header-title">
+            <h1>NATURAL COLORS</h1>
+            <h2>ORDEN DE PEDIDO</h2>
+          </div>
         </div>
         
-        <div class="serial-number">
-          Serial No.: ${serial}
+        <div class="info-line">
+          <div class="left">
+            <span>Zona: ${clientInfo.zone}</span>
+            <span>Fecha: ${clientInfo.fecha}</span>
+            <span><strong>No: ${serial.replace('Pedido__', '').replace(clientInfo.fecha + '_', '')}</strong></span>
+          </div>
         </div>
-        
-        <div class="fecha">Fecha: ${clientInfo.fecha}</div>
         
         <div class="info-section">
           <div class="info-column">
@@ -1148,7 +1158,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
         </div>
         
         <div class="delivery-date">
-          FECHA ENTREGA: ________________
+          FECHA ENTREGA: _______________
         </div>
       </div>
     </body>
