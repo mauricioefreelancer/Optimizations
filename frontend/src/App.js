@@ -880,6 +880,9 @@ const PedidoForm = ({ onReturnToMenu }) => {
     if (!clientInfo.nit || clientInfo.nit.trim() === "") {
       errors.push("NIT");
     }
+    if (!clientInfo.direccion || clientInfo.direccion.trim() === "") {
+      errors.push("Dirección");
+    }
     if (!clientInfo.correo || clientInfo.correo.trim() === "") {
       errors.push("Correo");
     }
@@ -1353,7 +1356,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
           <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-700">
             Información del Cliente
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
                 Fecha:
