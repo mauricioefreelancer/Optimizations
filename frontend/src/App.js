@@ -977,27 +977,27 @@ const PedidoForm = ({ onReturnToMenu }) => {
         .info-section {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 12px;
+          margin-bottom: 8px; /* Reducido de 12px a 8px */
         }
         .info-column {
           flex: 1;
-          margin-right: 16px;
+          margin-right: 12px; /* Reducido de 16px a 12px */
         }
         .info-column:last-child {
           margin-right: 0;
         }
         .info-row {
           display: flex;
-          margin-bottom: 4px; /* Reducido de 8px a 4px */
+          margin-bottom: 3px; /* Reducido de 4px a 3px */
         }
         .info-label {
           font-weight: bold;
-          min-width: 96px; /* 80% de 120px */
-          font-size: 11.2px;
+          min-width: 80px; /* Reducido de 96px a 80px */
+          font-size: 9.5px; /* Reducido de 11.2px a 9.5px */
         }
         .info-value {
           flex: 1;
-          font-size: 11.2px;
+          font-size: 9.5px; /* Reducido de 11.2px a 9.5px */
         }
         table {
           width: 100%;
@@ -1110,10 +1110,6 @@ const PedidoForm = ({ onReturnToMenu }) => {
             <div class="info-row">
               <div class="info-label">Vendedor:</div>
               <div class="info-value">${clientInfo.vendedor}</div>
-            </div>
-            <div class="info-row">
-              <div class="info-label">Tel:</div>
-              <div class="info-value">${clientInfo.telefono || ''}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Cel:</div>
