@@ -871,7 +871,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
   };
 
   // Función para validar campos obligatorios para Google Drive
-  const validateForDrive = () => {
+  const validateForDrive = () => { 
     const errors = [];
     
     if (!clientInfo.zone || clientInfo.zone === "") {
