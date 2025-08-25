@@ -1083,30 +1083,30 @@ const PedidoForm = ({ onReturnToMenu }) => {
         <div class="info-section">
           <div class="info-column">
             <div class="info-row">
-              <div class="info-label">CLIENTE:</div>
+              <div class="info-label">Cliente:</div>
               <div class="info-value">${clientInfo.cliente}</div>
             </div>
             <div class="info-row">
-              <div class="info-label">DIRECCIÓN:</div>
-              <div class="info-value">${clientInfo.direccion}</div>
+              <div class="info-label">Dirección:</div>
+              <div class="info-value">${clientInfo.direccion} - ${clientInfo.ciudad}</div>
             </div>
             <div class="info-row">
-              <div class="info-label">Ciudad:</div>
-              <div class="info-value">${clientInfo.ciudad}</div>
-            </div>
-            <div class="info-row">
-              <div class="info-label">Orden De Salida:</div>
+              <div class="info-label">Orden de salida:</div>
               <div class="info-value">${clientInfo.ordenSalida === "facturado" ? "FACTURADO" : "SALIDA DE BODEGA"}</div>
             </div>
             <div class="info-row">
-              <div class="info-label">Forma De Pago:</div>
+              <div class="info-label">Forma de pago:</div>
               <div class="info-value">${clientInfo.contado === "X" ? "CONTADO" : "CRÉDITO"}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Correo:</div>
+              <div class="info-value">${clientInfo.correo && clientInfo.correo.trim() !== '' ? clientInfo.correo : ''}</div>
             </div>
           </div>
           
           <div class="info-column">
             <div class="info-row">
-              <div class="info-label">NIT:</div>
+              <div class="info-label">Nit:</div>
               <div class="info-value">${clientInfo.nit || ''}</div>
             </div>
             <div class="info-row">
@@ -1117,21 +1117,17 @@ const PedidoForm = ({ onReturnToMenu }) => {
               <div class="info-label">Cel:</div>
               <div class="info-value">${clientInfo.cel || ''}</div>
             </div>
-            <div class="info-row">
-              <div class="info-label">Correo:</div>
-              <div class="info-value">${clientInfo.correo && clientInfo.correo.trim() !== '' ? clientInfo.correo : ''}</div>
-            </div>
           </div>
         </div>
         
         <table>
           <thead>
             <tr>
-              <th>CÓD</th>
-              <th>DESCRIPCIÓN</th>
-              <th class="text-center">CANT</th>
-              <th class="text-center">BON</th>
-              <th class="text-right">TOTAL</th>
+              <th>Cód</th>
+            <th>Descripción</th>
+            <th class="text-center">Cant</th>
+            <th class="text-center">Bon</th>
+            <th class="text-right">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -1149,21 +1145,21 @@ const PedidoForm = ({ onReturnToMenu }) => {
         
         <div class="totals">
           <div>
-            <div>SUBTOTAL: $${subtotalGlobal.toLocaleString("es-CO")}</div>
-            <div>DESCUENTO(${clientInfo.descuento || 0}%): $${descuentoGlobal.toLocaleString("es-CO")}</div>
-            <div>IVA(19%): $${ivaGlobal.toLocaleString("es-CO")}</div>
+            <div>Subtotal: $${subtotalGlobal.toLocaleString("es-CO")}</div>
+            <div>Descuento(${clientInfo.descuento || 0}%): $${descuentoGlobal.toLocaleString("es-CO")}</div>
+            <div>Iva(19%): $${ivaGlobal.toLocaleString("es-CO")}</div>
           </div>
-          <div class="total">TOTAL: $${totalGlobal.toLocaleString("es-CO")}</div>
+          <div class="total">Total: $${totalGlobal.toLocaleString("es-CO")}</div>
         </div>
         
         <div class="signatures">
-          <div class="signature">ALISTÓ</div>
-          <div class="signature">VERIFICÓ</div>
-          <div class="signature">EMPACÓ</div>
+          <div class="signature">Alistó</div>
+          <div class="signature">Verificó</div>
+          <div class="signature">Empacó</div>
         </div>
         
         <div class="observations">
-          <div>OBSERVACIONES:</div>
+          <div>Observaciones:</div>
           <div class="observations-box">${clientInfo.observaciones}</div>
         </div>
       </div>
