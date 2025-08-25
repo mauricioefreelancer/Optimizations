@@ -944,6 +944,10 @@ const PedidoForm = ({ onReturnToMenu }) => {
           color: #2c5530;
           font-size: 19.2px; /* 80% de 24px */
         }
+        .header h1::after {
+          content: " -";
+          margin-left: 10px;
+        }
         .header h2 {
           margin: 0;
           color: #666;
@@ -958,8 +962,14 @@ const PedidoForm = ({ onReturnToMenu }) => {
           font-size: 11.2px;
         }
         .info-line .left {
-          display: flex;
-          gap: 15px;
+          text-align: left;
+        }
+        .info-line .center {
+          text-align: center;
+          flex: 1;
+        }
+        .info-line .right {
+          text-align: right;
         }
         .info-section {
           display: flex;
@@ -1059,8 +1069,12 @@ const PedidoForm = ({ onReturnToMenu }) => {
         
         <div class="info-line">
           <div class="left">
-            <span>Zona: ${clientInfo.zone}</span>
             <span>Fecha: ${clientInfo.fecha}</span>
+          </div>
+          <div class="center">
+            <span>Zona: ${clientInfo.zone}</span>
+          </div>
+          <div class="right">
             <span><strong>No: ${serial.replace('Pedido__', '').replace(clientInfo.fecha + '_', '')}</strong></span>
           </div>
         </div>
