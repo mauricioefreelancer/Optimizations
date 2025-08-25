@@ -890,7 +890,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
   };
 
   // Función para generar y guardar el contenido HTML
-  const generateHtmlContent = () => {
+  const generateHtmlContent = (serialNumber = null) => {
     const subtotalGlobal = orderItems.reduce(
       (sum, item) => sum + (item.subtotal || 0),
       0
@@ -899,6 +899,9 @@ const PedidoForm = ({ onReturnToMenu }) => {
       subtotalGlobal * (parseInt(clientInfo.descuento || 0) / 100);
     const ivaGlobal = subtotalGlobal * 0.19;
     const totalGlobal = subtotalGlobal + ivaGlobal - descuentoGlobal;
+
+    // Generar serial único si no se proporciona
+    const serial = serialNumber || `Pedido__${clientInfo.fecha}_${Date.now()}`;
 
     const htmlContent = `
     <!DOCTYPE html>
@@ -942,6 +945,17 @@ const PedidoForm = ({ onReturnToMenu }) => {
           text-align: right;
           font-weight: bold;
           margin-top: 10px;
+        }
+        .serial-number {
+          text-align: center;
+          font-weight: bold;
+          color: #2c5530;
+          font-size: 14px;
+          margin: 10px 0;
+          padding: 5px;
+          background-color: #f0f8f0;
+          border: 1px solid #2c5530;
+          border-radius: 4px;
         }
         .fecha {
           text-align: right;
@@ -1033,6 +1047,10 @@ const PedidoForm = ({ onReturnToMenu }) => {
           <h1>NATURAL COLORS</h1>
           <h2>ORDEN DE PEDIDO</h2>
           <div class="zone">Zona: ${clientInfo.zone}</div>
+        </div>
+        
+        <div class="serial-number">
+          Serial No.: ${serial}
         </div>
         
         <div class="fecha">Fecha: ${clientInfo.fecha}</div>
@@ -1223,9 +1241,9 @@ const PedidoForm = ({ onReturnToMenu }) => {
       return;
     }
 
-    setIsUploading(true);
-    
     try {
+      setIsUploading(true);
+      
       console.log('🚀 Iniciando proceso de subida OAuth2...');
       
       // Primero autenticar con Google y obtener token
@@ -1235,12 +1253,14 @@ const PedidoForm = ({ onReturnToMenu }) => {
         throw new Error('No se pudo obtener el token de acceso');
       }
       
-      // Generar el contenido HTML
-      const htmlContent = generateHtmlContent();
-      setHtmlContent(htmlContent);
-      
       // Crear nombre del archivo con fecha y cliente
-      const fileName = `Pedido_${clientInfo.cliente.replace(/\s+/g, '_')}_${clientInfo.fecha}_${Date.now()}.pdf`;
+      const timestamp = Date.now();
+      const serial = `Pedido__${clientInfo.fecha}_${timestamp}`;
+      const fileName = `${serial}.pdf`;
+      
+      // Generar el contenido HTML con el serial
+      const htmlContent = generateHtmlContent(serial);
+      setHtmlContent(htmlContent);
       
       // Datos para enviar al backend (usando el nuevo endpoint OAuth2)
       const uploadData = {
@@ -1291,7 +1311,11 @@ const PedidoForm = ({ onReturnToMenu }) => {
   };
 
   const handleDownload = () => {
-    const htmlContent = generateHtmlContent();
+    // Generar serial único para descarga
+    const timestamp = Date.now();
+    const serial = `Pedido__${clientInfo.fecha}_${timestamp}`;
+    
+    const htmlContent = generateHtmlContent(serial);
     setHtmlContent(htmlContent); // Guardar para uso posterior
     
     // Crear el blob y descargar
@@ -1299,7 +1323,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", "orden_de_pedido.html");
+    link.setAttribute("download", `${serial}.html`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
