@@ -708,10 +708,12 @@ def validateForDrive(data):
         print(f"❌ clientInfo no es un objeto: {type(client_info)}")
         return False, "clientInfo debe ser un objeto"
     
-    # Validar que el correo esté presente en clientInfo
-    if 'correo' not in client_info or not client_info['correo']:
-        print(f"❌ Campo correo faltante en clientInfo: {client_info}")
-        return False, "El campo 'correo' es requerido en clientInfo"
+    # Validar campos requeridos en clientInfo
+    required_client_fields = ['correo', 'nit', 'direccion', 'barrio']
+    for field in required_client_fields:
+        if field not in client_info or not client_info[field] or str(client_info[field]).strip() == "":
+            print(f"❌ Campo {field} faltante en clientInfo: {client_info}")
+            return False, f"El campo '{field}' es requerido en clientInfo"
     
     # Validar formato de correo electrónico
     email = client_info['correo']
@@ -725,7 +727,7 @@ def validateForDrive(data):
         print(f"❌ Formato de email inválido: '{email}'")
         return False, f"El formato del correo electrónico no es válido: '{email}'"
     
-    print(f"✅ Validación exitosa para email: {email}")
+    print(f"✅ Validación exitosa para todos los campos requeridos")
     return True, "Validación exitosa"
 
 # Nueva función para convertir HTML a PDF
