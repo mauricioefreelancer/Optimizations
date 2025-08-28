@@ -708,24 +708,33 @@ def validateForDrive(data):
         print(f"❌ clientInfo no es un objeto: {type(client_info)}")
         return False, "clientInfo debe ser un objeto"
     
-    # Validar campos requeridos en clientInfo
-    required_client_fields = ['correo', 'nit', 'direccion', 'barrio']
-    for field in required_client_fields:
+    # Validar campos básicos requeridos en clientInfo
+    basic_required_fields = ['nit', 'direccion', 'barrio']
+    for field in basic_required_fields:
         if field not in client_info or not client_info[field] or str(client_info[field]).strip() == "":
             print(f"❌ Campo {field} faltante en clientInfo: {client_info}")
             return False, f"El campo '{field}' es requerido en clientInfo"
     
-    # Validar formato de correo electrónico
-    email = client_info['correo']
-    print(f"📧 Validando email: '{email}'")
-    
-    # Limpiar espacios en blanco
-    email = email.strip() if isinstance(email, str) else str(email)
-    
-    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    if not re.match(email_pattern, email):
-        print(f"❌ Formato de email inválido: '{email}'")
-        return False, f"El formato del correo electrónico no es válido: '{email}'"
+    # Validación condicional del correo basada en ordenSalida
+    orden_salida = client_info.get('ordenSalida', '')
+    if orden_salida == 'facturado':
+        if 'correo' not in client_info or not client_info['correo'] or str(client_info['correo']).strip() == "":
+            print(f"❌ Campo correo faltante para pedido facturado: {client_info}")
+            return False, "El campo 'correo' es requerido para pedidos facturados"
+        
+        # Validar formato de correo electrónico solo si está presente
+        email = client_info['correo']
+        print(f"📧 Validando email para pedido facturado: '{email}'")
+        
+        # Limpiar espacios en blanco
+        email = email.strip() if isinstance(email, str) else str(email)
+        
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            print(f"❌ Formato de email inválido: '{email}'")
+            return False, f"El formato del correo electrónico no es válido: '{email}'"
+    else:
+        print(f"ℹ️ Correo no requerido para orden de salida: {orden_salida}")
     
     print(f"✅ Validación exitosa para todos los campos requeridos")
     return True, "Validación exitosa"

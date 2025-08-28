@@ -887,8 +887,12 @@ const PedidoForm = ({ onReturnToMenu }) => {
     if (!clientInfo.barrio || clientInfo.barrio.trim() === "") {
       errors.push("Barrio");
     }
-    if (!clientInfo.correo || clientInfo.correo.trim() === "") {
-      errors.push("Correo");
+    
+    // Validación condicional del correo: obligatorio solo si orden de salida es "facturado"
+    if (clientInfo.ordenSalida === "facturado") {
+      if (!clientInfo.correo || clientInfo.correo.trim() === "") {
+        errors.push("Correo (obligatorio para pedidos facturados)");
+      }
     }
     
     return errors;
@@ -1293,7 +1297,10 @@ const PedidoForm = ({ onReturnToMenu }) => {
           correo: clientInfo.correo,
           zona: clientInfo.zone,
           fecha: clientInfo.fecha,
-          vendedor: clientInfo.vendedor
+          vendedor: clientInfo.vendedor,
+          direccion: clientInfo.direccion,
+          barrio: clientInfo.barrio,
+          ordenSalida: clientInfo.ordenSalida
         },
         orderSummary: {
           totalItems: orderItems.length,
