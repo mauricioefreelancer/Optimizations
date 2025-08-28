@@ -808,6 +808,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
     ordenSalida: "facturado",
     observaciones: "",
     zone: "",
+    barrio: "",
   });
 
   const [orderItems, setOrderItems] = useState([]);
@@ -882,6 +883,9 @@ const PedidoForm = ({ onReturnToMenu }) => {
     }
     if (!clientInfo.direccion || clientInfo.direccion.trim() === "") {
       errors.push("Dirección");
+    }
+    if (!clientInfo.barrio || clientInfo.barrio.trim() === "") {
+      errors.push("Barrio");
     }
     if (!clientInfo.correo || clientInfo.correo.trim() === "") {
       errors.push("Correo");
@@ -1091,7 +1095,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
             </div>
             <div class="info-row">
               <div class="info-label">Dirección:</div>
-              <div class="info-value">${clientInfo.direccion} - ${clientInfo.ciudad}</div>
+              <div class="info-value">${clientInfo.direccion} - ${clientInfo.ciudad} - ${clientInfo.barrio}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Orden de salida:</div>
