@@ -906,7 +906,10 @@ const PedidoForm = ({ onReturnToMenu }) => {
     );
     const descuentoGlobal =
       subtotalGlobal * (parseInt(clientInfo.descuento || 0) / 100);
-    const ivaGlobal = subtotalGlobal * 0.19;
+    
+    // Cálculo condicional del IVA basado en ordenSalida
+    const ivaRate = clientInfo.ordenSalida === 'facturado' ? 0.19 : 0;
+    const ivaGlobal = subtotalGlobal * ivaRate;
     const totalGlobal = subtotalGlobal + ivaGlobal - descuentoGlobal;
 
     // Generar serial único si no se proporciona
@@ -1158,7 +1161,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
           <div>
             <div>Subtotal: $${subtotalGlobal.toLocaleString("es-CO")}</div>
             <div>Descuento(${clientInfo.descuento || 0}%): $${descuentoGlobal.toLocaleString("es-CO")}</div>
-            <div>Iva(19%): $${ivaGlobal.toLocaleString("es-CO")}</div>
+            <div>Iva(${ivaRate === 0.19 ? '19' : '0'}%): $${ivaGlobal.toLocaleString("es-CO")}</div>
           </div>
           <div class="total">Total: $${totalGlobal.toLocaleString("es-CO")}</div>
         </div>
@@ -1305,7 +1308,13 @@ const PedidoForm = ({ onReturnToMenu }) => {
         orderSummary: {
           totalItems: orderItems.length,
           subtotal: orderItems.reduce((sum, item) => sum + (item.subtotal || 0), 0),
-          total: orderItems.reduce((sum, item) => sum + (item.subtotal || 0), 0) * 1.19 - (orderItems.reduce((sum, item) => sum + (item.subtotal || 0), 0) * (parseInt(clientInfo.descuento || 0) / 100))
+          total: (() => {
+            const subtotal = orderItems.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+            const descuento = subtotal * (parseInt(clientInfo.descuento || 0) / 100);
+            const ivaRate = clientInfo.ordenSalida === 'facturado' ? 0.19 : 0;
+            const iva = subtotal * ivaRate;
+            return subtotal + iva - descuento;
+          })()
         }
       };
       
@@ -1827,7 +1836,8 @@ const PedidoForm = ({ onReturnToMenu }) => {
             );
             const descuentoGlobal =
               subtotalGlobal * (parseInt(clientInfo.descuento || 0) / 100);
-            const ivaGlobal = subtotalGlobal * 0.19;
+            const ivaRate = clientInfo.ordenSalida === 'facturado' ? 0.19 : 0;
+            const ivaGlobal = subtotalGlobal * ivaRate;
             const totalGlobal = subtotalGlobal + ivaGlobal - descuentoGlobal;
 
             return (
@@ -1844,7 +1854,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p>IVA (19%): ${ivaGlobal.toLocaleString("es-CO")}</p>
+                    <p>IVA ({ivaRate === 0.19 ? '19' : '0'}%): ${ivaGlobal.toLocaleString("es-CO")}</p>
                     <p className="font-bold text-lg">
                       Total: ${totalGlobal.toLocaleString("es-CO")}
                     </p>
