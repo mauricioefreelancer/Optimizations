@@ -852,7 +852,7 @@ def append_to_recaudo_sheet():
             return jsonify({"error": "No se pudo autenticar con Google Sheets"}), 401
         
         # Agregar la fila al final de la hoja (columnas A hasta L)
-        range_name = 'Tabla_1!A:L'
+        range_name = 'Hoja 1!A:L'  # Cambiado de 'Tabla_1!A:L' a 'Hoja 1!A:L'
         
         body = {
             'values': [row_data]
