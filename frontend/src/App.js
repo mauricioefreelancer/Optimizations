@@ -1396,6 +1396,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
               <input
                 type="text"
                 name="nit"
+                placeholder="O Documento"
                 value={clientInfo.nit}
                 onChange={handleClientInfoChange}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -1426,6 +1427,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
               <input
                 type="text"
                 name="cliente"
+                placeholder="Cliente"
                 value={clientInfo.cliente}
                 onChange={handleClientInfoChange}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -1478,6 +1480,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
               <input
                 type="text"
                 name="barrio"
+                placeholder="Barrio"
                 value={clientInfo.barrio}
                 onChange={handleClientInfoChange}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -1485,11 +1488,12 @@ const PedidoForm = ({ onReturnToMenu }) => {
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Teléfono:
+                Celular:
               </label>
               <input
                 type="text"
                 name="cel"
+                placeholder="Celular"
                 value={clientInfo.cel}
                 onChange={handleClientInfoChange}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
@@ -1502,6 +1506,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
               <input
                 type="email"
                 name="correo"
+                placeholder="Correo"
                 value={clientInfo.correo}
                 onChange={handleClientInfoChange}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
