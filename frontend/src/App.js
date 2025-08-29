@@ -1920,7 +1920,13 @@ const App = () => {
                 disabled
                 className="py-3 px-4 sm:px-6 rounded-lg font-semibold text-base sm:text-lg bg-gray-300 text-gray-600 cursor-not-allowed w-full sm:w-auto"
               >
-                Próximamente
+                Reporte de recaudo diario 
+              </button>
+              <button
+                disabled
+                className="py-3 px-4 sm:px-6 rounded-lg font-semibold text-base sm:text-lg bg-gray-300 text-gray-600 cursor-not-allowed w-full sm:w-auto"
+              >
+                Próximamente 2
               </button>
             </nav>
           </div>
