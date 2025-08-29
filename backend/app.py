@@ -832,10 +832,10 @@ def append_to_recaudo_sheet():
             data.get('tipoCliente', ''),                             # B - Tipo Cliente
             data.get('vendedor', ''),                                # C - Asesor/Vendedor
             data.get('nombreCliente', ''),                           # D - Nombre Cliente
-            'Sí' if data.get('vendio') else 'No',                    # E - Vendió (Sí/No)
-            data.get('valorVendido', '') if data.get('vendio') else '',  # F - Valor Vendido (corregido)
-            'Sí' if data.get('abono') else 'No',                     # G - Abonó (Sí/No)
-            data.get('valorAbono', '') if data.get('abono') else '',    # H - Valor Abono
+            'Sí' if data.get('vendio') == 'Sí' else 'No',           # E - Vendió (Sí/No)
+            data.get('valorVendido', '') if data.get('vendio') == 'Sí' else '',  # F - Valor Vendido
+            'Sí' if data.get('abono') == 'Sí' else 'No',            # G - Abonó (Sí/No)
+            data.get('valorAbono', '') if data.get('abono') == 'Sí' else '',    # H - Valor Abono
             data.get('efectivo', ''),                                # I - Efectivo
             data.get('transferencia', ''),                           # J - Transferencia
             data.get('observaciones', ''),                           # K - Observaciones
