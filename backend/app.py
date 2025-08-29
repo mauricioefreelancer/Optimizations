@@ -808,6 +808,171 @@ def convert_html_to_pdf(html_content):
         print(f"❌ Tipo de error: {type(e).__name__}")
         return None
 
+@app.route('/append-to-recaudo-sheet', methods=['POST'])
+def append_to_recaudo_sheet():
+    """Agrega una nueva fila de datos de recaudo al archivo XLSX en Google Drive."""
+    try:
+        data = request.get_json()
+        
+        # Validar campos requeridos
+        required_fields = ['access_token', 'fecha', 'tipoCliente', 'vendedor', 'nombreCliente', 'spreadsheetId']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Campo requerido faltante: {field}"}), 400
+        
+        access_token = data['access_token']
+        spreadsheet_id = data['spreadsheetId']
+        
+        # Preparar los datos de la fila exactamente como aparecen en tu Google Sheet
+        current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        row_data = [
+            data.get('fecha', ''),                                    # A - Fecha
+            data.get('tipoCliente', ''),                             # B - Tipo Cliente
+            data.get('vendedor', ''),                                # C - Asesor/Vendedor
+            data.get('nombreCliente', ''),                           # D - Nombre Cliente
+            'TRUE' if data.get('vendio') else 'FALSE',               # E - Vendió (checkbox)
+            data.get('valorVendio', '') if data.get('vendio') else '',  # F - Valor Vendido
+            'TRUE' if data.get('abono') else 'FALSE',                # G - Abonó (checkbox)
+            data.get('valorAbono', '') if data.get('abono') else '',    # H - Valor Abono
+            data.get('efectivo', ''),                                # I - Efectivo
+            data.get('transferencia', ''),                           # J - Transferencia
+            data.get('observaciones', ''),                           # K - Observaciones
+            current_timestamp                                        # L - Timestamp
+        ]
+        
+        print(f"🚀 Procesando datos de recaudo para: {data.get('nombreCliente')}")
+        print(f"📊 Datos de fila: {row_data}")
+        print(f"📋 Spreadsheet ID: {spreadsheet_id}")
+        
+        # Obtener servicio de Google Sheets
+        service = get_google_sheets_service_oauth(access_token)
+        if not service:
+            return jsonify({"error": "No se pudo autenticar con Google Sheets"}), 401
+        
+        # Agregar la fila al final de la hoja (columnas A hasta L)
+        range_name = 'Tabla_1!A:L'
+        
+        body = {
+            'values': [row_data]
+        }
+        
+        result = service.spreadsheets().values().append(
+            spreadsheetId=spreadsheet_id,
+            range=range_name,
+            valueInputOption='USER_ENTERED',  # Cambiado a USER_ENTERED para manejar checkboxes
+            body=body
+        ).execute()
+        
+        print(f"✅ Fila agregada exitosamente. Celdas actualizadas: {result.get('updates', {}).get('updatedCells', 0)}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Datos de recaudo guardados exitosamente",
+            "updatedCells": result.get('updates', {}).get('updatedCells', 0),
+            "cliente": data.get('nombreCliente'),
+            "timestamp": current_timestamp
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Error al guardar datos de recaudo: {e}")
+        return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
+
+def get_google_sheets_service_oauth(access_token):
+    """Obtiene el servicio de Google Sheets usando OAuth2."""
+    try:
+        print(f"🔄 Creando servicio de Google Sheets OAuth2...")
+        
+        credentials = Credentials(
+            token=access_token,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=GOOGLE_CLIENT_ID,
+            client_secret=GOOGLE_CLIENT_SECRET,
+            scopes=['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+        )
+        
+        # Verificar que las credenciales sean válidas
+        if not credentials.valid:
+            print("⚠️ Credenciales no válidas, intentando refrescar...")
+            if credentials.expired and credentials.refresh_token:
+                credentials.refresh(Request())
+                print("✅ Token refrescado exitosamente")
+            else:
+                print("❌ No se puede refrescar el token")
+                return None
+        
+        service = build('sheets', 'v4', credentials=credentials)
+        print(f"✅ Servicio de Google Sheets creado exitosamente")
+        
+        return service
+        
+    except Exception as e:
+        print(f"❌ Error al crear servicio de Google Sheets: {e}")
+        return None
+
+@app.route('/create-recaudo-spreadsheet', methods=['POST'])
+def create_recaudo_spreadsheet():
+    """Crea el archivo XLSX base para recaudo en Google Drive."""
+    try:
+        data = request.get_json()
+        access_token = data.get('access_token')
+        
+        if not access_token:
+            return jsonify({"error": "Token de acceso requerido"}), 400
+        
+        # Obtener servicio de Google Sheets
+        service = get_google_sheets_service_oauth(access_token)
+        if not service:
+            return jsonify({"error": "No se pudo autenticar con Google Sheets"}), 401
+        
+        # Crear nueva hoja de cálculo
+        spreadsheet = {
+            'properties': {
+                'title': f'Reporte de Recaudo - {datetime.now().strftime("%Y-%m-%d")}'
+            },
+            'sheets': [{
+                'properties': {
+                    'title': 'Hoja1'
+                }
+            }]
+        }
+        
+        spreadsheet = service.spreadsheets().create(body=spreadsheet).execute()
+        spreadsheet_id = spreadsheet.get('spreadsheetId')
+        
+        print(f"✅ Hoja de cálculo creada: {spreadsheet_id}")
+        
+        # Agregar encabezados
+        headers = [
+            'Fecha', 'Tipo Cliente', 'Vendedor', 'Nombre Cliente', 
+            'Vendió', 'Valor Vendió', 'Abonó', 'Valor Abonó', 
+            'Efectivo', 'Transferencia', 'Observaciones'
+        ]
+        
+        body = {
+            'values': [headers]
+        }
+        
+        service.spreadsheets().values().update(
+            spreadsheetId=spreadsheet_id,
+            range='Hoja1!A1:K1',
+            valueInputOption='RAW',
+            body=body
+        ).execute()
+        
+        print(f"✅ Encabezados agregados a la hoja de cálculo")
+        
+        return jsonify({
+            "success": True,
+            "message": "Archivo base de recaudo creado exitosamente",
+            "spreadsheetId": spreadsheet_id,
+            "webViewLink": f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit"
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Error al crear archivo de recaudo: {e}")
+        return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(debug=True, host='0.0.0.0', port=port)

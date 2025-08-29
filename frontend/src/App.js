@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 // Define la URL base de tu backend
 const API_BASE_URL = "https://optimizations-c6pm.onrender.com";
@@ -1890,55 +1890,542 @@ const PedidoForm = ({ onReturnToMenu }) => {
   );
 };
 
+// Componente para la funcionalidad de Reporte de Recaudo
+const RecaudoForm = ({ onReturnToMenu }) => {
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [accessToken, setAccessToken] = useState(null);
+  
+  // Estado del formulario de recaudo
+  const [recaudoData, setRecaudoData] = useState({
+    fecha: new Date().toISOString().split('T')[0],
+    tipoCliente: 'nuevo', // nuevo/antiguo
+    asesor: '',
+    nombreCliente: '',
+    vendio: false,
+    valorVendido: '',
+    abono: false,
+    valorAbono: '',
+    efectivo: '',
+    transferencia: '',
+    observaciones: ''
+  });
+
+  // Función de autenticación OAuth 2.0 (reutilizada del PedidoForm)
+  const authenticateWithGoogle = async () => {
+    try {
+      console.log('🔐 Iniciando autenticación OAuth2 para Recaudo...');
+      
+      const response = await fetch(`${API_BASE_URL}/auth/google`);
+      const data = await response.json();
+      
+      if (data.auth_url) {
+        const authWindow = window.open(
+          data.auth_url, 
+          'google-auth', 
+          'width=500,height=600,scrollbars=yes,resizable=yes'
+        );
+        
+        return new Promise((resolve, reject) => {
+          const messageListener = (event) => {
+            if (event.origin !== window.location.origin && 
+                !event.origin.includes('optimizations-c6pm.onrender.com')) {
+              return;
+            }
+            
+            if (event.data.type === 'OAUTH_SUCCESS' && event.data.access_token) {
+              console.log('✅ Token OAuth2 obtenido para Recaudo');
+              window.removeEventListener('message', messageListener);
+              authWindow.close();
+              resolve(event.data.access_token);
+            } else if (event.data.type === 'OAUTH_ERROR') {
+              console.error('❌ Error en OAuth2:', event.data.error);
+              window.removeEventListener('message', messageListener);
+              authWindow.close();
+              reject(new Error(event.data.error || 'Error en autenticación'));
+            }
+          };
+          
+          window.addEventListener('message', messageListener);
+          
+          const checkClosed = setInterval(() => {
+            if (authWindow.closed) {
+              clearInterval(checkClosed);
+              window.removeEventListener('message', messageListener);
+              reject(new Error('Autenticación cancelada por el usuario'));
+            }
+          }, 1000);
+          
+          setTimeout(() => {
+            clearInterval(checkClosed);
+            window.removeEventListener('message', messageListener);
+            if (!authWindow.closed) {
+              authWindow.close();
+            }
+            reject(new Error('Timeout de autenticación'));
+          }, 300000);
+        });
+      } else {
+        throw new Error('No se pudo obtener URL de autenticación');
+      }
+    } catch (error) {
+      console.error('❌ Error en autenticación:', error);
+      throw error;
+    }
+  };
+
+  // Autenticación automática al montar el componente
+  useEffect(() => {
+    const initAuth = async () => {
+      setIsAuthenticating(true);
+      try {
+        const token = await authenticateWithGoogle();
+        setAccessToken(token);
+        setIsAuthenticated(true);
+        console.log('✅ Autenticación exitosa para Recaudo');
+      } catch (error) {
+        console.error('❌ Error en autenticación automática:', error);
+        alert(`Error de autenticación: ${error.message}`);
+      } finally {
+        setIsAuthenticating(false);
+      }
+    };
+
+    initAuth();
+  }, []);
+
+  // Manejar cambios en el formulario
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setRecaudoData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  // Validar formulario
+  const validateForm = () => {
+    const errors = [];
+    
+    if (!recaudoData.asesor) errors.push('Asesor/Vendedor');
+    if (!recaudoData.nombreCliente.trim()) errors.push('Nombre del Cliente');
+    
+    return errors;
+  };
+
+  // Enviar datos al archivo XLSX en Google Drive
+  const handleSubmitRecaudo = async () => {
+    const validationErrors = validateForm();
+    
+    if (validationErrors.length > 0) {
+      alert(`Por favor complete los siguientes campos obligatorios:\n\n• ${validationErrors.join('\n• ')}`);
+      return;
+    }
+
+    if (!isAuthenticated || !accessToken) {
+      alert('Error: No hay autenticación válida. Por favor recargue la página.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      // Preparar datos para envío
+      const timestamp = new Date().toISOString();
+      const recaudoEntry = {
+        fecha: recaudoData.fecha,
+        tipoCliente: recaudoData.tipoCliente,
+        asesor: recaudoData.asesor,
+        nombreCliente: recaudoData.nombreCliente,
+        vendio: recaudoData.vendio ? 'Sí' : 'No',
+        valorVendido: recaudoData.vendio ? (recaudoData.valorVendido || '0') : '0',
+        abono: recaudoData.abono ? 'Sí' : 'No',
+        valorAbono: recaudoData.abono ? (recaudoData.valorAbono || '0') : '0',
+        efectivo: recaudoData.efectivo || '0',
+        transferencia: recaudoData.transferencia || '0',
+        observaciones: recaudoData.observaciones || '',
+        timestamp: timestamp
+      };
+      
+      console.log('📤 Enviando datos de recaudo...');
+      
+      // Llamada al endpoint para agregar fila al XLSX
+      const response = await fetch(`${API_BASE_URL}/append-to-recaudo-sheet`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          access_token: accessToken,
+          recaudoData: recaudoEntry
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        alert(`¡Datos de recaudo guardados exitosamente!\n\nRegistro #${result.rowNumber || 'N/A'}\nFecha: ${recaudoData.fecha}\nCliente: ${recaudoData.nombreCliente}`);
+        
+        // Limpiar formulario después del envío exitoso
+        setRecaudoData({
+          fecha: new Date().toISOString().split('T')[0],
+          tipoCliente: 'nuevo',
+          asesor: '',
+          nombreCliente: '',
+          vendio: false,
+          valorVendido: '',
+          abono: false,
+          valorAbono: '',
+          efectivo: '',
+          transferencia: '',
+          observaciones: ''
+        });
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al guardar los datos');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error enviando recaudo:', error);
+      alert(`Error al guardar datos: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Mostrar pantalla de autenticación
+  if (isAuthenticating) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-xl text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold mb-2">Autenticando con Google Drive...</h2>
+          <p className="text-gray-600">Por favor complete la autenticación en la ventana emergente</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar error si no se pudo autenticar
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-xl text-center">
+          <div className="text-red-500 text-4xl mb-4">❌</div>
+          <h2 className="text-xl font-semibold mb-2 text-red-600">Error de Autenticación</h2>
+          <p className="text-gray-600 mb-4">No se pudo conectar con Google Drive</p>
+          <button 
+            onClick={onReturnToMenu}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Volver al Menú
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100 p-2 sm:p-4">
+      <div className="container mx-auto p-4 sm:p-8 bg-white rounded-lg shadow-xl">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+            📊 Reporte de Recaudo
+          </h1>
+          <button
+            onClick={onReturnToMenu}
+            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+          >
+            ← Volver al Menú
+          </button>
+        </div>
+
+        {/* Formulario de Recaudo */}
+        <div className="bg-gray-50 p-4 sm:p-6 rounded-lg mb-6">
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-700">
+            Información del Recaudo
+          </h2>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Fecha */}
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-600 mb-1">
+                Fecha:
+              </label>
+              <input
+                type="date"
+                name="fecha"
+                value={recaudoData.fecha}
+                onChange={handleInputChange}
+                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            {/* Tipo de Cliente */}
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-600 mb-1">
+                Tipo de Cliente:
+              </label>
+              <select
+                name="tipoCliente"
+                value={recaudoData.tipoCliente}
+                onChange={handleInputChange}
+                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="nuevo">Nuevo</option>
+                <option value="antiguo">Antiguo</option>
+              </select>
+            </div>
+
+            {/* Asesor/Vendedor */}
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-600 mb-1">
+                Asesor/Vendedor: *
+              </label>
+              <select
+                name="asesor"
+                value={recaudoData.asesor}
+                onChange={handleInputChange}
+                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Seleccione un asesor</option>
+                {SELLERS.map((seller, index) => (
+                  <option key={index} value={seller}>
+                    {seller}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Nombre Cliente */}
+            <div className="flex flex-col sm:col-span-2">
+              <label className="text-sm font-medium text-gray-600 mb-1">
+                Nombre del Cliente: *
+              </label>
+              <input
+                type="text"
+                name="nombreCliente"
+                placeholder="Ingrese el nombre completo del cliente"
+                value={recaudoData.nombreCliente}
+                onChange={handleInputChange}
+                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Sección de Ventas y Abonos */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
+            {/* ¿Vendió? */}
+            <div className="bg-white p-4 rounded-lg border">
+              <div className="flex items-center mb-3">
+                <input
+                  type="checkbox"
+                  name="vendio"
+                  checked={recaudoData.vendio}
+                  onChange={handleInputChange}
+                  className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label className="text-sm font-medium text-gray-700">
+                  ¿Vendió?
+                </label>
+              </div>
+              {recaudoData.vendio && (
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium text-gray-600 mb-1">
+                    Valor Vendido:
+                  </label>
+                  <input
+                    type="number"
+                    name="valorVendido"
+                    placeholder="0"
+                    value={recaudoData.valorVendido}
+                    onChange={handleInputChange}
+                    className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    min="0"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* ¿Abono? */}
+            <div className="bg-white p-4 rounded-lg border">
+              <div className="flex items-center mb-3">
+                <input
+                  type="checkbox"
+                  name="abono"
+                  checked={recaudoData.abono}
+                  onChange={handleInputChange}
+                  className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label className="text-sm font-medium text-gray-700">
+                  ¿Abono?
+                </label>
+              </div>
+              {recaudoData.abono && (
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium text-gray-600 mb-1">
+                    Valor Abono:
+                  </label>
+                  <input
+                    type="number"
+                    name="valorAbono"
+                    placeholder="0"
+                    value={recaudoData.valorAbono}
+                    onChange={handleInputChange}
+                    className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    min="0"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Valores de Pago */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+            {/* Efectivo */}
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-600 mb-1">
+                Efectivo:
+              </label>
+              <input
+                type="number"
+                name="efectivo"
+                placeholder="0"
+                value={recaudoData.efectivo}
+                onChange={handleInputChange}
+                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                min="0"
+              />
+            </div>
+
+            {/* Transferencia */}
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-600 mb-1">
+                Transferencia:
+              </label>
+              <input
+                type="number"
+                name="transferencia"
+                placeholder="0"
+                value={recaudoData.transferencia}
+                onChange={handleInputChange}
+                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                min="0"
+              />
+            </div>
+          </div>
+
+          {/* Observaciones */}
+          <div className="flex flex-col mt-6">
+            <label className="text-sm font-medium text-gray-600 mb-1">
+              Observaciones:
+            </label>
+            <textarea
+              name="observaciones"
+              placeholder="Comentarios adicionales..."
+              value={recaudoData.observaciones}
+              onChange={handleInputChange}
+              rows={3}
+              className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Botón de Envío */}
+        <div className="flex justify-center">
+          <button
+            onClick={handleSubmitRecaudo}
+            disabled={isSubmitting}
+            className={`px-8 py-3 rounded-lg font-semibold text-white transition-colors ${
+              isSubmitting 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-green-600 hover:bg-green-700'
+            }`}
+          >
+            {isSubmitting ? (
+              <>
+                <span className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                Guardando...
+              </>
+            ) : (
+              '💾 Guardar Recaudo'
+            )}
+          </button>
+        </div>
+
+        {/* Información adicional */}
+        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+          <p className="text-sm text-blue-700">
+            <strong>📋 Información:</strong> Los datos se guardarán automáticamente en el archivo XLSX de Google Drive. 
+            Todos los registros quedan almacenados de forma permanente para generar reportes y análisis.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Componente principal que maneja el menú y la renderización condicional
 const App = () => {
-  const [activeOption, setActiveOption] = useState(null); // Empezamos con null para que se muestre el menú
+  const [currentView, setCurrentView] = useState("menu");
 
-  const renderContent = () => {
-    switch (activeOption) {
-      case "analizar-excel":
-        return <ExcelAnalyser onReturnToMenu={() => setActiveOption(null)} />;
-      case "llenado-pedido":
-        return <PedidoForm onReturnToMenu={() => setActiveOption(null)} />;
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case "excel":
+        return <ExcelAnalyser onReturnToMenu={() => setCurrentView("menu")} />;
+      case "pedido":
+        return <PedidoForm onReturnToMenu={() => setCurrentView("menu")} />;
+      case "recaudo":
+        return <RecaudoForm onReturnToMenu={() => setCurrentView("menu")} />;
       default:
         return (
-          <div className="w-full max-w-2xl px-4">
-            <nav className="flex flex-col sm:flex-row justify-center gap-4">
-              <button
-                onClick={() => setActiveOption("analizar-excel")}
-                className="py-3 px-4 sm:px-6 rounded-lg font-semibold text-base sm:text-lg transition duration-300 ease-in-out bg-white text-gray-700 hover:bg-gray-100 shadow-md w-full sm:w-auto"
-              >
-                Analizar Excel
-              </button>
-              <button
-                onClick={() => setActiveOption("llenado-pedido")}
-                className="py-3 px-4 sm:px-6 rounded-lg font-semibold text-base sm:text-lg transition duration-300 ease-in-out bg-white text-gray-700 hover:bg-gray-100 shadow-md w-full sm:w-auto"
-              >
-                Llenado de Pedido
-              </button>
-              <button
-                disabled
-                className="py-3 px-4 sm:px-6 rounded-lg font-semibold text-base sm:text-lg bg-gray-300 text-gray-600 cursor-not-allowed w-full sm:w-auto"
-              >
-                Reporte de recaudo diario 
-              </button>
-              <button
-                disabled
-                className="py-3 px-4 sm:px-6 rounded-lg font-semibold text-base sm:text-lg bg-gray-300 text-gray-600 cursor-not-allowed w-full sm:w-auto"
-              >
-                Próximamente 2
-              </button>
-            </nav>
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                  Natural Colors
+                </h1>
+                <p className="text-gray-600">Sistema de Gestión</p>
+              </div>
+              
+              <nav className="space-y-4">
+                <button
+                  onClick={() => setCurrentView("excel")}
+                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  📊 Analizar Excel
+                </button>
+                
+                <button
+                  onClick={() => setCurrentView("pedido")}
+                  className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                >
+                  📝 Llenado de Pedido
+                </button>
+                
+                <button
+                  onClick={() => setCurrentView("recaudo")}
+                  className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                >
+                  💰 Reporte de Recaudo
+                </button>
+                
+                <button
+                  disabled
+                  className="w-full bg-gray-400 text-white py-3 px-6 rounded-lg cursor-not-allowed font-medium"
+                >
+                  🔒 Próximamente
+                </button>
+              </nav>
+            </div>
           </div>
         );
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4 font-sans">
-      {renderContent()}
-    </div>
-  );
+  return renderCurrentView();
 };
 
 export default App;
