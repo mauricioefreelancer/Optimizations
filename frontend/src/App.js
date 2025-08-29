@@ -1995,13 +1995,40 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     initAuth();
   }, []);
 
-  // Manejar cambios en el formulario
+  // Manejar cambios en el formulario con validación de exclusión mutua
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setRecaudoData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    
+    if (type === 'checkbox') {
+      if (name === 'vendio' && checked) {
+        // Si selecciona "vendió", desactivar "abonó"
+        setRecaudoData(prev => ({
+          ...prev,
+          vendio: true,
+          abono: false,
+          valorAbono: '' // Limpiar valor de abono
+        }));
+      } else if (name === 'abono' && checked) {
+        // Si selecciona "abonó", desactivar "vendió"
+        setRecaudoData(prev => ({
+          ...prev,
+          abono: true,
+          vendio: false,
+          valorVendido: '' // Limpiar valor de venta
+        }));
+      } else {
+        // Si deselecciona cualquier checkbox
+        setRecaudoData(prev => ({
+          ...prev,
+          [name]: checked
+        }));
+      }
+    } else {
+      setRecaudoData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   // Validar formulario
@@ -2244,6 +2271,9 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 <label className="text-sm font-medium text-gray-700">
                   ¿Vendió?
                 </label>
+                {recaudoData.abono && (
+                  <span className="ml-2 text-xs text-red-500">(Deshabilitado: Abono seleccionado)</span>
+                )}
               </div>
               {recaudoData.vendio && (
                 <div className="flex flex-col">
@@ -2276,6 +2306,9 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 <label className="text-sm font-medium text-gray-700">
                   ¿Abono?
                 </label>
+                {recaudoData.vendio && (
+                  <span className="ml-2 text-xs text-red-500">(Deshabilitado: Venta seleccionada)</span>
+                )}
               </div>
               {recaudoData.abono && (
                 <div className="flex flex-col">
