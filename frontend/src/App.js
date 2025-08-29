@@ -2050,6 +2050,9 @@ const RecaudoForm = ({ onReturnToMenu }) => {
       
       console.log('📤 Enviando datos de recaudo...');
       
+      // ID de tu hoja de cálculo de Google Drive
+      const SPREADSHEET_ID = '1nrPAbuvzZclpQRlFX7HKrEKlgJrJBq0b';
+      
       // Llamada al endpoint para agregar fila al XLSX
       const response = await fetch(`${API_BASE_URL}/append-to-recaudo-sheet`, {
         method: 'POST',
@@ -2058,6 +2061,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
         },
         body: JSON.stringify({
           access_token: accessToken,
+          spreadsheet_id: SPREADSHEET_ID,
           recaudoData: recaudoEntry
         })
       });
