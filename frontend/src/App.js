@@ -1446,19 +1446,6 @@ const PedidoForm = ({ onReturnToMenu }) => {
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Teléfono:
-              </label>
-              <input
-                type="text"
-                name="cel"
-                placeholder="Teléfono"
-                value={clientInfo.cel}
-                onChange={handleClientInfoChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-600 mb-1">
                 Ciudad:
               </label>
               <input
@@ -1498,7 +1485,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Celular:
+                Teléfono:
               </label>
               <input
                 type="text"
