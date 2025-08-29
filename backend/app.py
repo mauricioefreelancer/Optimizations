@@ -68,7 +68,8 @@ GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI')
 # Línea 32 - Ampliar los scopes para tener acceso completo a Drive
 SCOPES = [
     'https://www.googleapis.com/auth/drive.file',
-    'https://www.googleapis.com/auth/drive'  # Acceso completo a Google Drive
+    'https://www.googleapis.com/auth/drive',  # Acceso completo a Google Drive
+    'https://www.googleapis.com/auth/spreadsheets'  # ← Este es crucial para Google Sheets
 ]
 
 # Mapeo de zonas a carpetas específicas de Google Drive
