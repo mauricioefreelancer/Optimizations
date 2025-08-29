@@ -2061,8 +2061,18 @@ const RecaudoForm = ({ onReturnToMenu }) => {
         },
         body: JSON.stringify({
           access_token: accessToken,
-          spreadsheet_id: SPREADSHEET_ID,
-          recaudoData: recaudoEntry
+          fecha: recaudoEntry.fecha,
+          tipoCliente: recaudoEntry.tipoCliente,
+          vendedor: recaudoEntry.asesor,
+          nombreCliente: recaudoEntry.nombreCliente,
+          vendio: recaudoEntry.vendio,
+          valorVendido: recaudoEntry.valorVendido,
+          abono: recaudoEntry.abono,
+          valorAbono: recaudoEntry.valorAbono,
+          efectivo: recaudoEntry.efectivo,
+          transferencia: recaudoEntry.transferencia,
+          observaciones: recaudoEntry.observaciones,
+          spreadsheetId: SPREADSHEET_ID
         })
       });
       
