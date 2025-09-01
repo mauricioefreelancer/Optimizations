@@ -869,6 +869,10 @@ const PedidoForm = ({ onReturnToMenu }) => {
   const [uploadResult, setUploadResult] = useState(null);
   const [showAuthErrorModal, setShowAuthErrorModal] = useState(false);
   const [authErrorMessage, setAuthErrorMessage] = useState('');
+  
+  // Estados para el modal de esmaltes
+  const [showEsmalteModal, setShowEsmalteModal] = useState(false);
+  const [esmalteQuantities, setEsmalteQuantities] = useState({});
 
   // Función para limpiar el formulario y empezar uno nuevo
   const handleNewOrder = () => {
@@ -940,6 +944,57 @@ const PedidoForm = ({ onReturnToMenu }) => {
     }
     
     setFieldValidation(newValidation);
+  };
+
+  // Función para manejar cambios en las cantidades de esmaltes
+  const handleEsmalteQuantityChange = (productCod, quantity) => {
+    setEsmalteQuantities(prev => ({
+      ...prev,
+      [productCod]: quantity === '' || quantity === '0' ? '' : quantity
+    }));
+  };
+
+  // Función para agregar múltiples esmaltes desde el modal
+  const handleAddMultipleEsmaltes = () => {
+    const esmalteProducts = PRODUCT_DATA.products["LINEA UÑAS"]["Ref. Esmalte"];
+    const newItems = [];
+
+    Object.entries(esmalteQuantities).forEach(([productCod, quantity]) => {
+      if (quantity && parseInt(quantity) > 0) {
+        const product = esmalteProducts.find(p => p.cod === productCod);
+        if (product) {
+          const newItem = {
+            cod: product.cod,
+            description: product.description,
+            unitPrice: product.unitPrice,
+            quantity: parseInt(quantity),
+            bonus: 0, // Los esmaltes no tienen bonificaciones
+            subtotal: product.unitPrice * parseInt(quantity),
+            descuento: 0,
+            iva: 0,
+            total: 0,
+          };
+          newItems.push(newItem);
+        }
+      }
+    });
+
+    if (newItems.length > 0) {
+      setOrderItems(prev => [...prev, ...newItems]);
+    }
+
+    // Limpiar y cerrar modal
+    setEsmalteQuantities({});
+    setShowEsmalteModal(false);
+    setSelectedSubCategory("");
+    setSelectedCategory(null);
+  };
+
+  // Función para cerrar el modal de esmaltes
+  const handleCloseEsmalteModal = () => {
+    setShowEsmalteModal(false);
+    setEsmalteQuantities({});
+    setSelectedSubCategory("");
   };
 
   const handleAddProduct = () => {
@@ -1532,6 +1587,80 @@ const PedidoForm = ({ onReturnToMenu }) => {
         </div>
       )}
       
+      {/* Modal de Esmaltes */}
+      {showEsmalteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden transform transition-all">
+            {/* Header del Modal */}
+            <div className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-6 rounded-t-2xl">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold mb-2">Selección de Esmaltes</h2>
+                  <p className="text-purple-100">Ingresa las cantidades para cada referencia de esmalte que necesites</p>
+                </div>
+                <button
+                  onClick={handleCloseEsmalteModal}
+                  className="text-white hover:text-purple-200 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Contenido del Modal */}
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {PRODUCT_DATA.products["LINEA UÑAS"]["Ref. Esmalte"].map((product) => (
+                  <div key={product.cod} className="bg-gray-50 p-4 rounded-lg border hover:border-purple-300 transition-colors">
+                    <div className="mb-3">
+                      <h3 className="font-semibold text-gray-800 text-sm">{product.cod}</h3>
+                      <p className="text-gray-600 text-xs mb-1">{product.description}</p>
+                      <p className="text-purple-600 font-medium text-sm">${product.unitPrice.toLocaleString()}</p>
+                    </div>
+                    <div className="flex flex-col">
+                      <label className="text-xs font-medium text-gray-600 mb-1">
+                        Cantidad:
+                      </label>
+                      <input
+                        type="number"
+                        value={esmalteQuantities[product.cod] || ''}
+                        onChange={(e) => handleEsmalteQuantityChange(product.cod, e.target.value)}
+                        min="0"
+                        placeholder="0"
+                        className="p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 text-sm"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer del Modal */}
+            <div className="bg-gray-50 p-6 rounded-b-2xl border-t">
+              <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                <button
+                  onClick={handleCloseEsmalteModal}
+                  className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleAddMultipleEsmaltes}
+                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors"
+                >
+                  Agregar Esmaltes Seleccionados
+                </button>
+              </div>
+              <div className="mt-3 text-sm text-gray-600">
+                <p>💡 <strong>Tip:</strong> Deja en 0 o vacío las referencias que no necesites. Solo se agregarán los esmaltes con cantidad mayor a 0.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Modal de Éxito */}
       {showSuccessModal && uploadResult && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -1895,8 +2024,14 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 <select
                   value={selectedSubCategory || ""}
                   onChange={(e) => {
-                    setSelectedSubCategory(e.target.value);
+                    const subCategory = e.target.value;
+                    setSelectedSubCategory(subCategory);
                     setSelectedProduct("");
+                    
+                    // Si selecciona "Ref. Esmalte", abrir el modal especial
+                    if (subCategory === "Ref. Esmalte") {
+                      setShowEsmalteModal(true);
+                    }
                   }}
                   className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 >
@@ -1917,10 +2052,10 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 value={selectedProduct}
                 onChange={(e) => setSelectedProduct(e.target.value)}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                disabled={!selectedCategory || (selectedCategory === "LINEA UÑAS" && !selectedSubCategory)}
+                disabled={!selectedCategory || (selectedCategory === "LINEA UÑAS" && !selectedSubCategory) || (selectedCategory === "LINEA UÑAS" && selectedSubCategory === "Ref. Esmalte")}
               >
                 <option value="">Selecciona un producto</option>
-                {selectedCategory && (
+                {selectedCategory && selectedSubCategory !== "Ref. Esmalte" && (
                   selectedCategory === "LINEA UÑAS" ?
                     (selectedSubCategory && PRODUCT_DATA.products[selectedCategory][selectedSubCategory].map((product) => (
                       <option key={product.cod} value={product.cod}>
@@ -1956,6 +2091,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 onChange={(e) => setQuantity(e.target.value)}
                 min="0"
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                disabled={selectedCategory === "LINEA UÑAS" && selectedSubCategory === "Ref. Esmalte"}
               />
             </div>
             <div className="flex flex-col">
@@ -1968,11 +2104,13 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 onChange={(e) => setBonus(e.target.value)}
                 min="0"
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                disabled={selectedCategory === "LINEA UÑAS" && selectedSubCategory === "Ref. Esmalte"}
               />
             </div>
             <button
               onClick={handleAddProduct}
               className="w-full sm:col-span-2 lg:col-span-4 bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300"
+              disabled={selectedCategory === "LINEA UÑAS" && selectedSubCategory === "Ref. Esmalte"}
             >
               Agregar
             </button>
