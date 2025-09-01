@@ -3171,6 +3171,18 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                       </span>
                     </div>
                   </div>
+                  
+                  {/* Observaciones - Solo si hay contenido */}
+                  {recaudoResult.recaudoData.observaciones && recaudoResult.recaudoData.observaciones.trim() && (
+                    <div className="border-t pt-2 mt-2">
+                      <div className="flex flex-col">
+                        <span className="text-gray-600 font-medium mb-1">📝 Observaciones:</span>
+                        <span className="text-gray-800 text-sm bg-yellow-50 p-2 rounded border-l-4 border-yellow-400">
+                          {recaudoResult.recaudoData.observaciones}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 {recaudoResult.webViewLink && (
