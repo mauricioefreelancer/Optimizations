@@ -2403,52 +2403,96 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     initAuth();
   }, []);
 
-  // Nuevo estado para validación en tiempo real
+  // Nuevo estado para validación en tiempo real - EXPANDIDO
   const [fieldValidation, setFieldValidation] = useState({
-    nombreCliente: false
+    nombreCliente: false,
+    valorVendido: true,  // Válido por defecto
+    valorAbono: true,    // Válido por defecto
+    matematica: true     // Validación matemática
   });
 
-  // Función para validar un campo específico
+  // Función para validar un campo específico - EXPANDIDA
   const validateField = (fieldName, value) => {
     switch (fieldName) {
       case 'nombreCliente':
         return value && value.trim() !== '';
+      case 'valorVendido':
+        // Si "vendió" está seleccionado, el valor no puede ser 0
+        if (recaudoData.vendio) {
+          const numValue = parseFloat(parseCurrency(value) || '0');
+          return numValue > 0;
+        }
+        return true; // Si no está seleccionado "vendió", es válido
+      case 'valorAbono':
+        // Si "abono" está seleccionado, el valor no puede ser 0
+        if (recaudoData.abono) {
+          const numValue = parseFloat(parseCurrency(value) || '0');
+          return numValue > 0;
+        }
+        return true; // Si no está seleccionado "abono", es válido
+      case 'matematica':
+        // Validación matemática: valor vendido + valor abono = efectivo + transferencia
+        const valorVendido = parseFloat(parseCurrency(recaudoData.valorVendido) || '0');
+        const valorAbono = parseFloat(parseCurrency(recaudoData.valorAbono) || '0');
+        const efectivo = parseFloat(parseCurrency(recaudoData.efectivo) || '0');
+        const transferencia = parseFloat(parseCurrency(recaudoData.transferencia) || '0');
+        
+        const totalIngresos = valorVendido + valorAbono;
+        const totalFormasPago = efectivo + transferencia;
+        
+        // Solo validar si hay valores ingresados
+        if (totalIngresos > 0 || totalFormasPago > 0) {
+          return totalIngresos === totalFormasPago;
+        }
+        return true;
       default:
         return true;
     }
   };
 
-  // Función para obtener clases CSS - ROJO por defecto, VERDE cuando se llena
+  // Función para obtener clases CSS - EXPANDIDA para más campos
   const getFieldClasses = (fieldName, baseClasses) => {
     const isValid = fieldValidation[fieldName];
     
     return isValid 
-      ? `${baseClasses} border-green-500 bg-green-50` // ✅ VERDE: Campo lleno y válido
-      : `${baseClasses} border-red-500 bg-red-50`;   // ❌ ROJO: Campo vacío o inválido
+      ? `${baseClasses} border-green-500 bg-green-50` // ✅ VERDE: Campo válido
+      : `${baseClasses} border-red-500 bg-red-50`;   // ❌ ROJO: Campo con error
   };
 
-  // Función para verificar si el botón de guardar debe estar habilitado
+  // Función para verificar si el botón de guardar debe estar habilitado - MEJORADA
   const isSubmitButtonEnabled = () => {
     // Validaciones básicas existentes
     const basicValidation = fieldValidation.nombreCliente && recaudoData.asesor && !isSubmitting;
     
     if (!basicValidation) return false;
     
-    // Validación matemática: valor vendido + valor abono = efectivo + transferencia
-    const valorVendido = parseFloat(parseCurrency(recaudoData.valorVendido) || '0');
-    const valorAbono = parseFloat(parseCurrency(recaudoData.valorAbono) || '0');
-    const efectivo = parseFloat(parseCurrency(recaudoData.efectivo) || '0');
-    const transferencia = parseFloat(parseCurrency(recaudoData.transferencia) || '0');
+    // Validaciones condicionales de valores
+    const conditionalValidation = fieldValidation.valorVendido && fieldValidation.valorAbono;
     
-    const totalIngresos = valorVendido + valorAbono;
-    const totalFormasPago = efectivo + transferencia;
+    if (!conditionalValidation) return false;
     
-    // Solo validar la ecuación si hay valores ingresados
-    if (totalIngresos > 0 || totalFormasPago > 0) {
-      return totalIngresos === totalFormasPago;
+    // Validación matemática
+    return fieldValidation.matematica;
+  };
+
+  // Función para obtener el mensaje de error del botón
+  const getButtonErrorMessage = () => {
+    if (!fieldValidation.nombreCliente) {
+      return "Complete el nombre del cliente";
     }
-    
-    return true; // Si no hay valores, permitir guardar
+    if (!recaudoData.asesor) {
+      return "Seleccione un asesor";
+    }
+    if (!fieldValidation.valorVendido) {
+      return "El valor vendido no puede ser $0 si seleccionó 'Vendió'";
+    }
+    if (!fieldValidation.valorAbono) {
+      return "El valor abono no puede ser $0 si seleccionó 'Abono'";
+    }
+    if (!fieldValidation.matematica) {
+      return "Los valores no cuadran: (Valor Vendido + Valor Abono) debe ser igual a (Efectivo + Transferencia)";
+    }
+    return "Complete todos los campos requeridos";
   };
 
   // Función para formatear números como moneda colombiana
@@ -2470,39 +2514,53 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     return formattedValue.replace(/[$']/g, '');
   };
 
-  // Función especial para manejar cambios en campos monetarios
-  const handleCurrencyChange = (e) => {
-    const { name, value } = e.target;
-    
+  // Función especial para manejar cambios en campos monetarios - ACTUALIZADA
+  const handleCurrencyChange = (fieldName, value) => {
     // Remover caracteres no numéricos
     const numericValue = value.replace(/[^0-9]/g, '');
     
     // Actualizar el estado con el valor numérico limpio
     setRecaudoData(prev => ({
       ...prev,
-      [name]: numericValue
+      [fieldName]: numericValue
     }));
+    
+    // Validación en tiempo real
+    setTimeout(() => {
+      const updatedData = { ...recaudoData, [fieldName]: numericValue };
+      
+      setFieldValidation(prev => ({
+        ...prev,
+        valorVendido: validateField('valorVendido', updatedData.valorVendido),
+        valorAbono: validateField('valorAbono', updatedData.valorAbono),
+        matematica: validateField('matematica', null)
+      }));
+    }, 0);
   };
 
-  // Manejar cambios en el formulario - opciones independientes
+  // Manejar cambios en el formulario - ACTUALIZADA
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const newValue = type === "checkbox" ? checked : value;
+    const newValue = type === 'checkbox' ? checked : value;
     
-    // Actualizar datos
+    // Actualizar el estado
     setRecaudoData(prev => ({
       ...prev,
       [name]: newValue
     }));
     
-    // Validar campo en tiempo real
-    if (name === 'nombreCliente') {
-      const isValid = validateField(name, newValue);
+    // Validación en tiempo real para todos los campos relevantes
+    setTimeout(() => {
+      const updatedData = { ...recaudoData, [name]: newValue };
+      
       setFieldValidation(prev => ({
         ...prev,
-        [name]: isValid
+        nombreCliente: validateField('nombreCliente', updatedData.nombreCliente),
+        valorVendido: validateField('valorVendido', updatedData.valorVendido),
+        valorAbono: validateField('valorAbono', updatedData.valorAbono),
+        matematica: validateField('matematica', null) // Se valida con el estado completo
       }));
-    }
+    }, 0);
   };
 
   // Validar formulario
@@ -2596,7 +2654,10 @@ const RecaudoForm = ({ onReturnToMenu }) => {
           observaciones: ''
         });
         setFieldValidation({
-          nombreCliente: false
+          nombreCliente: false,
+          valorVendido: true,
+          valorAbono: true,
+          matematica: true
         });
       } else {
         const error = await response.json();
@@ -2806,10 +2867,11 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                   <input
                     type="text"
                     name="valorVendido"
-                    placeholder="$0"
                     value={formatCurrency(recaudoData.valorVendido)}
-                    onChange={handleCurrencyChange}
-                    className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    onChange={(e) => handleCurrencyChange('valorVendido', e.target.value)}
+                    disabled={!recaudoData.vendio}
+                    placeholder="$0"
+                    className={getFieldClasses('valorVendido', "w-full p-3 border-2 rounded-lg transition-all duration-200 text-lg font-medium")}
                   />
                 </div>
               )}
@@ -2837,10 +2899,11 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                   <input
                     type="text"
                     name="valorAbono"
-                    placeholder="$0"
                     value={formatCurrency(recaudoData.valorAbono)}
-                    onChange={handleCurrencyChange}
-                    className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    onChange={(e) => handleCurrencyChange('valorAbono', e.target.value)}
+                    disabled={!recaudoData.abono}
+                    placeholder="$0"
+                    className={getFieldClasses('valorAbono', "w-full p-3 border-2 rounded-lg transition-all duration-200 text-lg font-medium")}
                   />
                 </div>
               )}
@@ -2859,8 +2922,8 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 name="efectivo"
                 placeholder="$0"
                 value={formatCurrency(recaudoData.efectivo)}
-                onChange={handleCurrencyChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                onChange={(e) => handleCurrencyChange('efectivo', e.target.value)}
+                className={getFieldClasses('matematica', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
               />
             </div>
 
@@ -2874,8 +2937,8 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 name="transferencia"
                 placeholder="$0"
                 value={formatCurrency(recaudoData.transferencia)}
-                onChange={handleCurrencyChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                onChange={(e) => handleCurrencyChange('transferencia', e.target.value)}
+                className={getFieldClasses('matematica', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
               />
             </div>
           </div>
@@ -2897,25 +2960,18 @@ const RecaudoForm = ({ onReturnToMenu }) => {
         </div>
 
         {/* Botón de Envío */}
-        <div className="flex justify-center">
+        <div className="flex justify-center mt-8">
           <button
             onClick={handleSubmitRecaudo}
             disabled={!isSubmitButtonEnabled()}
-            className={`px-8 py-3 rounded-lg font-semibold text-white transition-colors ${
-              !isSubmitButtonEnabled()
-                ? 'bg-gray-400 cursor-not-allowed opacity-50' 
-                : 'bg-green-600 hover:bg-green-700'
+            title={!isSubmitButtonEnabled() ? getButtonErrorMessage() : "Guardar recaudo en Google Drive"}
+            className={`w-full py-4 px-6 rounded-lg font-bold text-lg transition-all duration-200 ${
+              isSubmitButtonEnabled()
+                ? 'bg-green-600 hover:bg-green-700 text-white cursor-pointer transform hover:scale-105'
+                : 'bg-gray-400 text-gray-600 cursor-not-allowed'
             }`}
-            title={!isSubmitButtonEnabled() ? 'Complete los campos obligatorios y verifique que: Valor Vendido + Valor Abono = Efectivo + Transferencia' : 'Guardar recaudo en Google Drive'}
           >
-            {isSubmitting ? (
-              <>
-                <span className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
-                Guardando...
-              </>
-            ) : (
-              '💾 Guardar Recaudo'
-            )}
+            {isSubmitting ? 'Guardando...' : '💾 Guardar Recaudo'}
           </button>
         </div>
 
