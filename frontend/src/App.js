@@ -2411,7 +2411,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     matematica: true     // Validación matemática
   });
 
-  // Función para validar un campo específico - EXPANDIDA
+  // Función para validar un campo específico - CORREGIDA
   const validateField = (fieldName, value, currentData = recaudoData) => {
     switch (fieldName) {
       case 'nombreCliente':
@@ -2431,29 +2431,30 @@ const RecaudoForm = ({ onReturnToMenu }) => {
         }
         return true; // Si no está marcado 'abono', no se valida
       case 'matematica':
-      // NUEVA LÓGICA MATEMÁTICA EXACTA
-      const valorVendido = parseFloat(parseCurrency(currentData.valorVendido) || '0');
-      const valorAbono = parseFloat(parseCurrency(currentData.valorAbono) || '0');
-      const efectivo = parseFloat(parseCurrency(currentData.efectivo) || '0');
-      const transferencia = parseFloat(parseCurrency(currentData.transferencia) || '0');
-      
-      // Calcular valores según las casillas seleccionadas
-      const valorVendidoFinal = currentData.vendio ? valorVendido : 0;
-      const valorAbonoFinal = currentData.abono ? valorAbono : 0;
-      
-      // Calcular totales
-      const totalTransaccion = valorVendidoFinal + valorAbonoFinal;
-      const totalFormasPago = efectivo + transferencia;
-      
-      // REGLA PRINCIPAL: Si no se seleccionó "Vendió" ni "Abono"
-      if (!currentData.vendio && !currentData.abono) {
-        // Ambos campos "Efectivo" y "Transferencia" deben ser 0
-        return efectivo === 0 && transferencia === 0;
-      }
-      
-      // REGLA PRINCIPAL: Si se seleccionó "Vendió" o "Abono"
-      // La suma del dinero recibido debe ser igual a la suma de los valores ingresados
-      return totalTransaccion === totalFormasPago;
+        // LÓGICA MATEMÁTICA CORREGIDA
+        const valorVendido = parseFloat(parseCurrency(currentData.valorVendido) || '0');
+        const valorAbono = parseFloat(parseCurrency(currentData.valorAbono) || '0');
+        const efectivo = parseFloat(parseCurrency(currentData.efectivo) || '0');
+        const transferencia = parseFloat(parseCurrency(currentData.transferencia) || '0');
+        
+        // Calcular valores según las casillas seleccionadas
+        const valorVendidoFinal = currentData.vendio ? valorVendido : 0;
+        const valorAbonoFinal = currentData.abono ? valorAbono : 0;
+        
+        // Calcular totales
+        const totalTransaccion = valorVendidoFinal + valorAbonoFinal;
+        const totalFormasPago = efectivo + transferencia;
+        
+        // REGLA CORREGIDA: Si no se seleccionó "Vendió" ni "Abono"
+        if (!currentData.vendio && !currentData.abono) {
+          // Ambos campos "Efectivo" y "Transferencia" deben ser 0
+          return efectivo === 0 && transferencia === 0;
+        }
+        
+        // REGLA CORREGIDA: Si se seleccionó "Vendió" o "Abono"
+        // La suma del dinero recibido debe ser igual a la suma de los valores ingresados
+        // Usar tolerancia para evitar problemas de precisión decimal
+        return Math.abs(totalTransaccion - totalFormasPago) < 0.01;
       default:
         return true;
     }
@@ -2482,15 +2483,15 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     // Validación matemática (la nueva lógica)
     const mathematicalValidation = fieldValidation.matematica;
     
-    // NUEVA VALIDACIÓN: Debe haber al menos una transacción válida
+    // VALIDACIÓN CORREGIDA: Debe haber al menos una transacción válida
     const hasValidTransaction = (
       // Caso 1: Se seleccionó vendió o abono (con valores válidos)
       (recaudoData.vendio && fieldValidation.valorVendido) ||
       (recaudoData.abono && fieldValidation.valorAbono) ||
       // Caso 2: No se seleccionó nada pero hay efectivo/transferencia = 0 (válido)
       (!recaudoData.vendio && !recaudoData.abono && 
-       parseCurrency(recaudoData.efectivo) === 0 && 
-       parseCurrency(recaudoData.transferencia) === 0)
+       parseFloat(parseCurrency(recaudoData.efectivo) || '0') === 0 && 
+       parseFloat(parseCurrency(recaudoData.transferencia) || '0') === 0)
     );
     
     return basicValidation && conditionalValidation && mathematicalValidation && hasValidTransaction && !isSubmitting;
@@ -2526,15 +2527,15 @@ const RecaudoForm = ({ onReturnToMenu }) => {
         return 'Si no selecciona "Vendió" ni "Abono", tanto Efectivo como Transferencia deben ser $0';
       }
       
-      return `Error matemático: (Valor Vendido + Valor Abono) = $${formatCurrency(totalTransaccion)} debe ser igual a (Efectivo + Transferencia) = $${formatCurrency(totalFormasPago)}`;
+      return `Error matemático: (Valor Vendido + Valor Abono) = $${formatCurrency(totalTransaccion.toString())} debe ser igual a (Efectivo + Transferencia) = $${formatCurrency(totalFormasPago.toString())}`;
     }
     
     const hasValidTransaction = (
       (recaudoData.vendio && fieldValidation.valorVendido) ||
       (recaudoData.abono && fieldValidation.valorAbono) ||
       (!recaudoData.vendio && !recaudoData.abono && 
-       parseCurrency(recaudoData.efectivo) === 0 && 
-       parseCurrency(recaudoData.transferencia) === 0)
+       parseFloat(parseCurrency(recaudoData.efectivo) || '0') === 0 && 
+       parseFloat(parseCurrency(recaudoData.transferencia) || '0') === 0)
     );
     
     if (!hasValidTransaction) {
@@ -2563,53 +2564,57 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     return formattedValue.replace(/[$']/g, '');
   };
 
-  // Función especial para manejar cambios en campos monetarios - ACTUALIZADA
+  // Función especial para manejar cambios en campos monetarios - CORREGIDA
   const handleCurrencyChange = (fieldName, value) => {
     // Remover caracteres no numéricos
     const numericValue = value.replace(/[^0-9]/g, '');
     
     // Actualizar el estado con el valor numérico limpio
-    setRecaudoData(prev => ({
-      ...prev,
-      [fieldName]: numericValue
-    }));
-    
-    // Validación en tiempo real
-    setTimeout(() => {
-      const updatedData = { ...recaudoData, [fieldName]: numericValue };
-      
-      setFieldValidation(prev => ({
+    setRecaudoData(prev => {
+      const updatedData = {
         ...prev,
-        valorVendido: validateField('valorVendido', updatedData.valorVendido),
-        valorAbono: validateField('valorAbono', updatedData.valorAbono),
-        matematica: validateField('matematica', null)
-      }));
-    }, 0);
+        [fieldName]: numericValue
+      };
+      
+      // Validación en tiempo real con datos actualizados
+      setTimeout(() => {
+        setFieldValidation(prevValidation => ({
+          ...prevValidation,
+          valorVendido: validateField('valorVendido', updatedData.valorVendido, updatedData),
+          valorAbono: validateField('valorAbono', updatedData.valorAbono, updatedData),
+          matematica: validateField('matematica', null, updatedData)
+        }));
+      }, 0);
+      
+      return updatedData;
+    });
   };
 
-  // Manejar cambios en el formulario - ACTUALIZADA
+  // Manejar cambios en el formulario - CORREGIDA
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : value;
     
     // Actualizar el estado
-    setRecaudoData(prev => ({
-      ...prev,
-      [name]: newValue
-    }));
-    
-    // Validación en tiempo real para todos los campos relevantes
-    setTimeout(() => {
-      const updatedData = { ...recaudoData, [name]: newValue };
-      
-      setFieldValidation(prev => ({
+    setRecaudoData(prev => {
+      const updatedData = {
         ...prev,
-        nombreCliente: validateField('nombreCliente', updatedData.nombreCliente),
-        valorVendido: validateField('valorVendido', updatedData.valorVendido),
-        valorAbono: validateField('valorAbono', updatedData.valorAbono),
-        matematica: validateField('matematica', null) // Se valida con el estado completo
-      }));
-    }, 0);
+        [name]: newValue
+      };
+      
+      // Validación en tiempo real para todos los campos relevantes con datos actualizados
+      setTimeout(() => {
+        setFieldValidation(prevValidation => ({
+          ...prevValidation,
+          nombreCliente: validateField('nombreCliente', updatedData.nombreCliente, updatedData),
+          valorVendido: validateField('valorVendido', updatedData.valorVendido, updatedData),
+          valorAbono: validateField('valorAbono', updatedData.valorAbono, updatedData),
+          matematica: validateField('matematica', null, updatedData) // Se valida con el estado completo actualizado
+        }));
+      }, 0);
+      
+      return updatedData;
+    });
   };
 
   // Validar formulario
