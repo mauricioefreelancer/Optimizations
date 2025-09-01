@@ -2403,21 +2403,93 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     initAuth();
   }, []);
 
+  // Nuevo estado para validación en tiempo real
+  const [fieldValidation, setFieldValidation] = useState({
+    nombreCliente: false
+  });
+
+  // Función para validar un campo específico
+  const validateField = (fieldName, value) => {
+    switch (fieldName) {
+      case 'nombreCliente':
+        return value && value.trim() !== '';
+      default:
+        return true;
+    }
+  };
+
+  // Función para obtener clases CSS - ROJO por defecto, VERDE cuando se llena
+  const getFieldClasses = (fieldName, baseClasses) => {
+    const isValid = fieldValidation[fieldName];
+    
+    return isValid 
+      ? `${baseClasses} border-green-500 bg-green-50` // ✅ VERDE: Campo lleno y válido
+      : `${baseClasses} border-red-500 bg-red-50`;   // ❌ ROJO: Campo vacío o inválido
+  };
+
+  // Función para verificar si el botón de guardar debe estar habilitado
+  const isSubmitButtonEnabled = () => {
+    return fieldValidation.nombreCliente && recaudoData.asesor && !isSubmitting;
+  };
+
+  // Función para formatear números como moneda colombiana
+  const formatCurrency = (value) => {
+    if (!value || value === '') return '';
+    
+    // Convertir a número y eliminar decimales
+    const numValue = parseInt(value.toString().replace(/[^0-9]/g, ''));
+    if (isNaN(numValue) || numValue === 0) return '';
+    
+    // Formatear con separadores de miles usando apostrofe
+    return '$' + numValue.toLocaleString('es-CO').replace(/,/g, "'");
+  };
+
+  // Función para parsear el valor formateado y obtener el número
+  const parseCurrency = (formattedValue) => {
+    if (!formattedValue) return '';
+    // Remover $ y apostrofes, mantener solo números
+    return formattedValue.replace(/[$']/g, '');
+  };
+
+  // Función especial para manejar cambios en campos monetarios
+  const handleCurrencyChange = (e) => {
+    const { name, value } = e.target;
+    
+    // Remover caracteres no numéricos
+    const numericValue = value.replace(/[^0-9]/g, '');
+    
+    // Actualizar el estado con el valor numérico limpio
+    setRecaudoData(prev => ({
+      ...prev,
+      [name]: numericValue
+    }));
+  };
+
   // Manejar cambios en el formulario - opciones independientes
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const newValue = type === "checkbox" ? checked : value;
     
-    if (type === "checkbox") {
-      setRecaudoData(prev => ({
+    // Actualizar datos
+    setRecaudoData(prev => ({
+      ...prev,
+      [name]: newValue
+    }));
+    
+    // Validar campo en tiempo real
+    if (name === 'nombreCliente') {
+      const isValid = validateField(name, newValue);
+      setFieldValidation(prev => ({
         ...prev,
-        [name]: checked,
-        // No longer clearing values when other checkbox is selected
+        [name]: isValid
       }));
-    } else {
-      setRecaudoData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+    }
+
+    // Lógica de exclusión mutua para vendió/abono
+    if (name === "vendio" && checked) {
+      setRecaudoData(prev => ({ ...prev, abono: false, valorAbono: "" }));
+    } else if (name === "abono" && checked) {
+      setRecaudoData(prev => ({ ...prev, vendio: false, valorVendido: "" }));
     }
   };
 
@@ -2510,6 +2582,9 @@ const RecaudoForm = ({ onReturnToMenu }) => {
           efectivo: '',
           transferencia: '',
           observaciones: ''
+        });
+        setFieldValidation({
+          nombreCliente: false
         });
       } else {
         const error = await response.json();
@@ -2689,7 +2764,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 placeholder="Ingrese el nombre completo del cliente"
                 value={recaudoData.nombreCliente}
                 onChange={handleInputChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className={getFieldClasses('nombreCliente', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
                 required
               />
             </div>
@@ -2717,13 +2792,12 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                     Valor Vendido:
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     name="valorVendido"
-                    placeholder="0"
-                    value={recaudoData.valorVendido}
-                    onChange={handleInputChange}
+                    placeholder="$0"
+                    value={formatCurrency(recaudoData.valorVendido)}
+                    onChange={handleCurrencyChange}
                     className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    min="0"
                   />
                 </div>
               )}
@@ -2749,13 +2823,12 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                     Valor Abono:
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     name="valorAbono"
-                    placeholder="0"
-                    value={recaudoData.valorAbono}
-                    onChange={handleInputChange}
+                    placeholder="$0"
+                    value={formatCurrency(recaudoData.valorAbono)}
+                    onChange={handleCurrencyChange}
                     className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    min="0"
                   />
                 </div>
               )}
@@ -2770,13 +2843,12 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 Efectivo:
               </label>
               <input
-                type="number"
+                type="text"
                 name="efectivo"
-                placeholder="0"
-                value={recaudoData.efectivo}
-                onChange={handleInputChange}
+                placeholder="$0"
+                value={formatCurrency(recaudoData.efectivo)}
+                onChange={handleCurrencyChange}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                min="0"
               />
             </div>
 
@@ -2786,13 +2858,12 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 Transferencia:
               </label>
               <input
-                type="number"
+                type="text"
                 name="transferencia"
-                placeholder="0"
-                value={recaudoData.transferencia}
-                onChange={handleInputChange}
+                placeholder="$0"
+                value={formatCurrency(recaudoData.transferencia)}
+                onChange={handleCurrencyChange}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                min="0"
               />
             </div>
           </div>
@@ -2817,12 +2888,13 @@ const RecaudoForm = ({ onReturnToMenu }) => {
         <div className="flex justify-center">
           <button
             onClick={handleSubmitRecaudo}
-            disabled={isSubmitting}
+            disabled={!isSubmitButtonEnabled()}
             className={`px-8 py-3 rounded-lg font-semibold text-white transition-colors ${
-              isSubmitting 
-                ? 'bg-gray-400 cursor-not-allowed' 
+              !isSubmitButtonEnabled()
+                ? 'bg-gray-400 cursor-not-allowed opacity-50' 
                 : 'bg-green-600 hover:bg-green-700'
             }`}
+            title={!isSubmitButtonEnabled() ? 'Complete el nombre del cliente y seleccione un asesor para habilitar' : 'Guardar recaudo en Google Drive'}
           >
             {isSubmitting ? (
               <>
