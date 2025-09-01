@@ -2412,38 +2412,41 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   });
 
   // Función para validar un campo específico - EXPANDIDA
-  const validateField = (fieldName, value) => {
+  const validateField = (fieldName, value, currentData = recaudoData) => {
     switch (fieldName) {
       case 'nombreCliente':
         return value && value.trim() !== '';
       case 'valorVendido':
-        // Si "vendió" está seleccionado, el valor no puede ser 0
-        if (recaudoData.vendio) {
+        // Solo validar si 'vendió' está marcado
+        if (currentData.vendio) {
           const numValue = parseFloat(parseCurrency(value) || '0');
           return numValue > 0;
         }
-        return true; // Si no está seleccionado "vendió", es válido
+        return true; // Si no está marcado 'vendió', no se valida
       case 'valorAbono':
-        // Si "abono" está seleccionado, el valor no puede ser 0
-        if (recaudoData.abono) {
+        // Solo validar si 'abono' está marcado
+        if (currentData.abono) {
           const numValue = parseFloat(parseCurrency(value) || '0');
           return numValue > 0;
         }
-        return true; // Si no está seleccionado "abono", es válido
+        return true; // Si no está marcado 'abono', no se valida
       case 'matematica':
-        // Validación matemática: valor vendido + valor abono = efectivo + transferencia
-        const valorVendido = parseFloat(parseCurrency(recaudoData.valorVendido) || '0');
-        const valorAbono = parseFloat(parseCurrency(recaudoData.valorAbono) || '0');
-        const efectivo = parseFloat(parseCurrency(recaudoData.efectivo) || '0');
-        const transferencia = parseFloat(parseCurrency(recaudoData.transferencia) || '0');
+        // Validación matemática mejorada
+        const valorVendido = parseFloat(parseCurrency(currentData.valorVendido) || '0');
+        const valorAbono = parseFloat(parseCurrency(currentData.valorAbono) || '0');
+        const efectivo = parseFloat(parseCurrency(currentData.efectivo) || '0');
+        const transferencia = parseFloat(parseCurrency(currentData.transferencia) || '0');
         
-        const totalIngresos = valorVendido + valorAbono;
+        // Calcular totales
+        const totalIngresos = (currentData.vendio ? valorVendido : 0) + (currentData.abono ? valorAbono : 0);
         const totalFormasPago = efectivo + transferencia;
         
-        // Solo validar si hay valores ingresados
-        if (totalIngresos > 0 || totalFormasPago > 0) {
+        // Si hay ingresos declarados (venta o abono), debe coincidir con formas de pago
+        if (totalIngresos > 0) {
           return totalIngresos === totalFormasPago;
         }
+        
+        // Si no hay ingresos declarados, permitir cualquier forma de pago (devoluciones, cambios)
         return true;
       default:
         return true;
@@ -2461,38 +2464,69 @@ const RecaudoForm = ({ onReturnToMenu }) => {
 
   // Función para verificar si el botón de guardar debe estar habilitado - MEJORADA
   const isSubmitButtonEnabled = () => {
-    // Validaciones básicas existentes
-    const basicValidation = fieldValidation.nombreCliente && recaudoData.asesor && !isSubmitting;
+    // Validaciones básicas
+    const basicValidation = fieldValidation.nombreCliente && recaudoData.asesor;
     
-    if (!basicValidation) return false;
-    
-    // Validaciones condicionales de valores
-    const conditionalValidation = fieldValidation.valorVendido && fieldValidation.valorAbono;
-    
-    if (!conditionalValidation) return false;
+    // Validaciones condicionales mejoradas
+    const conditionalValidation = (
+      // Si 'vendió' está marcado, debe tener valor > 0
+      (!recaudoData.vendio || fieldValidation.valorVendido) &&
+      // Si 'abono' está marcado, debe tener valor > 0
+      (!recaudoData.abono || fieldValidation.valorAbono)
+    );
     
     // Validación matemática
-    return fieldValidation.matematica;
+    const mathematicalValidation = fieldValidation.matematica;
+    
+    // Validación de transacción mínima
+    const hasTransaction = (
+      recaudoData.vendio || 
+      recaudoData.abono || 
+      parseCurrency(recaudoData.efectivo) > 0 || 
+      parseCurrency(recaudoData.transferencia) > 0
+    );
+    
+    return basicValidation && conditionalValidation && mathematicalValidation && hasTransaction && !isSubmitting;
   };
 
   // Función para obtener el mensaje de error del botón
   const getButtonErrorMessage = () => {
     if (!fieldValidation.nombreCliente) {
-      return "Complete el nombre del cliente";
+      return 'Debe ingresar el nombre del cliente';
     }
     if (!recaudoData.asesor) {
-      return "Seleccione un asesor";
+      return 'Debe seleccionar un asesor';
     }
-    if (!fieldValidation.valorVendido) {
-      return "El valor vendido no puede ser $0 si seleccionó 'Vendió'";
+    if (recaudoData.vendio && !fieldValidation.valorVendido) {
+      return 'Si marcó "Vendió", el valor vendido debe ser mayor a 0';
     }
-    if (!fieldValidation.valorAbono) {
-      return "El valor abono no puede ser $0 si seleccionó 'Abono'";
+    if (recaudoData.abono && !fieldValidation.valorAbono) {
+      return 'Si marcó "Abono", el valor abono debe ser mayor a 0';
     }
     if (!fieldValidation.matematica) {
-      return "Los valores no cuadran: (Valor Vendido + Valor Abono) debe ser igual a (Efectivo + Transferencia)";
+      const valorVendido = parseCurrency(recaudoData.valorVendido);
+      const valorAbono = parseCurrency(recaudoData.valorAbono);
+      const efectivo = parseCurrency(recaudoData.efectivo);
+      const transferencia = parseCurrency(recaudoData.transferencia);
+      
+      const totalIngresos = (recaudoData.vendio ? valorVendido : 0) + (recaudoData.abono ? valorAbono : 0);
+      const totalFormasPago = efectivo + transferencia;
+      
+      return `Los ingresos declarados ($${formatCurrency(totalIngresos)}) deben coincidir con las formas de pago ($${formatCurrency(totalFormasPago)})`;
     }
-    return "Complete todos los campos requeridos";
+    
+    const hasTransaction = (
+      recaudoData.vendio || 
+      recaudoData.abono || 
+      parseCurrency(recaudoData.efectivo) > 0 || 
+      parseCurrency(recaudoData.transferencia) > 0
+    );
+    
+    if (!hasTransaction) {
+      return 'Debe registrar al menos una transacción (venta, abono, efectivo o transferencia)';
+    }
+    
+    return 'Formulario válido';
   };
 
   // Función para formatear números como moneda colombiana
