@@ -842,23 +842,19 @@ const PedidoForm = ({ onReturnToMenu }) => {
     }
   };
 
-  // Función para obtener clases CSS basadas en validación
+  // Función para obtener clases CSS - ROJO por defecto, VERDE cuando se llena
   const getFieldClasses = (fieldName, baseClasses) => {
     const isRequired = fieldName === 'correo' ? clientInfo.ordenSalida === 'facturado' : true;
+    
     if (!isRequired) {
-      return baseClasses; // Campo no obligatorio
+      return baseClasses; // Campo no obligatorio - estilo normal
     }
     
     const isValid = fieldValidation[fieldName];
-    const hasValue = clientInfo[fieldName] && clientInfo[fieldName].trim() !== '';
-    
-    if (!hasValue) {
-      return `${baseClasses} border-gray-300`; // Sin valor, borde normal
-    }
     
     return isValid 
-      ? `${baseClasses} border-green-500 bg-green-50` // Válido: verde
-      : `${baseClasses} border-red-500 bg-red-50`;   // Inválido: rojo
+      ? `${baseClasses} border-green-500 bg-green-50` // ✅ VERDE: Campo lleno y válido
+      : `${baseClasses} border-red-500 bg-red-50`;   // ❌ ROJO: Campo vacío o inválido
   };
 
   const [orderItems, setOrderItems] = useState([]);
@@ -1466,9 +1462,6 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 onChange={handleClientInfoChange}
                 className={getFieldClasses('nit', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
               />
-              {clientInfo.nit && !fieldValidation.nit && (
-                <span className="text-xs text-red-600 mt-1">Campo obligatorio</span>
-              )}
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
@@ -1513,9 +1506,6 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 onChange={handleClientInfoChange}
                 className={getFieldClasses('direccion', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
               />
-              {clientInfo.direccion && !fieldValidation.direccion && (
-                <span className="text-xs text-red-600 mt-1">Campo obligatorio</span>
-              )}
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
@@ -1556,9 +1546,6 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 onChange={handleClientInfoChange}
                 className={getFieldClasses('barrio', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
               />
-              {clientInfo.barrio && !fieldValidation.barrio && (
-                <span className="text-xs text-red-600 mt-1">Campo obligatorio</span>
-              )}
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
@@ -1585,9 +1572,6 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 onChange={handleClientInfoChange}
                 className={getFieldClasses('correo', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
               />
-              {clientInfo.ordenSalida === 'facturado' && clientInfo.correo && !fieldValidation.correo && (
-                <span className="text-xs text-red-600 mt-1">Correo obligatorio para pedidos facturados</span>
-              )}
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
@@ -1604,9 +1588,6 @@ const PedidoForm = ({ onReturnToMenu }) => {
                   <option key={zone} value={zone}>{zone}</option>
                 ))}
               </select>
-              {clientInfo.zone && !fieldValidation.zone && (
-                <span className="text-xs text-red-600 mt-1">Campo obligatorio</span>
-              )}
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
