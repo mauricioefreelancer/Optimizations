@@ -2537,8 +2537,8 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     );
   }
 
-  // Mostrar error si no se pudo autenticar
-  if (!isAuthenticated) {
+  // Mostrar error si no se pudo autenticar Y no hay modal activo
+  if (!isAuthenticated && !showAuthErrorModal) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-xl text-center">
