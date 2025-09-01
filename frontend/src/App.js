@@ -3136,6 +3136,43 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                   <span className="text-gray-600 font-medium">📅 Fecha:</span>
                   <span className="text-gray-800">{recaudoResult.recaudoData.fecha}</span>
                 </div>
+                
+                {/* Información de Ventas y Abonos */}
+                <div className="border-t pt-3 mt-3">
+                  {recaudoResult.recaudoData.vendio && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-green-600 font-medium">💰 Vendió:</span>
+                      <span className="text-green-800 font-semibold">
+                        ${parseInt(recaudoResult.recaudoData.valorVendido || 0).toLocaleString('es-CO')}
+                      </span>
+                    </div>
+                  )}
+                  {recaudoResult.recaudoData.abono && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-blue-600 font-medium">💳 Abonó:</span>
+                      <span className="text-blue-800 font-semibold">
+                        ${parseInt(recaudoResult.recaudoData.valorAbono || 0).toLocaleString('es-CO')}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Formas de Pago */}
+                  <div className="border-t pt-2 mt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 font-medium">💵 Efectivo:</span>
+                      <span className="text-gray-800">
+                        ${parseInt(recaudoResult.recaudoData.efectivo || 0).toLocaleString('es-CO')}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 font-medium">🏦 Transferencia:</span>
+                      <span className="text-gray-800">
+                        ${parseInt(recaudoResult.recaudoData.transferencia || 0).toLocaleString('es-CO')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
                 {recaudoResult.webViewLink && (
                   <div className="pt-2">
                     <a 
