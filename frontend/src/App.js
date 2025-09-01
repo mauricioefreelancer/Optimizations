@@ -1313,17 +1313,22 @@ const PedidoForm = ({ onReturnToMenu }) => {
     }
   };
 
-  // Función para subir a Google Drive
+  // Función para verificar si el botón debe estar habilitado
+  const isUploadButtonEnabled = () => {
+    const validationErrors = validateForDrive();
+    return validationErrors.length === 0 && orderItems.length > 0 && !isUploading;
+  };
+
+  // Función para subir a Google Drive - SIN ALERT
   const handleUploadToDrive = async () => {
     const validationErrors = validateForDrive();
     
+    // Si hay errores de validación, no hacer nada (el botón ya está deshabilitado)
     if (validationErrors.length > 0) {
-      alert(`Por favor complete los siguientes campos obligatorios para subir a Drive:\n\n• ${validationErrors.join('\n• ')}`);
       return;
     }
 
     if (orderItems.length === 0) {
-      alert("No hay productos en el pedido para subir.");
       return;
     }
 
@@ -1364,23 +1369,11 @@ const PedidoForm = ({ onReturnToMenu }) => {
           direccion: clientInfo.direccion,
           barrio: clientInfo.barrio,
           ordenSalida: clientInfo.ordenSalida
-        },
-        orderSummary: {
-          totalItems: orderItems.length,
-          subtotal: orderItems.reduce((sum, item) => sum + (item.subtotal || 0), 0),
-          total: (() => {
-            const subtotal = orderItems.reduce((sum, item) => sum + (item.subtotal || 0), 0);
-            const descuento = subtotal * (parseInt(clientInfo.descuento || 0) / 100);
-            const ivaRate = clientInfo.ordenSalida === 'facturado' ? 0.19 : 0;
-            const iva = subtotal * ivaRate;
-            return subtotal + iva - descuento;
-          })()
         }
       };
       
-      console.log('📤 Enviando archivo con OAuth2...');
+      console.log('📤 Enviando datos al backend...');
       
-      // Llamada al nuevo endpoint OAuth2
       const response = await fetch(`${API_BASE_URL}/upload-to-drive-oauth`, {
         method: 'POST',
         headers: {
@@ -1391,7 +1384,8 @@ const PedidoForm = ({ onReturnToMenu }) => {
       
       if (response.ok) {
         const result = await response.json();
-        alert(`¡Pedido subido exitosamente a Google Drive con OAuth2!\n\nCarpeta: ${clientInfo.zone}\nArchivo: ${fileName}\nID: ${result.fileId || 'N/A'}\nMétodo: ${result.method || 'OAuth2'}`);
+        console.log('✅ Subida exitosa:', result);
+        alert(`✅ ${result.message}\n\n📄 Archivo: ${result.filename}\n📍 Zona: ${result.zone}\n🔗 Ver archivo: ${result.webViewLink || 'Link no disponible'}`);
       } else {
         const error = await response.json();
         throw new Error(error.error || 'Error al subir el archivo');
@@ -1919,7 +1913,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
         </div>
 
         {/* Botones de descarga y subir a Drive - VERSIÓN OPTIMIZADA PARA MÓVIL */}
-        <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4 px-2">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <button
             onClick={handleDownload}
             className="bg-green-600 text-white font-bold text-sm sm:text-lg py-2 sm:py-3 px-4 sm:px-8 rounded-full shadow-lg hover:bg-green-700 transition duration-300 transform hover:scale-105 w-full sm:w-auto"
@@ -1929,12 +1923,13 @@ const PedidoForm = ({ onReturnToMenu }) => {
           
           <button
             onClick={handleUploadToDrive}
-            disabled={isUploading}
-            className={`font-bold text-sm sm:text-lg py-2 sm:py-3 px-4 sm:px-8 rounded-full shadow-lg transition duration-300 transform hover:scale-105 w-full sm:w-auto ${
-              isUploading 
-                ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+            disabled={!isUploadButtonEnabled()}
+            className={`font-bold text-sm sm:text-lg py-2 sm:py-3 px-4 sm:px-8 rounded-full shadow-lg transition duration-300 transform w-full sm:w-auto ${
+              !isUploadButtonEnabled()
+                ? 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-50'
+                : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105'
             }`}
+            title={!isUploadButtonEnabled() ? 'Complete todos los campos obligatorios para habilitar' : 'Subir pedido a Google Drive'}
           >
             {isUploading ? 'Subiendo...' : 'Subir a Drive'}
           </button>
