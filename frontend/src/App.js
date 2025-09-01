@@ -811,6 +811,56 @@ const PedidoForm = ({ onReturnToMenu }) => {
     barrio: "",
   });
 
+  // Nuevo estado para validación en tiempo real
+  const [fieldValidation, setFieldValidation] = useState({
+    zone: false,
+    nit: false,
+    direccion: false,
+    barrio: false,
+    correo: false
+  });
+
+  // Función para validar un campo específico
+  const validateField = (fieldName, value, ordenSalida = clientInfo.ordenSalida) => {
+    switch (fieldName) {
+      case 'zone':
+        return value && value.trim() !== '';
+      case 'nit':
+        return value && value.trim() !== '';
+      case 'direccion':
+        return value && value.trim() !== '';
+      case 'barrio':
+        return value && value.trim() !== '';
+      case 'correo':
+        // Solo obligatorio si orden de salida es "facturado"
+        if (ordenSalida === 'facturado') {
+          return value && value.trim() !== '' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+        }
+        return true; // No obligatorio para "salida de bodega"
+      default:
+        return true;
+    }
+  };
+
+  // Función para obtener clases CSS basadas en validación
+  const getFieldClasses = (fieldName, baseClasses) => {
+    const isRequired = fieldName === 'correo' ? clientInfo.ordenSalida === 'facturado' : true;
+    if (!isRequired) {
+      return baseClasses; // Campo no obligatorio
+    }
+    
+    const isValid = fieldValidation[fieldName];
+    const hasValue = clientInfo[fieldName] && clientInfo[fieldName].trim() !== '';
+    
+    if (!hasValue) {
+      return `${baseClasses} border-gray-300`; // Sin valor, borde normal
+    }
+    
+    return isValid 
+      ? `${baseClasses} border-green-500 bg-green-50` // Válido: verde
+      : `${baseClasses} border-red-500 bg-red-50`;   // Inválido: rojo
+  };
+
   const [orderItems, setOrderItems] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState("");
@@ -822,7 +872,21 @@ const PedidoForm = ({ onReturnToMenu }) => {
 
   const handleClientInfoChange = (e) => {
     const { name, value } = e.target;
-    setClientInfo({ ...clientInfo, [name]: value });
+    const newClientInfo = { ...clientInfo, [name]: value };
+    setClientInfo(newClientInfo);
+    
+    // Validación en tiempo real
+    const newValidation = { ...fieldValidation };
+    
+    // Validar el campo que cambió
+    newValidation[name] = validateField(name, value, newClientInfo.ordenSalida);
+    
+    // Si cambió ordenSalida, revalidar correo
+    if (name === 'ordenSalida') {
+      newValidation.correo = validateField('correo', newClientInfo.correo, value);
+    }
+    
+    setFieldValidation(newValidation);
   };
 
   const handleAddProduct = () => {
@@ -1379,7 +1443,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Fecha: (Automática)
+                Fecha:
               </label>
               <input
                 type="date"
@@ -1392,7 +1456,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                NIT:
+                NIT: *
               </label>
               <input
                 type="text"
@@ -1400,8 +1464,11 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 placeholder="O Documento"
                 value={clientInfo.nit}
                 onChange={handleClientInfoChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className={getFieldClasses('nit', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
               />
+              {clientInfo.nit && !fieldValidation.nit && (
+                <span className="text-xs text-red-600 mt-1">Campo obligatorio</span>
+              )}
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
@@ -1436,7 +1503,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Dirección:
+                Dirección: *
               </label>
               <input
                 type="text"
@@ -1444,8 +1511,11 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 placeholder="Dirección"
                 value={clientInfo.direccion}
                 onChange={handleClientInfoChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className={getFieldClasses('direccion', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
               />
+              {clientInfo.direccion && !fieldValidation.direccion && (
+                <span className="text-xs text-red-600 mt-1">Campo obligatorio</span>
+              )}
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
@@ -1476,7 +1546,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Barrio:
+                Barrio: *
               </label>
               <input
                 type="text"
@@ -1484,8 +1554,11 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 placeholder="Barrio"
                 value={clientInfo.barrio}
                 onChange={handleClientInfoChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className={getFieldClasses('barrio', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
               />
+              {clientInfo.barrio && !fieldValidation.barrio && (
+                <span className="text-xs text-red-600 mt-1">Campo obligatorio</span>
+              )}
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
@@ -1502,7 +1575,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Correo:
+                Correo: {clientInfo.ordenSalida === 'facturado' ? '*' : ''}
               </label>
               <input
                 type="email"
@@ -1510,24 +1583,30 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 placeholder="Correo"
                 value={clientInfo.correo}
                 onChange={handleClientInfoChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className={getFieldClasses('correo', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
               />
+              {clientInfo.ordenSalida === 'facturado' && clientInfo.correo && !fieldValidation.correo && (
+                <span className="text-xs text-red-600 mt-1">Correo obligatorio para pedidos facturados</span>
+              )}
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Zona:
+                Zona: *
               </label>
               <select
                 name="zone"
                 value={clientInfo.zone}
                 onChange={handleClientInfoChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className={getFieldClasses('zone', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
               >
                 <option value="">Seleccione una zona</option>
                 {ZONES.map((zone) => (
                   <option key={zone} value={zone}>{zone}</option>
                 ))}
               </select>
+              {clientInfo.zone && !fieldValidation.zone && (
+                <span className="text-xs text-red-600 mt-1">Campo obligatorio</span>
+              )}
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
@@ -2174,7 +2253,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
             {/* Fecha */}
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Fecha: (Automática)
+                Fecha:
               </label>
               <input
                 type="date"
