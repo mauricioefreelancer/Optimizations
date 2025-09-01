@@ -2429,7 +2429,26 @@ const RecaudoForm = ({ onReturnToMenu }) => {
 
   // Función para verificar si el botón de guardar debe estar habilitado
   const isSubmitButtonEnabled = () => {
-    return fieldValidation.nombreCliente && recaudoData.asesor && !isSubmitting;
+    // Validaciones básicas existentes
+    const basicValidation = fieldValidation.nombreCliente && recaudoData.asesor && !isSubmitting;
+    
+    if (!basicValidation) return false;
+    
+    // Validación matemática: valor vendido + valor abono = efectivo + transferencia
+    const valorVendido = parseFloat(parseCurrency(recaudoData.valorVendido) || '0');
+    const valorAbono = parseFloat(parseCurrency(recaudoData.valorAbono) || '0');
+    const efectivo = parseFloat(parseCurrency(recaudoData.efectivo) || '0');
+    const transferencia = parseFloat(parseCurrency(recaudoData.transferencia) || '0');
+    
+    const totalIngresos = valorVendido + valorAbono;
+    const totalFormasPago = efectivo + transferencia;
+    
+    // Solo validar la ecuación si hay valores ingresados
+    if (totalIngresos > 0 || totalFormasPago > 0) {
+      return totalIngresos === totalFormasPago;
+    }
+    
+    return true; // Si no hay valores, permitir guardar
   };
 
   // Función para formatear números como moneda colombiana
@@ -2887,7 +2906,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 ? 'bg-gray-400 cursor-not-allowed opacity-50' 
                 : 'bg-green-600 hover:bg-green-700'
             }`}
-            title={!isSubmitButtonEnabled() ? 'Complete el nombre del cliente y seleccione un asesor para habilitar' : 'Guardar recaudo en Google Drive'}
+            title={!isSubmitButtonEnabled() ? 'Complete los campos obligatorios y verifique que: Valor Vendido + Valor Abono = Efectivo + Transferencia' : 'Guardar recaudo en Google Drive'}
           >
             {isSubmitting ? (
               <>
