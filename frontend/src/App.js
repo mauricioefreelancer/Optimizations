@@ -2273,6 +2273,10 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accessToken, setAccessToken] = useState(null);
   
+  // Estados para el modal de error de autenticación
+  const [showAuthErrorModal, setShowAuthErrorModal] = useState(false);
+  const [authErrorMessage, setAuthErrorMessage] = useState('');
+  
   // Estado del formulario de recaudo
   const [recaudoData, setRecaudoData] = useState({
     fecha: new Date().toISOString().split('T')[0],
@@ -2351,6 +2355,33 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     }
   };
 
+  // Función para manejar el retorno al formulario desde el modal de error
+  const handleReturnToFormRecaudo = () => {
+    setShowAuthErrorModal(false);
+    setAuthErrorMessage('');
+    onReturnToMenu();
+  };
+  
+  // Función para reintentar autenticación
+  const handleRetryAuth = async () => {
+    setShowAuthErrorModal(false);
+    setAuthErrorMessage('');
+    setIsAuthenticating(true);
+    
+    try {
+      const token = await authenticateWithGoogle();
+      setAccessToken(token);
+      setIsAuthenticated(true);
+      console.log('✅ Reintento de autenticación exitoso para Recaudo');
+    } catch (error) {
+      console.error('❌ Error en reintento de autenticación:', error);
+      setAuthErrorMessage(error.message);
+      setShowAuthErrorModal(true);
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
   // Autenticación automática al montar el componente
   useEffect(() => {
     const initAuth = async () => {
@@ -2362,7 +2393,8 @@ const RecaudoForm = ({ onReturnToMenu }) => {
         console.log('✅ Autenticación exitosa para Recaudo');
       } catch (error) {
         console.error('❌ Error en autenticación automática:', error);
-        alert(`Error de autenticación: ${error.message}`);
+        setAuthErrorMessage(error.message);
+        setShowAuthErrorModal(true);
       } finally {
         setIsAuthenticating(false);
       }
@@ -2526,6 +2558,54 @@ const RecaudoForm = ({ onReturnToMenu }) => {
 
   return (
     <div className="min-h-screen bg-gray-100 p-2 sm:p-4">
+      {/* Modal de Error de Autenticación */}
+      {showAuthErrorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Error de Autenticación
+              </h3>
+              
+              <div className="text-sm text-gray-600 mb-6 space-y-2">
+                <p className="font-medium text-red-600">
+                  Por favor verifique que está usando el correo empresarial que le fue entregado para su zona.
+                </p>
+                <p>
+                  La autenticación con Google Drive es necesaria para acceder al reporte de recaudo.
+                </p>
+                {authErrorMessage && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Error: {authErrorMessage}
+                  </p>
+                )}
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={handleReturnToFormRecaudo}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+                >
+                  Regresar al Menú
+                </button>
+                <button
+                  onClick={handleRetryAuth}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                >
+                  Verificar de Nuevo
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="container mx-auto p-4 sm:p-8 bg-white rounded-lg shadow-xl">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
