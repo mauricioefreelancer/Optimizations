@@ -1379,14 +1379,15 @@ const PedidoForm = ({ onReturnToMenu }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Fecha:
+                Fecha: (Automática)
               </label>
               <input
                 type="date"
                 name="fecha"
                 value={clientInfo.fecha}
-                onChange={handleClientInfoChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                readOnly
+                className="p-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+                title="La fecha se establece automáticamente al día actual"
               />
             </div>
             <div className="flex flex-col">
@@ -2173,14 +2174,15 @@ const RecaudoForm = ({ onReturnToMenu }) => {
             {/* Fecha */}
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Fecha:
+                Fecha: (Automática)
               </label>
               <input
                 type="date"
                 name="fecha"
                 value={recaudoData.fecha}
-                onChange={handleInputChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                readOnly
+                className="p-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+                title="La fecha se establece automáticamente al día actual"
               />
             </div>
 
