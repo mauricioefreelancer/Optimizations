@@ -1731,6 +1731,105 @@ const PedidoForm = ({ onReturnToMenu }) => {
         </div>
       )}
       
+      {/* Modal de Éxito - NUEVO */}
+      {showSuccessModal && recaudoResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+            {/* Header del Modal */}
+            <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-t-2xl text-center">
+              <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold mb-2">¡Datos de Recaudo Guardados!</h2>
+              <p className="text-green-100 text-sm">Tu recaudo ha sido guardado exitosamente</p>
+            </div>
+            
+            {/* Contenido del Modal */}
+            <div className="p-6 space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-medium">📅 Fecha:</span>
+                  <span className="text-gray-800 font-semibold">{recaudoResult.recaudoData.fecha}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-medium">👤 Cliente:</span>
+                  <span className="text-gray-800 font-semibold">{recaudoResult.recaudoData.nombreCliente}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-medium">👨‍💼 Asesor:</span>
+                  <span className="text-gray-800 font-semibold">{recaudoResult.recaudoData.asesor}</span>
+                </div>
+                
+                <hr className="border-gray-200" />
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-medium">💰 Vendió:</span>
+                  <span className="text-gray-800 font-semibold">
+                    {recaudoResult.recaudoData.vendio ? `Sí - ${formatCurrency(recaudoResult.recaudoData.valorVendido) || '$0'}` : 'No'}
+                  </span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-medium">📝 Abono:</span>
+                  <span className="text-gray-800 font-semibold">
+                    {recaudoResult.recaudoData.abono ? `Sí - ${formatCurrency(recaudoResult.recaudoData.valorAbono) || '$0'}` : 'No'}
+                  </span>
+                </div>
+                
+                <hr className="border-gray-200" />
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-medium">💵 Efectivo:</span>
+                  <span className="text-gray-800 font-semibold">{formatCurrency(recaudoResult.recaudoData.efectivo) || '$0'}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-medium">🏦 Transferencia:</span>
+                  <span className="text-gray-800 font-semibold">{formatCurrency(recaudoResult.recaudoData.transferencia) || '$0'}</span>
+                </div>
+                
+                {recaudoResult.recaudoData.observaciones && (
+                  <>
+                    <hr className="border-gray-200" />
+                    <div className="flex flex-col">
+                      <span className="text-gray-600 font-medium mb-1">📋 Observaciones:</span>
+                      <span className="text-gray-800 text-sm bg-gray-100 p-2 rounded">{recaudoResult.recaudoData.observaciones}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              {/* Botones de Acción */}
+              <div className="flex flex-col gap-3 pt-4">
+                <button
+                  onClick={handleNewRecaudo}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Llenar Otro Recaudo
+                </button>
+                
+                <button
+                  onClick={handleReturnToMenuFromSuccess}
+                  className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  Regresar al Menú
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="container mx-auto p-4 sm:p-8 bg-white rounded-lg shadow-xl">
         <h1 className="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-6 text-gray-800">
           Generador de Toma de Pedido
@@ -2277,6 +2376,10 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   const [showAuthErrorModal, setShowAuthErrorModal] = useState(false);
   const [authErrorMessage, setAuthErrorMessage] = useState('');
   
+  // Estados para el modal de éxito - NUEVO
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [recaudoResult, setRecaudoResult] = useState(null);
+  
   // Estado del formulario de recaudo
   const [recaudoData, setRecaudoData] = useState({
     fecha: new Date().toISOString().split('T')[0],
@@ -2359,6 +2462,40 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   const handleReturnToFormRecaudo = () => {
     setShowAuthErrorModal(false);
     setAuthErrorMessage('');
+    onReturnToMenu();
+  };
+  
+  // Función para limpiar el formulario y empezar uno nuevo - NUEVA
+  const handleNewRecaudo = () => {
+    setShowSuccessModal(false);
+    setRecaudoResult(null);
+    // Limpiar todos los campos del formulario
+    setRecaudoData({
+      fecha: new Date().toISOString().split('T')[0],
+      tipoCliente: 'nuevo',
+      asesor: '',
+      nombreCliente: '',
+      vendio: false,
+      valorVendido: '',
+      abono: false,
+      valorAbono: '',
+      efectivo: '',
+      transferencia: '',
+      observaciones: ''
+    });
+    setFieldValidation({
+      nombreCliente: false,
+      asesor: false,
+      valorVendido: true,
+      valorAbono: true,
+      matematica: true
+    });
+  };
+
+  // Función para regresar al menú principal - NUEVA
+  const handleReturnToMenuFromSuccess = () => {
+    setShowSuccessModal(false);
+    setRecaudoResult(null);
     onReturnToMenu();
   };
   
@@ -2713,7 +2850,12 @@ const RecaudoForm = ({ onReturnToMenu }) => {
       
       if (response.ok) {
         const result = await response.json();
-        alert(`¡Datos de recaudo guardados exitosamente!\n\nRegistro #${result.rowNumber || 'N/A'}\nFecha: ${recaudoData.fecha}\nCliente: ${recaudoData.nombreCliente}`);
+        // REEMPLAZAR ALERT CON MODAL
+        setRecaudoResult({
+          ...result,
+          recaudoData: { ...recaudoData }
+        });
+        setShowSuccessModal(true);
         
         // Limpiar formulario después del envío exitoso
         setRecaudoData({
