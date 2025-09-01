@@ -865,6 +865,48 @@ const PedidoForm = ({ onReturnToMenu }) => {
   const [bonus, setBonus] = useState(0);
   const [htmlContent, setHtmlContent] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [uploadResult, setUploadResult] = useState(null);
+
+  // Función para limpiar el formulario y empezar uno nuevo
+  const handleNewOrder = () => {
+    setShowSuccessModal(false);
+    setUploadResult(null);
+    // Limpiar todos los campos del formulario
+    setClientInfo({
+      fecha: new Date().toISOString().split("T")[0],
+      cliente: "",
+      nit: "",
+      vendedor: "",
+      contado: "X",
+      credito: "",
+      direccion: "",
+      ciudad: "",
+      listaPrecios: "",
+      descuento: 0,
+      cel: "",
+      correo: "",
+      ordenSalida: "facturado",
+      observaciones: "",
+      zone: "",
+      barrio: "",
+    });
+    setOrderItems([]);
+    setFieldValidation({
+      zone: false,
+      nit: false,
+      direccion: false,
+      barrio: false,
+      correo: false
+    });
+  };
+
+  // Función para regresar al menú principal
+  const handleReturnToMenu = () => {
+    setShowSuccessModal(false);
+    setUploadResult(null);
+    onReturnToMenu();
+  };
 
   const handleClientInfoChange = (e) => {
     const { name, value } = e.target;
@@ -1385,7 +1427,9 @@ const PedidoForm = ({ onReturnToMenu }) => {
       if (response.ok) {
         const result = await response.json();
         console.log('✅ Subida exitosa:', result);
-        alert(`✅ ${result.message}\n\n📄 Archivo: ${result.filename}\n📍 Zona: ${result.zone}\n🔗 Ver archivo: ${result.webViewLink || 'Link no disponible'}`);
+        // REEMPLAZAR ALERT CON MODAL
+        setUploadResult(result);
+        setShowSuccessModal(true);
       } else {
         const error = await response.json();
         throw new Error(error.error || 'Error al subir el archivo');
@@ -1419,7 +1463,77 @@ const PedidoForm = ({ onReturnToMenu }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-2 sm:p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      {/* Modal de Éxito */}
+      {showSuccessModal && uploadResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+            {/* Header del Modal */}
+            <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-t-2xl text-center">
+              <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold mb-2">¡Pedido Subido Exitosamente!</h2>
+              <p className="text-green-100 text-sm">Tu pedido ha sido guardado en Google Drive</p>
+            </div>
+            
+            {/* Contenido del Modal */}
+            <div className="p-6 space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-medium">📄 Archivo:</span>
+                  <span className="text-gray-800 text-sm font-mono">{uploadResult.filename}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-medium">📍 Zona:</span>
+                  <span className="text-gray-800 font-semibold">{uploadResult.zone}</span>
+                </div>
+                {uploadResult.webViewLink && (
+                  <div className="pt-2">
+                    <a 
+                      href={uploadResult.webViewLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 text-sm underline flex items-center gap-1"
+                    >
+                      🔗 Ver archivo en Google Drive
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </div>
+                )}
+              </div>
+              
+              {/* Botones de Acción */}
+              <div className="flex flex-col gap-3 pt-4">
+                <button
+                  onClick={handleNewOrder}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Llenar Otro Pedido
+                </button>
+                
+                <button
+                  onClick={handleReturnToMenu}
+                  className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  Regresar al Menú
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="container mx-auto p-4 sm:p-8 bg-white rounded-lg shadow-xl">
         <h1 className="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-6 text-gray-800">
           Generador de Toma de Pedido
@@ -1913,7 +2027,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
         </div>
 
         {/* Botones de descarga y subir a Drive - VERSIÓN OPTIMIZADA PARA MÓVIL */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-6">
           <button
             onClick={handleDownload}
             className="bg-green-600 text-white font-bold text-sm sm:text-lg py-2 sm:py-3 px-4 sm:px-8 rounded-full shadow-lg hover:bg-green-700 transition duration-300 transform hover:scale-105 w-full sm:w-auto"
