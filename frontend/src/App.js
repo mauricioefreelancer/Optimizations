@@ -814,10 +814,11 @@ const PedidoForm = ({ onReturnToMenu }) => {
   // Nuevo estado para validación en tiempo real
   const [fieldValidation, setFieldValidation] = useState({
     zone: false,
-    nit: false,
     direccion: false,
     barrio: false,
-    correo: false
+    correo: false,
+    vendedor: false,
+    cliente: false
   });
 
   // Función para validar un campo específico
@@ -825,11 +826,13 @@ const PedidoForm = ({ onReturnToMenu }) => {
     switch (fieldName) {
       case 'zone':
         return value && value.trim() !== '';
-      case 'nit':
-        return value && value.trim() !== '';
       case 'direccion':
         return value && value.trim() !== '';
       case 'barrio':
+        return value && value.trim() !== '';
+      case 'vendedor':
+        return value && value.trim() !== '';
+      case 'cliente':
         return value && value.trim() !== '';
       case 'correo':
         // Solo obligatorio si orden de salida es "facturado"
@@ -844,7 +847,8 @@ const PedidoForm = ({ onReturnToMenu }) => {
 
   // Función para obtener clases CSS - ROJO por defecto, VERDE cuando se llena
   const getFieldClasses = (fieldName, baseClasses) => {
-    const isRequired = fieldName === 'correo' ? clientInfo.ordenSalida === 'facturado' : true;
+    const requiredFields = ['zone', 'direccion', 'barrio', 'vendedor', 'cliente'];
+    const isRequired = requiredFields.includes(fieldName) || (fieldName === 'correo' && clientInfo.ordenSalida === 'facturado');
     
     if (!isRequired) {
       return baseClasses; // Campo no obligatorio - estilo normal
@@ -900,10 +904,11 @@ const PedidoForm = ({ onReturnToMenu }) => {
     setOrderItems([]);
     setFieldValidation({
       zone: false,
-      nit: false,
       direccion: false,
       barrio: false,
-      correo: false
+      correo: false,
+      vendedor: false,
+      cliente: false
     });
   };
 
@@ -1050,8 +1055,11 @@ const PedidoForm = ({ onReturnToMenu }) => {
     if (!clientInfo.zone || clientInfo.zone === "") {
       errors.push("Zona");
     }
-    if (!clientInfo.nit || clientInfo.nit.trim() === "") {
-      errors.push("NIT");
+    if (!clientInfo.vendedor || clientInfo.vendedor.trim() === "") {
+      errors.push("Vendedor");
+    }
+    if (!clientInfo.cliente || clientInfo.cliente.trim() === "") {
+      errors.push("Cliente");
     }
     if (!clientInfo.direccion || clientInfo.direccion.trim() === "") {
       errors.push("Dirección");
@@ -1753,52 +1761,116 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 name="fecha"
                 value={clientInfo.fecha}
                 readOnly
-                className="p-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
-                title="La fecha se establece automáticamente al día actual"
+                className="p-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
               />
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                NIT: *
+                Forma de Pago:
               </label>
-              <input
-                type="text"
-                name="nit"
-                placeholder="O Documento"
-                value={clientInfo.nit}
-                onChange={handleClientInfoChange}
-                className={getFieldClasses('nit', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
-              />
+              <div className="flex space-x-4">
+                <label className="flex items-center text-gray-700">
+                  <input
+                    type="radio"
+                    name="pago"
+                    value="contado"
+                    checked={clientInfo.contado === "X"}
+                    onChange={() =>
+                      setClientInfo({
+                        ...clientInfo,
+                        contado: "X",
+                        credito: "",
+                      })
+                    }
+                    className="mr-1"
+                  />{" "}
+                  Contado
+                </label>
+                <label className="flex items-center text-gray-700">
+                  <input
+                    type="radio"
+                    name="pago"
+                    value="credito"
+                    checked={clientInfo.credito === "X"}
+                    onChange={() =>
+                      setClientInfo({
+                        ...clientInfo,
+                        credito: "X",
+                        contado: "",
+                      })
+                    }
+                    className="mr-1"
+                  />{" "}
+                  Crédito
+                </label>
+              </div>
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Vendedor:
+                Orden de Salida:
+              </label>
+              <div className="flex space-x-4">
+                <label className="flex items-center text-gray-700">
+                  <input
+                    type="radio"
+                    name="ordenSalida"
+                    value="facturado"
+                    checked={clientInfo.ordenSalida === "facturado"}
+                    onChange={() =>
+                      setClientInfo({
+                        ...clientInfo,
+                        ordenSalida: "facturado",
+                      })
+                    }
+                    className="mr-1"
+                  />{" "}
+                  Facturado
+                </label>
+                <label className="flex items-center text-gray-700">
+                  <input
+                    type="radio"
+                    name="ordenSalida"
+                    value="salidaBodega"
+                    checked={clientInfo.ordenSalida === "salidaBodega"}
+                    onChange={() =>
+                      setClientInfo({
+                        ...clientInfo,
+                        ordenSalida: "salidaBodega",
+                      })
+                    }
+                    className="mr-1"
+                  />{" "}
+                  Salida de Bodega
+                </label>
+              </div>
+            </div>
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-600 mb-1">
+                Vendedor: *
               </label>
               <select
                 name="vendedor"
                 value={clientInfo.vendedor}
                 onChange={handleClientInfoChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className={getFieldClasses('vendedor', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
               >
                 <option value="">Seleccione un vendedor</option>
-                {SELLERS.map((seller, index) => (
-                  <option key={index} value={seller}>
-                    {seller}
-                  </option>
+                {SELLERS.map((seller) => (
+                  <option key={seller} value={seller}>{seller}</option>
                 ))}
               </select>
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Cliente:
+                Cliente: *
               </label>
               <input
                 type="text"
                 name="cliente"
-                placeholder="Cliente"
+                placeholder="Nombre del cliente"
                 value={clientInfo.cliente}
                 onChange={handleClientInfoChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className={getFieldClasses('cliente', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
               />
             </div>
             <div className="flex flex-col">
@@ -1812,6 +1884,19 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 value={clientInfo.direccion}
                 onChange={handleClientInfoChange}
                 className={getFieldClasses('direccion', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
+              />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-600 mb-1">
+                NIT:
+              </label>
+              <input
+                type="text"
+                name="nit"
+                placeholder="NIT"
+                value={clientInfo.nit}
+                onChange={handleClientInfoChange}
+                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             <div className="flex flex-col">
@@ -1908,86 +1993,6 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 rows="3"
                 placeholder="Ingrese sus observaciones aquí"
               />
-            </div>
-            <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-600 mb-1">
-                Forma de Pago:
-              </label>
-              <div className="flex space-x-4">
-                <label className="flex items-center text-gray-700">
-                  <input
-                    type="radio"
-                    name="pago"
-                    value="contado"
-                    checked={clientInfo.contado === "X"}
-                    onChange={() =>
-                      setClientInfo({
-                        ...clientInfo,
-                        contado: "X",
-                        credito: "",
-                      })
-                    }
-                    className="mr-1"
-                  />{" "}
-                  Contado
-                </label>
-                <label className="flex items-center text-gray-700">
-                  <input
-                    type="radio"
-                    name="pago"
-                    value="credito"
-                    checked={clientInfo.credito === "X"}
-                    onChange={() =>
-                      setClientInfo({
-                        ...clientInfo,
-                        credito: "X",
-                        contado: "",
-                      })
-                    }
-                    className="mr-1"
-                  />{" "}
-                  Crédito
-                </label>
-              </div>
-            </div>
-            <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-600 mb-1">
-                Orden de Salida:
-              </label>
-              <div className="flex space-x-4">
-                <label className="flex items-center text-gray-700">
-                  <input
-                    type="radio"
-                    name="ordenSalida"
-                    value="facturado"
-                    checked={clientInfo.ordenSalida === "facturado"}
-                    onChange={() =>
-                      setClientInfo({
-                        ...clientInfo,
-                        ordenSalida: "facturado",
-                      })
-                    }
-                    className="mr-1"
-                  />{" "}
-                  Facturado
-                </label>
-                <label className="flex items-center text-gray-700">
-                  <input
-                    type="radio"
-                    name="ordenSalida"
-                    value="salidaBodega"
-                    checked={clientInfo.ordenSalida === "salidaBodega"}
-                    onChange={() =>
-                      setClientInfo({
-                        ...clientInfo,
-                        ordenSalida: "salidaBodega",
-                      })
-                    }
-                    className="mr-1"
-                  />{" "}
-                  Salida de Bodega
-                </label>
-              </div>
             </div>
           </div>
         </div>
