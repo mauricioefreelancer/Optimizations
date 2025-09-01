@@ -865,7 +865,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
   const [bonus, setBonus] = useState(0);
   const [htmlContent, setHtmlContent] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showSuccessModalPedido, setShowSuccessModalPedido] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
   const [showAuthErrorModal, setShowAuthErrorModal] = useState(false);
   const [authErrorMessage, setAuthErrorMessage] = useState('');
@@ -876,7 +876,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
 
   // Función para limpiar el formulario y empezar uno nuevo
   const handleNewOrder = () => {
-    setShowSuccessModal(false);
+    setShowSuccessModalPedido(false);
     setUploadResult(null);
     // Limpiar todos los campos del formulario
     setClientInfo({
@@ -909,7 +909,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
 
   // Función para regresar al menú principal
   const handleReturnToMenu = () => {
-    setShowSuccessModal(false);
+    setShowSuccessModalPedido(false);
     setUploadResult(null);
     onReturnToMenu();
   };
@@ -1499,7 +1499,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
         console.log('✅ Subida exitosa:', result);
         // REEMPLAZAR ALERT CON MODAL
         setUploadResult(result);
-        setShowSuccessModal(true);
+        setShowSuccessModalPedido(true);
       } else {
         const error = await response.json();
         throw new Error(error.error || 'Error al subir el archivo');
@@ -1662,7 +1662,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
       )}
       
       {/* Modal de Éxito */}
-      {showSuccessModal && uploadResult && (
+      {showSuccessModalPedido && uploadResult && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
             {/* Header del Modal */}
@@ -1718,80 +1718,6 @@ const PedidoForm = ({ onReturnToMenu }) => {
                 
                 <button
                   onClick={handleReturnToMenu}
-                  className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                  Regresar al Menú
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Modal de Éxito para Recaudo */}
-      {showSuccessModal && recaudoResult && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
-            {/* Header del Modal */}
-            <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-t-2xl text-center">
-              <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold mb-2">¡Recaudo Guardado Exitosamente!</h2>
-              <p className="text-green-100 text-sm">Los datos han sido guardados en Google Drive</p>
-            </div>
-            
-            {/* Contenido del Modal */}
-            <div className="p-6 space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 font-medium">👤 Cliente:</span>
-                  <span className="text-gray-800 font-semibold">{recaudoResult.recaudoData.nombreCliente}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 font-medium">👨‍💼 Asesor:</span>
-                  <span className="text-gray-800">{recaudoResult.recaudoData.asesor}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 font-medium">📅 Fecha:</span>
-                  <span className="text-gray-800">{recaudoResult.recaudoData.fecha}</span>
-                </div>
-                {recaudoResult.webViewLink && (
-                  <div className="pt-2">
-                    <a 
-                      href={recaudoResult.webViewLink} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 text-sm underline flex items-center gap-1"
-                    >
-                      🔗 Ver archivo en Google Drive
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </a>
-                  </div>
-                )}
-              </div>
-              
-              {/* Botones de Acción */}
-              <div className="flex flex-col gap-3 pt-4">
-                <button
-                  onClick={handleNewRecaudo}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Llenar Otro Recaudo
-                </button>
-                
-                <button
-                  onClick={handleReturnToMenuFromSuccess}
                   className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2353,8 +2279,8 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   const [showAuthErrorModal, setShowAuthErrorModal] = useState(false);
   const [authErrorMessage, setAuthErrorMessage] = useState('');
   
-  // Estados para el modal de éxito - NUEVO
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  // Estados para el modal de éxito - CORREGIDO
+  const [showSuccessModalRecaudo, setShowSuccessModalRecaudo] = useState(false);
   const [recaudoResult, setRecaudoResult] = useState(null);
   
   // Estado del formulario de recaudo
@@ -2442,9 +2368,9 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     onReturnToMenu();
   };
   
-  // Función para limpiar el formulario y empezar uno nuevo - NUEVA
+  // Función para limpiar el formulario y empezar uno nuevo
   const handleNewRecaudo = () => {
-    setShowSuccessModal(false);
+    setShowSuccessModalRecaudo(false);
     setRecaudoResult(null);
     // Limpiar todos los campos del formulario
     setRecaudoData({
@@ -2469,9 +2395,9 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     });
   };
 
-  // Función para regresar al menú principal - NUEVA
+  // Función para regresar al menú principal
   const handleReturnToMenuFromSuccess = () => {
-    setShowSuccessModal(false);
+    setShowSuccessModalRecaudo(false);
     setRecaudoResult(null);
     onReturnToMenu();
   };
@@ -2832,7 +2758,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
           ...result,
           recaudoData: { ...recaudoData }
         });
-        setShowSuccessModal(true);
+        setShowSuccessModalRecaudo(true);
         
         // Limpiar formulario después del envío exitoso
         setRecaudoData({
@@ -3179,6 +3105,80 @@ const RecaudoForm = ({ onReturnToMenu }) => {
           </p>
         </div>
       </div>
+      
+      {/* Modal de Éxito para RecaudoForm */}
+      {showSuccessModalRecaudo && recaudoResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+            {/* Header del Modal */}
+            <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-t-2xl text-center">
+              <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold mb-2">¡Recaudo Guardado Exitosamente!</h2>
+              <p className="text-green-100 text-sm">Los datos han sido guardados en Google Drive</p>
+            </div>
+            
+            {/* Contenido del Modal */}
+            <div className="p-6 space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-medium">👤 Cliente:</span>
+                  <span className="text-gray-800 font-semibold">{recaudoResult.recaudoData.nombreCliente}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-medium">👨‍💼 Asesor:</span>
+                  <span className="text-gray-800">{recaudoResult.recaudoData.asesor}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-medium">📅 Fecha:</span>
+                  <span className="text-gray-800">{recaudoResult.recaudoData.fecha}</span>
+                </div>
+                {recaudoResult.webViewLink && (
+                  <div className="pt-2">
+                    <a 
+                      href={recaudoResult.webViewLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 text-sm underline flex items-center gap-1"
+                    >
+                      🔗 Ver archivo en Google Drive
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </div>
+                )}
+              </div>
+              
+              {/* Botones de Acción */}
+              <div className="flex flex-col gap-3 pt-4">
+                <button
+                  onClick={handleNewRecaudo}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Llenar Otro Recaudo
+                </button>
+                
+                <button
+                  onClick={handleReturnToMenuFromSuccess}
+                  className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  Regresar al Menú
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
