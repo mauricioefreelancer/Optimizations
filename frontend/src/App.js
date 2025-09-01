@@ -1731,7 +1731,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
         </div>
       )}
       
-      {/* Modal de Éxito - NUEVO */}
+      {/* Modal de Éxito para Recaudo */}
       {showSuccessModal && recaudoResult && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
@@ -1742,64 +1742,39 @@ const PedidoForm = ({ onReturnToMenu }) => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold mb-2">¡Datos de Recaudo Guardados!</h2>
-              <p className="text-green-100 text-sm">Tu recaudo ha sido guardado exitosamente</p>
+              <h2 className="text-2xl font-bold mb-2">¡Recaudo Guardado Exitosamente!</h2>
+              <p className="text-green-100 text-sm">Los datos han sido guardados en Google Drive</p>
             </div>
             
             {/* Contenido del Modal */}
             <div className="p-6 space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 font-medium">📅 Fecha:</span>
-                  <span className="text-gray-800 font-semibold">{recaudoResult.recaudoData.fecha}</span>
-                </div>
-                
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 font-medium">👤 Cliente:</span>
                   <span className="text-gray-800 font-semibold">{recaudoResult.recaudoData.nombreCliente}</span>
                 </div>
-                
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 font-medium">👨‍💼 Asesor:</span>
-                  <span className="text-gray-800 font-semibold">{recaudoResult.recaudoData.asesor}</span>
+                  <span className="text-gray-800">{recaudoResult.recaudoData.asesor}</span>
                 </div>
-                
-                <hr className="border-gray-200" />
-                
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600 font-medium">💰 Vendió:</span>
-                  <span className="text-gray-800 font-semibold">
-                    {recaudoResult.recaudoData.vendio ? `Sí - ${formatCurrency(recaudoResult.recaudoData.valorVendido) || '$0'}` : 'No'}
-                  </span>
+                  <span className="text-gray-600 font-medium">📅 Fecha:</span>
+                  <span className="text-gray-800">{recaudoResult.recaudoData.fecha}</span>
                 </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 font-medium">📝 Abono:</span>
-                  <span className="text-gray-800 font-semibold">
-                    {recaudoResult.recaudoData.abono ? `Sí - ${formatCurrency(recaudoResult.recaudoData.valorAbono) || '$0'}` : 'No'}
-                  </span>
-                </div>
-                
-                <hr className="border-gray-200" />
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 font-medium">💵 Efectivo:</span>
-                  <span className="text-gray-800 font-semibold">{formatCurrency(recaudoResult.recaudoData.efectivo) || '$0'}</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 font-medium">🏦 Transferencia:</span>
-                  <span className="text-gray-800 font-semibold">{formatCurrency(recaudoResult.recaudoData.transferencia) || '$0'}</span>
-                </div>
-                
-                {recaudoResult.recaudoData.observaciones && (
-                  <>
-                    <hr className="border-gray-200" />
-                    <div className="flex flex-col">
-                      <span className="text-gray-600 font-medium mb-1">📋 Observaciones:</span>
-                      <span className="text-gray-800 text-sm bg-gray-100 p-2 rounded">{recaudoResult.recaudoData.observaciones}</span>
-                    </div>
-                  </>
+                {recaudoResult.webViewLink && (
+                  <div className="pt-2">
+                    <a 
+                      href={recaudoResult.webViewLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 text-sm underline flex items-center gap-1"
+                    >
+                      🔗 Ver archivo en Google Drive
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </div>
                 )}
               </div>
               
@@ -1829,6 +1804,8 @@ const PedidoForm = ({ onReturnToMenu }) => {
           </div>
         </div>
       )}
+      
+
       
       <div className="container mx-auto p-4 sm:p-8 bg-white rounded-lg shadow-xl">
         <h1 className="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-6 text-gray-800">
