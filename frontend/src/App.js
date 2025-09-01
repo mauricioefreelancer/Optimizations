@@ -867,6 +867,8 @@ const PedidoForm = ({ onReturnToMenu }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
+  const [showAuthErrorModal, setShowAuthErrorModal] = useState(false);
+  const [authErrorMessage, setAuthErrorMessage] = useState('');
 
   // Función para limpiar el formulario y empezar uno nuevo
   const handleNewOrder = () => {
@@ -906,6 +908,19 @@ const PedidoForm = ({ onReturnToMenu }) => {
     setShowSuccessModal(false);
     setUploadResult(null);
     onReturnToMenu();
+  };
+
+  const handleRetryAuth = () => {
+    setShowAuthErrorModal(false);
+    setAuthErrorMessage('');
+    // Reintentar la subida a Drive
+    handleUploadToDrive();
+  };
+
+  const handleReturnToForm = () => {
+    setShowAuthErrorModal(false);
+    setAuthErrorMessage('');
+    // El formulario mantiene todos los datos
   };
 
   const handleClientInfoChange = (e) => {
@@ -1437,7 +1452,16 @@ const PedidoForm = ({ onReturnToMenu }) => {
       
     } catch (error) {
       console.error('❌ Error uploading to Drive:', error);
-      alert(`Error al subir a Google Drive: ${error.message}`);
+      
+      // Verificar si es error de autenticación cancelada
+      if (error.message.includes('Autenticación cancelada por el usuario') || 
+          error.message.includes('Authentication cancelled') ||
+          error.message.includes('cancelada')) {
+        setAuthErrorMessage(error.message);
+        setShowAuthErrorModal(true);
+      } else {
+        alert(`Error al subir a Google Drive: ${error.message}`);
+      }
     } finally {
       setIsUploading(false);
     }
@@ -1464,6 +1488,50 @@ const PedidoForm = ({ onReturnToMenu }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      {/* Modal de Error de Autenticación */}
+      {showAuthErrorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Autenticación Cancelada
+              </h3>
+              
+              <div className="text-sm text-gray-600 mb-6 space-y-2">
+                <p className="font-medium text-red-600">
+                  Por favor verifique que está usando el correo empresarial que le fue entregado para su zona.
+                </p>
+                <p>
+                  La autenticación con Google Drive es necesaria para subir los pedidos.
+                </p>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={handleReturnToForm}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                >
+                  Regresar al Formulario
+                </button>
+                
+                <button
+                  onClick={handleRetryAuth}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                >
+                  Verificar de Nuevo
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Modal de Éxito */}
       {showSuccessModal && uploadResult && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
