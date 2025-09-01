@@ -2484,13 +2484,6 @@ const RecaudoForm = ({ onReturnToMenu }) => {
         [name]: isValid
       }));
     }
-
-    // Lógica de exclusión mutua para vendió/abono
-    if (name === "vendio" && checked) {
-      setRecaudoData(prev => ({ ...prev, abono: false, valorAbono: "" }));
-    } else if (name === "abono" && checked) {
-      setRecaudoData(prev => ({ ...prev, vendio: false, valorVendido: "" }));
-    }
   };
 
   // Validar formulario
