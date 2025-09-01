@@ -2406,6 +2406,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   // Nuevo estado para validación en tiempo real - EXPANDIDO
   const [fieldValidation, setFieldValidation] = useState({
     nombreCliente: false,
+    asesor: false,       // ✅ Validación para asesor
     valorVendido: true,  // Válido por defecto
     valorAbono: true,    // Válido por defecto
     matematica: true     // Validación matemática
@@ -2415,6 +2416,8 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   const validateField = (fieldName, value, currentData = recaudoData) => {
     switch (fieldName) {
       case 'nombreCliente':
+        return value && value.trim() !== '';
+      case 'asesor':
         return value && value.trim() !== '';
       case 'valorVendido':
         // Solo validar si 'vendió' está marcado
@@ -2472,7 +2475,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   // Función para verificar si el botón de guardar debe estar habilitado - MEJORADA
   const isSubmitButtonEnabled = () => {
     // Validaciones básicas
-    const basicValidation = fieldValidation.nombreCliente && recaudoData.asesor;
+    const basicValidation = fieldValidation.nombreCliente && fieldValidation.asesor;
     
     // Validaciones condicionales: si está marcado, debe tener valor > 0
     const conditionalValidation = (
@@ -2502,7 +2505,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     if (!fieldValidation.nombreCliente) {
       return 'Debe ingresar el nombre del cliente';
     }
-    if (!recaudoData.asesor) {
+    if (!fieldValidation.asesor) {
       return 'Debe seleccionar un asesor';
     }
     if (recaudoData.vendio && !fieldValidation.valorVendido) {
@@ -2590,31 +2593,50 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     });
   };
 
-  // Manejar cambios en el formulario - CORREGIDA
+  // Función para manejar cambios en los inputs
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : value;
     
-    // Actualizar el estado
-    setRecaudoData(prev => {
-      const updatedData = {
-        ...prev,
-        [name]: newValue
-      };
+    setRecaudoData(prev => ({
+      ...prev,
+      [name]: newValue
+    }));
+    
+    // Validación en tiempo real para campos específicos
+    if (name === 'nombreCliente') {
+      const isValid = validateField('nombreCliente', newValue);
+      setFieldValidation(prev => ({ ...prev, nombreCliente: isValid }));
+    }
+    
+    if (name === 'asesor') {
+      const isValid = validateField('asesor', newValue);
+      setFieldValidation(prev => ({ ...prev, asesor: isValid }));
+    }
+    
+    // Validar campos monetarios cuando cambian las casillas
+    if (name === 'vendio') {
+      const valorVendidoValid = validateField('valorVendido', recaudoData.valorVendido, { ...recaudoData, vendio: newValue });
+      setFieldValidation(prev => ({ ...prev, valorVendido: valorVendidoValid }));
       
-      // Validación en tiempo real para todos los campos relevantes con datos actualizados
-      setTimeout(() => {
-        setFieldValidation(prevValidation => ({
-          ...prevValidation,
-          nombreCliente: validateField('nombreCliente', updatedData.nombreCliente, updatedData),
-          valorVendido: validateField('valorVendido', updatedData.valorVendido, updatedData),
-          valorAbono: validateField('valorAbono', updatedData.valorAbono, updatedData),
-          matematica: validateField('matematica', null, updatedData) // Se valida con el estado completo actualizado
-        }));
-      }, 0);
+      // Revalidar matemática
+      const matematicaValid = validateField('matematica', null, { ...recaudoData, vendio: newValue });
+      setFieldValidation(prev => ({ ...prev, matematica: matematicaValid }));
+    }
+    
+    if (name === 'abono') {
+      const valorAbonoValid = validateField('valorAbono', recaudoData.valorAbono, { ...recaudoData, abono: newValue });
+      setFieldValidation(prev => ({ ...prev, valorAbono: valorAbonoValid }));
       
-      return updatedData;
-    });
+      // Revalidar matemática
+      const matematicaValid = validateField('matematica', null, { ...recaudoData, abono: newValue });
+      setFieldValidation(prev => ({ ...prev, matematica: matematicaValid }));
+    }
+    
+    if (name === 'valorVendido' || name === 'valorAbono') {
+      const matematicaValid = validateField('matematica', null, { ...recaudoData, [name]: newValue });
+      setFieldValidation(prev => ({ ...prev, matematica: matematicaValid }));
+    }
   };
 
   // Validar formulario
@@ -2709,6 +2731,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
         });
         setFieldValidation({
           nombreCliente: false,
+          asesor: false,
           valorVendido: true,
           valorAbono: true,
           matematica: true
@@ -2868,7 +2891,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 name="asesor"
                 value={recaudoData.asesor}
                 onChange={handleInputChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className={getFieldClasses('asesor', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
                 required
               >
                 <option value="">Seleccione un asesor</option>
