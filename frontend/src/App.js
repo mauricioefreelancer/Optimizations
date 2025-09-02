@@ -2508,21 +2508,33 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   // Función para verificar si el botón de guardar debe estar habilitado - MEJORADA
   const isSubmitButtonEnabled = () => {
     // Validaciones básicas
-    const basicValidation = fieldValidation.nombreCliente && fieldValidation.asesor;
+    const basicValidation = fieldValidation.nombreCliente && fieldValidation.asesor && fieldValidation.tipoCliente;
     
     // Validación matemática (la nueva lógica)
     const mathematicalValidation = fieldValidation.matematica;
     
-    return basicValidation && mathematicalValidation && !isSubmitting;
+    // Validación condicional para campos de acuerdo de pago
+    const acuerdoValidation = !recaudoData.generoAcuerdo || (fieldValidation.valorAcuerdo && fieldValidation.fechaCompromiso);
+    
+    return basicValidation && mathematicalValidation && acuerdoValidation && !isSubmitting;
   };
 
   // Función para obtener el mensaje de error del botón
   const getButtonErrorMessage = () => {
+    if (!fieldValidation.tipoCliente) {
+      return 'Debe seleccionar el tipo de cliente';
+    }
     if (!fieldValidation.nombreCliente) {
       return 'Debe ingresar el nombre del cliente';
     }
     if (!fieldValidation.asesor) {
       return 'Debe seleccionar un asesor';
+    }
+    if (recaudoData.generoAcuerdo && !fieldValidation.valorAcuerdo) {
+      return 'Debe ingresar el valor del acuerdo de pago';
+    }
+    if (recaudoData.generoAcuerdo && !fieldValidation.fechaCompromiso) {
+      return 'Debe ingresar la fecha de compromiso de pago';
     }
     if (!fieldValidation.matematica) {
       const recaudo = parseCurrency(recaudoData.recaudo);
@@ -2572,10 +2584,17 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     setRecaudoData(updatedData);
     
     // Validación en tiempo real con datos actualizados
-    setFieldValidation(prevValidation => ({
-      ...prevValidation,
-      matematica: validateField('matematica', null, updatedData)
-    }));
+    const newValidation = { ...fieldValidation };
+    
+    // Validar matemática siempre
+    newValidation.matematica = validateField('matematica', null, updatedData);
+    
+    // Si es valorAcuerdo, validar también ese campo específico
+    if (fieldName === 'valorAcuerdo') {
+      newValidation.valorAcuerdo = validateField('valorAcuerdo', limitedValue, updatedData);
+    }
+    
+    setFieldValidation(newValidation);
   };
 
   // Función para manejar cambios en los inputs
@@ -3061,7 +3080,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 {/* Valor del Acuerdo */}
                 <div className="flex flex-col">
                   <label className="text-sm font-medium text-gray-600 mb-1">
-                    ¿De cuánto fue el acuerdo de pago?:
+                    ¿De cuánto fue el acuerdo de pago?: <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -3069,21 +3088,21 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                     placeholder="$0"
                     value={formatCurrency(recaudoData.valorAcuerdo)}
                     onChange={(e) => handleCurrencyChange('valorAcuerdo', e.target.value)}
-                    className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className={getFieldClasses('valorAcuerdo', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
                   />
                 </div>
 
                 {/* Fecha de Compromiso */}
                 <div className="flex flex-col">
                   <label className="text-sm font-medium text-gray-600 mb-1">
-                    Fecha de compromiso de pago:
+                    Fecha de compromiso de pago: <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
                     name="fechaCompromiso"
                     value={recaudoData.fechaCompromiso}
                     onChange={handleInputChange}
-                    className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className={getFieldClasses('fechaCompromiso', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
                   />
                 </div>
               </div>
