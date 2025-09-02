@@ -2294,12 +2294,17 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     tipoCliente: 'nuevo', // nuevo/antiguo
     asesor: '',
     nombreCliente: '',
+    recaudo: '', // NUEVO CAMPO
     vendio: false,
     valorVendido: '',
     abono: false,
     valorAbono: '',
     efectivo: '',
     transferencia: '',
+    dondeTransfirieron: '', // NUEVO CAMPO
+    generoAcuerdo: false, // NUEVO CAMPO
+    valorAcuerdo: '', // NUEVO CAMPO
+    fechaCompromiso: '', // NUEVO CAMPO
     observaciones: ''
   });
 
@@ -2383,12 +2388,17 @@ const RecaudoForm = ({ onReturnToMenu }) => {
       tipoCliente: 'nuevo',
       asesor: '',
       nombreCliente: '',
+      recaudo: '', // NUEVO CAMPO
       vendio: false,
       valorVendido: '',
       abono: false,
       valorAbono: '',
       efectivo: '',
       transferencia: '',
+      dondeTransfirieron: '', // NUEVO CAMPO
+      generoAcuerdo: false, // NUEVO CAMPO
+      valorAcuerdo: '', // NUEVO CAMPO
+      fechaCompromiso: '', // NUEVO CAMPO
       observaciones: ''
     });
     setFieldValidation({
@@ -2718,12 +2728,17 @@ const RecaudoForm = ({ onReturnToMenu }) => {
         tipoCliente: recaudoData.tipoCliente,
         asesor: recaudoData.asesor,
         nombreCliente: recaudoData.nombreCliente,
+        recaudo: recaudoData.recaudo || '0', // NUEVO CAMPO
         vendio: recaudoData.vendio ? 'Sí' : 'No',
         valorVendido: recaudoData.vendio ? (recaudoData.valorVendido || '0') : '0',
         abono: recaudoData.abono ? 'Sí' : 'No',
         valorAbono: recaudoData.abono ? (recaudoData.valorAbono || '0') : '0',
         efectivo: recaudoData.efectivo || '0',
         transferencia: recaudoData.transferencia || '0',
+        dondeTransfirieron: recaudoData.dondeTransfirieron || '', // NUEVO CAMPO
+        generoAcuerdo: recaudoData.generoAcuerdo ? 'Sí' : 'No', // NUEVO CAMPO
+        valorAcuerdo: recaudoData.generoAcuerdo ? (recaudoData.valorAcuerdo || '0') : '0', // NUEVO CAMPO
+        fechaCompromiso: recaudoData.generoAcuerdo ? (recaudoData.fechaCompromiso || '') : '', // NUEVO CAMPO
         observaciones: recaudoData.observaciones || '',
         timestamp: timestamp
       };
@@ -2745,12 +2760,17 @@ const RecaudoForm = ({ onReturnToMenu }) => {
           tipoCliente: recaudoEntry.tipoCliente,
           vendedor: recaudoEntry.asesor,
           nombreCliente: recaudoEntry.nombreCliente,
+          recaudo: recaudoEntry.recaudo, // NUEVO CAMPO
           vendio: recaudoEntry.vendio,
           valorVendido: recaudoEntry.valorVendido,
           abono: recaudoEntry.abono,
           valorAbono: recaudoEntry.valorAbono,
           efectivo: recaudoEntry.efectivo,
           transferencia: recaudoEntry.transferencia,
+          dondeTransfirieron: recaudoEntry.dondeTransfirieron, // NUEVO CAMPO
+          generoAcuerdo: recaudoEntry.generoAcuerdo, // NUEVO CAMPO
+          valorAcuerdo: recaudoEntry.valorAcuerdo, // NUEVO CAMPO
+          fechaCompromiso: recaudoEntry.fechaCompromiso, // NUEVO CAMPO
           observaciones: recaudoEntry.observaciones,
           spreadsheetId: SPREADSHEET_ID
         })
@@ -2771,12 +2791,17 @@ const RecaudoForm = ({ onReturnToMenu }) => {
           tipoCliente: 'nuevo',
           asesor: '',
           nombreCliente: '',
+          recaudo: '', // NUEVO CAMPO
           vendio: false,
           valorVendido: '',
           abono: false,
           valorAbono: '',
           efectivo: '',
           transferencia: '',
+          dondeTransfirieron: '', // NUEVO CAMPO
+          generoAcuerdo: false, // NUEVO CAMPO
+          valorAcuerdo: '', // NUEVO CAMPO
+          fechaCompromiso: '', // NUEVO CAMPO
           observaciones: ''
         });
         setFieldValidation({
@@ -2944,17 +2969,21 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 className={getFieldClasses('asesor', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
                 required
               >
-                <option value="">Seleccione un asesor</option>
-                {SELLERS.map((seller, index) => (
-                  <option key={index} value={seller}>
-                    {seller}
-                  </option>
-                ))}
+                <option value="">Seleccione un asesor/vendedor</option>
+                <option value="Nohora Triana">Nohora Triana</option>
+                <option value="Alejandra Niño">Alejandra Niño</option>
+                <option value="Pilar Molano">Pilar Molano</option>
+                <option value="Jhon Prada">Jhon Prada</option>
+                <option value="Dayana Leon">Dayana Leon</option>
+                <option value="Johana Salazar">Johana Salazar</option>
+                <option value="Ingrid Rojas">Ingrid Rojas</option>
+                <option value="Enrique Herrera">Enrique Herrera</option>
+                <option value="Sebastian Torres">Sebastian Torres</option>
               </select>
             </div>
 
-            {/* Nombre Cliente */}
-            <div className="flex flex-col sm:col-span-2">
+            {/* Nombre del Cliente */}
+            <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
                 Nombre del Cliente: *
               </label>
@@ -2966,6 +2995,21 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 onChange={handleInputChange}
                 className={getFieldClasses('nombreCliente', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
                 required
+              />
+            </div>
+
+            {/* NUEVO CAMPO: Recaudo */}
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-600 mb-1">
+                Recaudo:
+              </label>
+              <input
+                type="text"
+                name="recaudo"
+                placeholder="$0"
+                value={formatCurrency(recaudoData.recaudo)}
+                onChange={(e) => handleCurrencyChange('recaudo', e.target.value)}
+                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
@@ -2994,17 +3038,16 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                   <input
                     type="text"
                     name="valorVendido"
+                    placeholder="$0"
                     value={formatCurrency(recaudoData.valorVendido)}
                     onChange={(e) => handleCurrencyChange('valorVendido', e.target.value)}
-                    disabled={!recaudoData.vendio}
-                    placeholder="$0"
-                    className={getFieldClasses('valorVendido', "w-full p-3 border-2 rounded-lg transition-all duration-200 text-lg font-medium")}
+                    className={getFieldClasses('valorVendido', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
                   />
                 </div>
               )}
             </div>
 
-            {/* ¿Abono? */}
+            {/* ¿Abonó? */}
             <div className="bg-white p-4 rounded-lg border">
               <div className="flex items-center mb-3">
                 <input
@@ -3015,7 +3058,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                   className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
                 <label className="text-sm font-medium text-gray-700">
-                  ¿Abono?
+                  ¿Abonó?
                 </label>
               </div>
               {recaudoData.abono && (
@@ -3026,19 +3069,18 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                   <input
                     type="text"
                     name="valorAbono"
+                    placeholder="$0"
                     value={formatCurrency(recaudoData.valorAbono)}
                     onChange={(e) => handleCurrencyChange('valorAbono', e.target.value)}
-                    disabled={!recaudoData.abono}
-                    placeholder="$0"
-                    className={getFieldClasses('valorAbono', "w-full p-3 border-2 rounded-lg transition-all duration-200 text-lg font-medium")}
+                    className={getFieldClasses('valorAbono', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
                   />
                 </div>
               )}
             </div>
           </div>
 
-          {/* Valores de Pago */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+          {/* Sección de Formas de Pago */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
             {/* Efectivo */}
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
@@ -3050,7 +3092,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 placeholder="$0"
                 value={formatCurrency(recaudoData.efectivo)}
                 onChange={(e) => handleCurrencyChange('efectivo', e.target.value)}
-                className={getFieldClasses('matematica', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
+                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
@@ -3065,42 +3107,114 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 placeholder="$0"
                 value={formatCurrency(recaudoData.transferencia)}
                 onChange={(e) => handleCurrencyChange('transferencia', e.target.value)}
-                className={getFieldClasses('matematica', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
+                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            {/* NUEVO CAMPO: ¿Dónde Transfirieron? */}
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-600 mb-1">
+                ¿Dónde Transfirieron?:
+              </label>
+              <input
+                type="text"
+                name="dondeTransfirieron"
+                placeholder="Banco, cuenta, etc."
+                value={recaudoData.dondeTransfirieron}
+                onChange={handleInputChange}
+                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
 
+          {/* NUEVA SECCIÓN: Acuerdo de Pago */}
+          <div className="mt-6 bg-white p-4 rounded-lg border">
+            <div className="flex items-center mb-3">
+              <input
+                type="checkbox"
+                name="generoAcuerdo"
+                checked={recaudoData.generoAcuerdo}
+                onChange={handleInputChange}
+                className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label className="text-sm font-medium text-gray-700">
+                ¿Generó acuerdo de pago?
+              </label>
+            </div>
+            
+            {recaudoData.generoAcuerdo && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                {/* Valor del Acuerdo */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium text-gray-600 mb-1">
+                    ¿De cuánto fue el acuerdo de pago?:
+                  </label>
+                  <input
+                    type="text"
+                    name="valorAcuerdo"
+                    placeholder="$0"
+                    value={formatCurrency(recaudoData.valorAcuerdo)}
+                    onChange={(e) => handleCurrencyChange('valorAcuerdo', e.target.value)}
+                    className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                {/* Fecha de Compromiso */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium text-gray-600 mb-1">
+                    Fecha de compromiso de pago:
+                  </label>
+                  <input
+                    type="date"
+                    name="fechaCompromiso"
+                    value={recaudoData.fechaCompromiso}
+                    onChange={handleInputChange}
+                    className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Observaciones */}
-          <div className="flex flex-col mt-6">
-            <label className="text-sm font-medium text-gray-600 mb-1">
+          <div className="mt-6">
+            <label className="text-sm font-medium text-gray-600 mb-1 block">
               Observaciones:
             </label>
             <textarea
               name="observaciones"
-              placeholder="Comentarios adicionales..."
+              placeholder="Ingrese observaciones adicionales (opcional)"
               value={recaudoData.observaciones}
               onChange={handleInputChange}
               rows={3}
-              className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             />
+          </div>
+
+          {/* Botón de Guardar */}
+          <div className="mt-6 flex justify-center">
+            <button
+              onClick={handleSubmitRecaudo}
+              disabled={!isSubmitButtonEnabled()}
+              className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                isSubmitButtonEnabled()
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {isSubmitting ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Guardando...
+                </div>
+              ) : (
+                '💾 Guardar Recaudo'
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Botón de Envío */}
-        <div className="flex justify-center mt-8">
-          <button
-            onClick={handleSubmitRecaudo}
-            disabled={!isSubmitButtonEnabled()}
-            title={!isSubmitButtonEnabled() ? getButtonErrorMessage() : "Guardar recaudo en Google Drive"}
-            className={`w-full py-4 px-6 rounded-lg font-bold text-lg transition-all duration-200 ${
-              isSubmitButtonEnabled()
-                ? 'bg-green-600 hover:bg-green-700 text-white cursor-pointer transform hover:scale-105'
-                : 'bg-gray-400 text-gray-600 cursor-not-allowed'
-            }`}
-          >
-            {isSubmitting ? 'Guardando...' : '💾 Guardar Recaudo'}
-          </button>
-        </div>
+
 
         {/* Información adicional */}
         <div className="mt-6 p-4 bg-blue-50 rounded-lg">
