@@ -1597,20 +1597,20 @@ const PedidoForm = ({ onReturnToMenu }) => {
       
       {/* Modal de Esmaltes */}
       {showEsmalteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden transform transition-all">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-2 sm:mx-4 h-[95vh] sm:max-h-[90vh] overflow-hidden transform transition-all flex flex-col">
             {/* Header del Modal */}
-            <div className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-6 rounded-t-2xl">
+            <div className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-4 sm:p-6 rounded-t-2xl flex-shrink-0">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-2xl font-bold mb-2">Selección de Esmaltes</h2>
-                  <p className="text-purple-100">Ingresa las cantidades para cada referencia de esmalte que necesites</p>
+                  <h2 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">Selección de Esmaltes</h2>
+                  <p className="text-purple-100 text-sm sm:text-base">Ingresa las cantidades para cada referencia de esmalte que necesites</p>
                 </div>
                 <button
                   onClick={handleCloseEsmalteModal}
-                  className="text-white hover:text-purple-200 transition-colors"
+                  className="text-white hover:text-purple-200 transition-colors flex-shrink-0 ml-2"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -1618,11 +1618,11 @@ const PedidoForm = ({ onReturnToMenu }) => {
             </div>
 
             {/* Contenido del Modal */}
-            <div className="p-6 overflow-y-auto max-h-[60vh]">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="p-3 sm:p-6 overflow-y-auto flex-1 min-h-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {PRODUCT_DATA.products["LINEA UÑAS"]["Ref. Esmalte"].map((product) => (
-                  <div key={product.cod} className="bg-gray-50 p-4 rounded-lg border hover:border-purple-300 transition-colors">
-                    <div className="mb-3">
+                  <div key={product.cod} className="bg-gray-50 p-3 sm:p-4 rounded-lg border hover:border-purple-300 transition-colors">
+                    <div className="mb-2 sm:mb-3">
                       <h3 className="font-semibold text-gray-800 text-sm">{product.cod}</h3>
                       <p className="text-gray-600 text-xs mb-1">{product.description}</p>
                       <p className="text-purple-600 font-medium text-sm">${product.unitPrice.toLocaleString()}</p>
@@ -1646,22 +1646,22 @@ const PedidoForm = ({ onReturnToMenu }) => {
             </div>
 
             {/* Footer del Modal */}
-            <div className="bg-gray-50 p-6 rounded-b-2xl border-t">
-              <div className="flex flex-col sm:flex-row gap-3 justify-end">
+            <div className="bg-gray-50 p-3 sm:p-6 rounded-b-2xl border-t flex-shrink-0">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
                 <button
                   onClick={handleCloseEsmalteModal}
-                  className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium rounded-lg transition-colors"
+                  className="px-4 sm:px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium rounded-lg transition-colors text-sm sm:text-base"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleAddMultipleEsmaltes}
-                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors"
+                  className="px-4 sm:px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors text-sm sm:text-base"
                 >
                   Agregar Esmaltes Seleccionados
                 </button>
               </div>
-              <div className="mt-3 text-sm text-gray-600">
+              <div className="mt-2 sm:mt-3 text-xs sm:text-sm text-gray-600">
                 <p>💡 <strong>Tip:</strong> Deja en 0 o vacío las referencias que no necesites. Solo se agregarán los esmaltes con cantidad mayor a 0.</p>
               </div>
             </div>
