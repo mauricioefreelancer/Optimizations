@@ -2492,13 +2492,6 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   const getFieldClasses = (fieldName, baseClasses) => {
     const isValid = fieldValidation[fieldName];
     
-    // Nombre del cliente tiene fondo azul cuando es válido
-    if (fieldName === 'nombreCliente') {
-      return isValid 
-        ? `${baseClasses} border-blue-500 bg-blue-100` // ✅ AZUL: Nombre válido
-        : `${baseClasses} border-red-500 bg-red-50`;   // ❌ ROJO: Campo con error
-    }
-    
     // Campos de acuerdo de pago tienen validación visual rojo/verde
     if (fieldName === 'valorAcuerdo' || fieldName === 'fechaCompromiso') {
       return isValid 
@@ -2664,6 +2657,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
         efectivo: recaudoData.efectivo || '0',
         transferencia: recaudoData.transferencia || '0',
         dondeTransfirieron: recaudoData.dondeTransfirieron || '',
+        vendio: recaudoData.vendio ? 'Sí' : 'No',
         generoAcuerdo: recaudoData.generoAcuerdo ? 'Sí' : 'No',
         valorAcuerdo: recaudoData.generoAcuerdo ? (recaudoData.valorAcuerdo || '0') : '0',
         fechaCompromiso: recaudoData.generoAcuerdo ? recaudoData.fechaCompromiso : '',
@@ -2695,6 +2689,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
           generoAcuerdo: recaudoEntry.generoAcuerdo, // NUEVO CAMPO
           valorAcuerdo: recaudoEntry.valorAcuerdo, // NUEVO CAMPO
           fechaCompromiso: recaudoEntry.fechaCompromiso, // NUEVO CAMPO
+          vendio: recaudoEntry.vendio ? 'Sí' : 'No', // NUEVO CAMPO
           observaciones: recaudoEntry.observaciones,
           spreadsheetId: SPREADSHEET_ID
         })
@@ -2722,6 +2717,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
           generoAcuerdo: false, // NUEVO CAMPO
           valorAcuerdo: '', // NUEVO CAMPO
           fechaCompromiso: '', // NUEVO CAMPO
+          vendio: false, // NUEVO CAMPO
           observaciones: ''
         });
         setFieldValidation({
@@ -2861,6 +2857,20 @@ const RecaudoForm = ({ onReturnToMenu }) => {
               />
             </div>
 
+            {/* Vendió */}
+            <div className="flex items-center self-end mb-1">
+              <input
+                type="checkbox"
+                name="vendio"
+                checked={recaudoData.vendio}
+                onChange={(e) => setRecaudoData({...recaudoData, vendio: e.target.checked})}
+                className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label className="text-sm font-medium text-gray-600">
+                Vendió
+              </label>
+            </div>
+
             {/* Tipo de Cliente */}
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
@@ -2974,24 +2984,26 @@ const RecaudoForm = ({ onReturnToMenu }) => {
               />
             </div>
 
-            {/* NUEVO CAMPO: ¿Dónde Transfirieron? */}
-            <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-600 mb-1">
-                ¿Dónde Transfirieron?:
-              </label>
-              <select
-                name="dondeTransfirieron"
-                value={recaudoData.dondeTransfirieron}
-                onChange={handleInputChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Seleccione una opción</option>
-                <option value="nequi">Nequi</option>
-                <option value="daviplata">Daviplata</option>
-                <option value="bancolombia comercializadora">Bancolombia Comercializadora</option>
-                <option value="daviplata comercializadora">Daviplata Comercializadora</option>
-              </select>
-            </div>
+            {/* NUEVO CAMPO: ¿Dónde Transfirieron? - Solo visible si hay transferencia */}
+            {parseFloat(parseCurrency(recaudoData.transferencia) || '0') > 0 && (
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-600 mb-1">
+                  ¿Dónde Transfirieron?:
+                </label>
+                <select
+                  name="dondeTransfirieron"
+                  value={recaudoData.dondeTransfirieron}
+                  onChange={handleInputChange}
+                  className={`p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${validateField('dondeTransfirieron', recaudoData.dondeTransfirieron, recaudoData) ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}
+                >
+                  <option value="">Seleccione una opción</option>
+                  <option value="nequi">Nequi</option>
+                  <option value="daviplata">Daviplata</option>
+                  <option value="bancolombia comercializadora">Bancolombia Comercializadora</option>
+                  <option value="daviplata comercializadora">Daviplata Comercializadora</option>
+                </select>
+              </div>
+            )}
           </div>
 
           {/* NUEVA SECCIÓN: Acuerdo de Pago */}
@@ -3043,19 +3055,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
             )}
           </div>
 
-          {/* Vendió */}
-          <div className="flex items-center mt-6">
-            <input
-              type="checkbox"
-              name="vendio"
-              checked={recaudoData.vendio}
-              onChange={(e) => setRecaudoData({...recaudoData, vendio: e.target.checked})}
-              className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label className="text-sm font-medium text-gray-600">
-              Vendió
-            </label>
-          </div>
+
 
           {/* Observaciones */}
           <div className="mt-6">
