@@ -779,7 +779,7 @@ const ExcelAnalyser = ({ onReturnToMenu }) => {
 };
 
 // Componente para la funcionalidad de Llenado de Toma de Pedido
-const PedidoForm = ({ onReturnToMenu }) => {
+const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete }) => {
   const SELLERS = [
     "Nohora Triana",
     "Alejandra Niño",
@@ -794,7 +794,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
 
   const [clientInfo, setClientInfo] = useState({
     fecha: new Date().toISOString().split("T")[0],
-    cliente: "",
+    cliente: prefilledClientName || "",
     nit: "",
     vendedor: "",
     contado: "X",
@@ -818,8 +818,16 @@ const PedidoForm = ({ onReturnToMenu }) => {
     barrio: false,
     correo: false,
     vendedor: false,
-    cliente: false
+    cliente: prefilledClientName ? true : false
   });
+
+  // Efecto para actualizar el cliente cuando se proporciona un nombre pre-llenado
+  React.useEffect(() => {
+    if (prefilledClientName) {
+      setClientInfo(prev => ({ ...prev, cliente: prefilledClientName }));
+      setFieldValidation(prev => ({ ...prev, cliente: true }));
+    }
+  }, [prefilledClientName]);
 
   // Función para validar un campo específico
   const validateField = (fieldName, value, ordenSalida = clientInfo.ordenSalida) => {
@@ -1508,6 +1516,11 @@ const PedidoForm = ({ onReturnToMenu }) => {
         // REEMPLAZAR ALERT CON MODAL
         setUploadResult(result);
         setShowSuccessModalPedido(true);
+        
+        // Notificar al componente padre si hay un callback
+        if (onOrderComplete && clientInfo.cliente) {
+          onOrderComplete(clientInfo.cliente);
+        }
       } else {
         const error = await response.json();
         throw new Error(error.error || 'Error al subir el archivo');
@@ -1714,6 +1727,49 @@ const PedidoForm = ({ onReturnToMenu }) => {
               
               {/* Botones de Acción */}
               <div className="flex flex-col gap-3 pt-4">
+                {/* Mostrar botones especiales solo en modo integrado y si hubo venta */}
+                {isIntegratedMode && recaudoResult.recaudoData.vendio && (
+                  <>
+                    <button
+                      onClick={() => {
+                        // Navegar directamente al formulario de pedidos con el nombre pre-llenado
+                        onSaveForLater(recaudoResult.recaudoData.nombreCliente);
+                        // Cambiar a vista de pedido con nombre pre-llenado
+                        if (window.gestionDiariaRef) {
+                          window.gestionDiariaRef.navigateToPedidoWithClient(recaudoResult.recaudoData.nombreCliente);
+                        }
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      📝 Tomar Pedido
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        if (onSaveForLater && userEmail) {
+                          onSaveForLater({
+                            clientName: recaudoResult.recaudoData.nombreCliente,
+                            seller: recaudoResult.recaudoData.asesor,
+                            timestamp: new Date().toISOString(),
+                            userEmail: userEmail
+                          });
+                          setShowSuccessModalRecaudo(false);
+                          setRecaudoResult(null);
+                          onReturnToMenu();
+                        }
+                      }}
+                      className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0V6a2 2 0 012-2h4a2 2 0 012 2v1m-6 0h6m-6 0l-.5 5.5A3 3 0 003.5 18H20.5a3 3 0 002.5-2.5L22.5 10" />
+                      </svg>
+                      💾 Guardar para Después
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={handleNewOrder}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
@@ -2274,7 +2330,7 @@ const PedidoForm = ({ onReturnToMenu }) => {
 };
 
 // Componente para la funcionalidad de Reporte de Recaudo
-const RecaudoForm = ({ onReturnToMenu }) => {
+const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater = null, userEmail = null }) => {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -3270,6 +3326,333 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   );
 };
 
+// Componente para la Gestión Diaria del Vendedor
+const GestionDiariaVendedor = ({ onReturnToMenu }) => {
+  const [currentSubView, setCurrentSubView] = useState("menu");
+  const [userEmail, setUserEmail] = useState("");
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [pendingOrders, setPendingOrders] = useState([]);
+  const [prefilledClientName, setPrefilledClientName] = useState("");
+
+  // Función para verificar y obtener email del usuario
+  const verifyUserEmail = () => {
+    // Aquí implementaremos la verificación del email
+    // Por ahora usaremos un email de prueba
+    const email = prompt("Ingrese su email de vendedor:");
+    if (email && email.includes("@")) {
+      setUserEmail(email);
+      setIsEmailVerified(true);
+      loadPendingOrders(email);
+    }
+  };
+
+  // Función para navegar al formulario de pedidos con cliente pre-llenado
+  const navigateToPedidoWithClient = (clientName) => {
+    setPrefilledClientName(clientName);
+    setCurrentSubView("pedido");
+  };
+
+  // Exponer la función globalmente para acceso desde RecaudoForm
+  React.useEffect(() => {
+    window.gestionDiariaRef = { navigateToPedidoWithClient };
+    return () => {
+      delete window.gestionDiariaRef;
+    };
+  }, []);
+
+  // Función para cargar pedidos pendientes desde LocalStorage
+  const loadPendingOrders = (email) => {
+    const storageKey = `pendingOrders_${email}`;
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      const orders = JSON.parse(stored);
+      // Filtrar pedidos que no hayan expirado (12 horas)
+      const now = Date.now();
+      const validOrders = orders.filter(order => {
+        const orderTime = new Date(order.timestamp).getTime();
+        return (now - orderTime) < 12 * 60 * 60 * 1000; // 12 horas en milisegundos
+      });
+      setPendingOrders(validOrders);
+      // Actualizar localStorage con pedidos válidos
+      localStorage.setItem(storageKey, JSON.stringify(validOrders));
+    }
+  };
+
+  // Función para agregar un nuevo pedido pendiente
+  const addPendingOrder = (clientName) => {
+    const newOrder = {
+      id: Date.now().toString(),
+      clientName,
+      timestamp: new Date().toISOString(),
+      uploaded: false,
+      driveLink: null
+    };
+    
+    const updatedOrders = [...pendingOrders, newOrder];
+    setPendingOrders(updatedOrders);
+    
+    const storageKey = `pendingOrders_${userEmail}`;
+    localStorage.setItem(storageKey, JSON.stringify(updatedOrders));
+  };
+
+  // Función para calcular tiempo restante
+  const getTimeRemaining = (timestamp) => {
+    const now = Date.now();
+    const orderTime = new Date(timestamp).getTime();
+    const elapsed = now - orderTime;
+    const remaining = 12 * 60 * 60 * 1000 - elapsed; // 12 horas - tiempo transcurrido
+    
+    if (remaining <= 0) return "Expirado";
+    
+    const hours = Math.floor(remaining / (60 * 60 * 1000));
+    const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+    
+    return `${hours}h ${minutes}m`;
+  };
+
+  // Función para limpiar automáticamente los pedidos expirados
+  const cleanupExpiredOrders = React.useCallback(() => {
+    if (!userEmail) return;
+    
+    const storageKey = `pendingOrders_${userEmail}`;
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      const orders = JSON.parse(stored);
+      const now = Date.now();
+      const validOrders = orders.filter(order => {
+        const orderTime = new Date(order.timestamp).getTime();
+        return (now - orderTime) < 12 * 60 * 60 * 1000; // 12 horas en milisegundos
+      });
+      
+      // Solo actualizar si hay cambios
+      if (validOrders.length !== orders.length) {
+        setPendingOrders(validOrders);
+        localStorage.setItem(storageKey, JSON.stringify(validOrders));
+        console.log(`🧹 Limpieza automática: ${orders.length - validOrders.length} pedidos expirados eliminados`);
+      }
+    }
+  }, [userEmail]);
+
+  // Sistema de limpieza automática cada 5 minutos
+  React.useEffect(() => {
+    if (!isEmailVerified || !userEmail) return;
+    
+    // Ejecutar limpieza inicial
+    cleanupExpiredOrders();
+    
+    // Configurar limpieza automática cada 5 minutos
+    const cleanupInterval = setInterval(cleanupExpiredOrders, 5 * 60 * 1000);
+    
+    return () => {
+      clearInterval(cleanupInterval);
+    };
+  }, [isEmailVerified, userEmail, cleanupExpiredOrders]);
+
+  // Renderizar verificación de email
+  if (!isEmailVerified) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">
+              🏢 Gestión Diaria del Vendedor
+            </h1>
+            <p className="text-gray-600">Verificación de Email Requerida</p>
+          </div>
+          
+          <div className="space-y-4">
+            <button
+              onClick={verifyUserEmail}
+              className="w-full bg-orange-600 text-white py-3 px-6 rounded-lg hover:bg-orange-700 transition-colors font-medium"
+            >
+              🔐 Verificar Email
+            </button>
+            
+            <button
+              onClick={onReturnToMenu}
+              className="w-full bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700 transition-colors font-medium"
+            >
+              ← Volver al Menú
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Renderizar submenú de gestión diaria
+  if (currentSubView === "menu") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">
+              🏢 Gestión Diaria del Vendedor
+            </h1>
+            <p className="text-gray-600 text-sm">Usuario: {userEmail}</p>
+            <p className="text-gray-500 text-xs mt-1">Pedidos pendientes: {pendingOrders.length}</p>
+          </div>
+          
+          <nav className="space-y-4">
+            <button
+              onClick={() => setCurrentSubView("recaudo")}
+              className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+            >
+              💰 Reporte de Recaudo
+            </button>
+            
+            <button
+              onClick={() => setCurrentSubView("orders")}
+              className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-medium"
+            >
+              📋 Gestión de Pedidos
+            </button>
+            
+            <button
+              onClick={onReturnToMenu}
+              className="w-full bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700 transition-colors font-medium"
+            >
+              ← Volver al Menú Principal
+            </button>
+          </nav>
+        </div>
+      </div>
+    );
+  }
+
+  // Renderizar tabla de gestión de pedidos
+  if (currentSubView === "orders") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-100 p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-2xl p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-2xl font-bold text-gray-800">
+                📋 Gestión de Pedidos (Últimas 12 horas)
+              </h1>
+              <button
+                onClick={() => setCurrentSubView("menu")}
+                className="bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                ← Volver
+              </button>
+            </div>
+            
+            {pendingOrders.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500 text-lg">No hay pedidos pendientes</p>
+                <p className="text-gray-400 text-sm mt-2">Los pedidos aparecerán aquí cuando uses "Guardar para Después" en el recaudo</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-300 px-4 py-2 text-left"># Pedido</th>
+                      <th className="border border-gray-300 px-4 py-2 text-left">Cliente</th>
+                      <th className="border border-gray-300 px-4 py-2 text-center">Subido</th>
+                      <th className="border border-gray-300 px-4 py-2 text-center">Opción</th>
+                      <th className="border border-gray-300 px-4 py-2 text-center">Tiempo Restante</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingOrders.map((order) => {
+                      const isExpired = getTimeRemaining(order.timestamp) === "Expirado";
+                      return (
+                        <tr key={order.id} className={isExpired ? "bg-red-50 hover:bg-red-100" : "hover:bg-gray-50"}>
+                          <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
+                            {order.id.slice(-6)}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            {order.clientName}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-center">
+                            {order.uploaded ? (
+                              <span className="text-green-600 text-xl">✓</span>
+                            ) : (
+                              <span className="text-red-600 text-xl">✗</span>
+                            )}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-center">
+                            {order.uploaded && order.driveLink ? (
+                              <a
+                                href={order.driveLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                              >
+                                📁 Ver en Drive
+                              </a>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  navigateToPedidoWithClient(order.clientName);
+                                }}
+                                className={isExpired ? 
+                                  "bg-gray-400 text-white px-3 py-1 rounded text-sm cursor-not-allowed" : 
+                                  "bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                                }
+                                disabled={isExpired}
+                              >
+                                📝 Llenar Pedido
+                              </button>
+                            )}
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2 text-center text-sm">
+                            <span className={isExpired ? "text-red-600 font-bold" : "text-gray-600"}>
+                              {getTimeRemaining(order.timestamp)}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Renderizar RecaudoForm integrado
+  if (currentSubView === "recaudo") {
+    return (
+      <RecaudoForm 
+        onReturnToMenu={() => setCurrentSubView("menu")}
+        isIntegratedMode={true}
+        onSaveForLater={addPendingOrder}
+        userEmail={userEmail}
+      />
+    );
+  }
+
+  // Renderizar PedidoForm integrado con cliente pre-llenado
+  if (currentSubView === "pedido") {
+    return (
+      <PedidoForm 
+        onReturnToMenu={() => setCurrentSubView("menu")}
+        prefilledClientName={prefilledClientName}
+        onOrderComplete={(clientName) => {
+          // Actualizar la lista de pedidos pendientes cuando se complete un pedido
+          const updatedOrders = pendingOrders.map(order => 
+            order.clientName === clientName 
+              ? { ...order, uploaded: true, driveLink: "#" }
+              : order
+          );
+          setPendingOrders(updatedOrders);
+          const storageKey = `pendingOrders_${userEmail}`;
+          localStorage.setItem(storageKey, JSON.stringify(updatedOrders));
+          setCurrentSubView("menu");
+        }}
+      />
+    );
+  }
+
+  return null;
+};
+
 // Componente principal que maneja el menú y la renderización condicional
 const App = () => {
   const [currentView, setCurrentView] = useState("menu");
@@ -3282,6 +3665,8 @@ const App = () => {
         return <PedidoForm onReturnToMenu={() => setCurrentView("menu")} />;
       case "recaudo":
         return <RecaudoForm onReturnToMenu={() => setCurrentView("menu")} />;
+      case "gestion":
+        return <GestionDiariaVendedor onReturnToMenu={() => setCurrentView("menu")} />;
       default:
         return (
           <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -3316,10 +3701,10 @@ const App = () => {
                 </button>
                 
                 <button
-                  disabled
-                  className="w-full bg-gray-400 text-white py-3 px-6 rounded-lg cursor-not-allowed font-medium"
+                  onClick={() => setCurrentView("gestion")}
+                  className="w-full bg-orange-600 text-white py-3 px-6 rounded-lg hover:bg-orange-700 transition-colors font-medium"
                 >
-                  🔒 Próximamente
+                  🏢 Gestión Diaria del Vendedor
                 </button>
               </nav>
             </div>
