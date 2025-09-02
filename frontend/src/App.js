@@ -2291,14 +2291,10 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   // Estado del formulario de recaudo
   const [recaudoData, setRecaudoData] = useState({
     fecha: new Date().toISOString().split('T')[0],
-    tipoCliente: 'nuevo', // nuevo/antiguo
+    tipoCliente: '', // nuevo/antiguo
     asesor: '',
     nombreCliente: '',
     recaudo: '', // NUEVO CAMPO
-    vendio: false,
-    valorVendido: '',
-    abono: false,
-    valorAbono: '',
     efectivo: '',
     transferencia: '',
     dondeTransfirieron: '', // NUEVO CAMPO
@@ -2385,14 +2381,10 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     // Limpiar todos los campos del formulario
     setRecaudoData({
       fecha: new Date().toISOString().split('T')[0],
-      tipoCliente: 'nuevo',
+      tipoCliente: '',
       asesor: '',
       nombreCliente: '',
       recaudo: '', // NUEVO CAMPO
-      vendio: false,
-      valorVendido: '',
-      abono: false,
-      valorAbono: '',
       efectivo: '',
       transferencia: '',
       dondeTransfirieron: '', // NUEVO CAMPO
@@ -2402,12 +2394,12 @@ const RecaudoForm = ({ onReturnToMenu }) => {
       observaciones: ''
     });
     setFieldValidation({
-      nombreCliente: false,
-      asesor: false,
-      valorVendido: true,
-      valorAbono: true,
-      matematica: true
-    });
+          fecha: true,
+          tipoCliente: true,
+          asesor: false,
+          nombreCliente: false,
+          matematica: true
+        });
   };
 
   // Función para regresar al menú principal
@@ -2460,59 +2452,27 @@ const RecaudoForm = ({ onReturnToMenu }) => {
 
   // Nuevo estado para validación en tiempo real - EXPANDIDO
   const [fieldValidation, setFieldValidation] = useState({
-    nombreCliente: false,
+    fecha: true,
+    tipoCliente: true,
     asesor: false,       // ✅ Validación para asesor
-    valorVendido: true,  // Válido por defecto
-    valorAbono: true,    // Válido por defecto
+    nombreCliente: false,
     matematica: true     // Validación matemática
   });
 
-  // Función para validar un campo específico - CORREGIDA
-  const validateField = (fieldName, value, currentData = recaudoData) => {
+  // Función para validar un campo específico - SIMPLIFICADA
+  const validateField = (fieldName, value, formData = recaudoData) => {
     switch (fieldName) {
+      case 'fecha':
+      case 'tipoCliente':
+      case 'asesor':
       case 'nombreCliente':
         return value && value.trim() !== '';
-      case 'asesor':
-        return value && value.trim() !== '';
-      case 'valorVendido':
-        // Solo validar si 'vendió' está marcado
-        if (currentData.vendio) {
-          const numValue = parseFloat(parseCurrency(value) || '0');
-          return numValue > 0;
-        }
-        return true; // Si no está marcado 'vendió', no se valida
-      case 'valorAbono':
-        // Solo validar si 'abono' está marcado
-        if (currentData.abono) {
-          const numValue = parseFloat(parseCurrency(value) || '0');
-          return numValue > 0;
-        }
-        return true; // Si no está marcado 'abono', no se valida
       case 'matematica':
-        // LÓGICA MATEMÁTICA CORREGIDA
-        const valorVendido = parseFloat(parseCurrency(currentData.valorVendido) || '0');
-        const valorAbono = parseFloat(parseCurrency(currentData.valorAbono) || '0');
-        const efectivo = parseFloat(parseCurrency(currentData.efectivo) || '0');
-        const transferencia = parseFloat(parseCurrency(currentData.transferencia) || '0');
-        
-        // Calcular valores según las casillas seleccionadas
-        const valorVendidoFinal = currentData.vendio ? valorVendido : 0;
-        const valorAbonoFinal = currentData.abono ? valorAbono : 0;
-        
-        // Calcular totales
-        const totalTransaccion = valorVendidoFinal + valorAbonoFinal;
+        const efectivo = parseFloat(parseCurrency(formData.efectivo) || '0');
+        const transferencia = parseFloat(parseCurrency(formData.transferencia) || '0');
+        const recaudo = parseFloat(parseCurrency(formData.recaudo) || '0');
         const totalFormasPago = efectivo + transferencia;
-        
-        // REGLA CORREGIDA: Si no se seleccionó "Vendió" ni "Abono"
-        if (!currentData.vendio && !currentData.abono) {
-          // Ambos campos "Efectivo" y "Transferencia" deben ser 0
-          return efectivo === 0 && transferencia === 0;
-        }
-        
-        // REGLA CORREGIDA: Si se seleccionó "Vendió" o "Abono"
-        // La suma del dinero recibido debe ser igual a la suma de los valores ingresados
-        // Usar tolerancia para evitar problemas de precisión decimal
-        return Math.abs(totalTransaccion - totalFormasPago) < 0.01;
+        return Math.abs(totalFormasPago - recaudo) < 0.01;
       default:
         return true;
     }
@@ -2532,27 +2492,10 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     // Validaciones básicas
     const basicValidation = fieldValidation.nombreCliente && fieldValidation.asesor;
     
-    // Validaciones condicionales: si está marcado, debe tener valor > 0
-    const conditionalValidation = (
-      (!recaudoData.vendio || fieldValidation.valorVendido) &&
-      (!recaudoData.abono || fieldValidation.valorAbono)
-    );
-    
     // Validación matemática (la nueva lógica)
     const mathematicalValidation = fieldValidation.matematica;
     
-    // VALIDACIÓN CORREGIDA: Debe haber al menos una transacción válida
-    const hasValidTransaction = (
-      // Caso 1: Se seleccionó vendió o abono (con valores válidos)
-      (recaudoData.vendio && fieldValidation.valorVendido) ||
-      (recaudoData.abono && fieldValidation.valorAbono) ||
-      // Caso 2: No se seleccionó nada pero hay efectivo/transferencia = 0 (válido)
-      (!recaudoData.vendio && !recaudoData.abono && 
-       parseFloat(parseCurrency(recaudoData.efectivo) || '0') === 0 && 
-       parseFloat(parseCurrency(recaudoData.transferencia) || '0') === 0)
-    );
-    
-    return basicValidation && conditionalValidation && mathematicalValidation && hasValidTransaction && !isSubmitting;
+    return basicValidation && mathematicalValidation && !isSubmitting;
   };
 
   // Función para obtener el mensaje de error del botón
@@ -2563,41 +2506,13 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     if (!fieldValidation.asesor) {
       return 'Debe seleccionar un asesor';
     }
-    if (recaudoData.vendio && !fieldValidation.valorVendido) {
-      return 'Si marcó "Vendió", el valor vendido debe ser mayor a 0';
-    }
-    if (recaudoData.abono && !fieldValidation.valorAbono) {
-      return 'Si marcó "Abono", el valor abono debe ser mayor a 0';
-    }
     if (!fieldValidation.matematica) {
-      const valorVendido = parseCurrency(recaudoData.valorVendido);
-      const valorAbono = parseCurrency(recaudoData.valorAbono);
+      const recaudo = parseCurrency(recaudoData.recaudo);
       const efectivo = parseCurrency(recaudoData.efectivo);
       const transferencia = parseCurrency(recaudoData.transferencia);
-      
-      // Valores finales según selección
-      const valorVendidoFinal = recaudoData.vendio ? valorVendido : 0;
-      const valorAbonoFinal = recaudoData.abono ? valorAbono : 0;
-      const totalTransaccion = valorVendidoFinal + valorAbonoFinal;
       const totalFormasPago = efectivo + transferencia;
       
-      if (!recaudoData.vendio && !recaudoData.abono) {
-        return 'Si no selecciona "Vendió" ni "Abono", tanto Efectivo como Transferencia deben ser $0';
-      }
-      
-      return `Error matemático: (Valor Vendido + Valor Abono) = $${formatCurrency(totalTransaccion.toString())} debe ser igual a (Efectivo + Transferencia) = $${formatCurrency(totalFormasPago.toString())}`;
-    }
-    
-    const hasValidTransaction = (
-      (recaudoData.vendio && fieldValidation.valorVendido) ||
-      (recaudoData.abono && fieldValidation.valorAbono) ||
-      (!recaudoData.vendio && !recaudoData.abono && 
-       parseFloat(parseCurrency(recaudoData.efectivo) || '0') === 0 && 
-       parseFloat(parseCurrency(recaudoData.transferencia) || '0') === 0)
-    );
-    
-    if (!hasValidTransaction) {
-      return 'Debe completar al menos una transacción válida o dejar todo en $0 si no hay transacción';
+      return `Error matemático: Recaudo = $${formatCurrency(recaudo.toString())} debe ser igual a (Efectivo + Transferencia) = $${formatCurrency(totalFormasPago.toString())}`;
     }
     
     return 'Formulario válido - Listo para guardar';
@@ -2628,24 +2543,18 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     const numericValue = value.replace(/[^0-9]/g, '');
     
     // Actualizar el estado con el valor numérico limpio
-    setRecaudoData(prev => {
-      const updatedData = {
-        ...prev,
-        [fieldName]: numericValue
-      };
-      
-      // Validación en tiempo real con datos actualizados
-      setTimeout(() => {
-        setFieldValidation(prevValidation => ({
-          ...prevValidation,
-          valorVendido: validateField('valorVendido', updatedData.valorVendido, updatedData),
-          valorAbono: validateField('valorAbono', updatedData.valorAbono, updatedData),
-          matematica: validateField('matematica', null, updatedData)
-        }));
-      }, 0);
-      
-      return updatedData;
-    });
+    const updatedData = {
+      ...recaudoData,
+      [fieldName]: numericValue
+    };
+    
+    setRecaudoData(updatedData);
+    
+    // Validación en tiempo real con datos actualizados
+    setFieldValidation(prevValidation => ({
+      ...prevValidation,
+      matematica: validateField('matematica', null, updatedData)
+    }));
   };
 
   // Función para manejar cambios en los inputs
@@ -2653,45 +2562,14 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     const { name, value, type, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : value;
     
-    setRecaudoData(prev => ({
-      ...prev,
-      [name]: newValue
-    }));
+    const updatedData = { ...recaudoData, [name]: newValue };
+    setRecaudoData(updatedData);
     
-    // Validación en tiempo real para campos específicos
-    if (name === 'nombreCliente') {
-      const isValid = validateField('nombreCliente', newValue);
-      setFieldValidation(prev => ({ ...prev, nombreCliente: isValid }));
-    }
+    const isValid = validateField(name, newValue, updatedData);
+    setFieldValidation(prev => ({ ...prev, [name]: isValid }));
     
-    if (name === 'asesor') {
-      const isValid = validateField('asesor', newValue);
-      setFieldValidation(prev => ({ ...prev, asesor: isValid }));
-    }
-    
-    // Validar campos monetarios cuando cambian las casillas
-    if (name === 'vendio') {
-      const valorVendidoValid = validateField('valorVendido', recaudoData.valorVendido, { ...recaudoData, vendio: newValue });
-      setFieldValidation(prev => ({ ...prev, valorVendido: valorVendidoValid }));
-      
-      // Revalidar matemática
-      const matematicaValid = validateField('matematica', null, { ...recaudoData, vendio: newValue });
-      setFieldValidation(prev => ({ ...prev, matematica: matematicaValid }));
-    }
-    
-    if (name === 'abono') {
-      const valorAbonoValid = validateField('valorAbono', recaudoData.valorAbono, { ...recaudoData, abono: newValue });
-      setFieldValidation(prev => ({ ...prev, valorAbono: valorAbonoValid }));
-      
-      // Revalidar matemática
-      const matematicaValid = validateField('matematica', null, { ...recaudoData, abono: newValue });
-      setFieldValidation(prev => ({ ...prev, matematica: matematicaValid }));
-    }
-    
-    if (name === 'valorVendido' || name === 'valorAbono') {
-      const matematicaValid = validateField('matematica', null, { ...recaudoData, [name]: newValue });
-      setFieldValidation(prev => ({ ...prev, matematica: matematicaValid }));
-    }
+    const matematicaValid = validateField('matematica', null, updatedData);
+    setFieldValidation(prev => ({ ...prev, matematica: matematicaValid }));
   };
 
   // Validar formulario
@@ -2728,18 +2606,14 @@ const RecaudoForm = ({ onReturnToMenu }) => {
         tipoCliente: recaudoData.tipoCliente,
         asesor: recaudoData.asesor,
         nombreCliente: recaudoData.nombreCliente,
-        recaudo: recaudoData.recaudo || '0', // NUEVO CAMPO
-        vendio: recaudoData.vendio ? 'Sí' : 'No',
-        valorVendido: recaudoData.vendio ? (recaudoData.valorVendido || '0') : '0',
-        abono: recaudoData.abono ? 'Sí' : 'No',
-        valorAbono: recaudoData.abono ? (recaudoData.valorAbono || '0') : '0',
+        recaudo: recaudoData.recaudo || '0',
         efectivo: recaudoData.efectivo || '0',
         transferencia: recaudoData.transferencia || '0',
-        dondeTransfirieron: recaudoData.dondeTransfirieron || '', // NUEVO CAMPO
-        generoAcuerdo: recaudoData.generoAcuerdo ? 'Sí' : 'No', // NUEVO CAMPO
-        valorAcuerdo: recaudoData.generoAcuerdo ? (recaudoData.valorAcuerdo || '0') : '0', // NUEVO CAMPO
-        fechaCompromiso: recaudoData.generoAcuerdo ? (recaudoData.fechaCompromiso || '') : '', // NUEVO CAMPO
-        observaciones: recaudoData.observaciones || '',
+        dondeTransfirieron: recaudoData.dondeTransfirieron || '',
+        generoAcuerdo: recaudoData.generoAcuerdo ? 'Sí' : 'No',
+        valorAcuerdo: recaudoData.generoAcuerdo ? (recaudoData.valorAcuerdo || '0') : '0',
+        fechaCompromiso: recaudoData.generoAcuerdo ? recaudoData.fechaCompromiso : '',
+        observaciones: recaudoData.observaciones,
         timestamp: timestamp
       };
       
@@ -2761,10 +2635,6 @@ const RecaudoForm = ({ onReturnToMenu }) => {
           vendedor: recaudoEntry.asesor,
           nombreCliente: recaudoEntry.nombreCliente,
           recaudo: recaudoEntry.recaudo, // NUEVO CAMPO
-          vendio: recaudoEntry.vendio,
-          valorVendido: recaudoEntry.valorVendido,
-          abono: recaudoEntry.abono,
-          valorAbono: recaudoEntry.valorAbono,
           efectivo: recaudoEntry.efectivo,
           transferencia: recaudoEntry.transferencia,
           dondeTransfirieron: recaudoEntry.dondeTransfirieron, // NUEVO CAMPO
@@ -2788,14 +2658,10 @@ const RecaudoForm = ({ onReturnToMenu }) => {
         // Limpiar formulario después del envío exitoso
         setRecaudoData({
           fecha: new Date().toISOString().split('T')[0],
-          tipoCliente: 'nuevo',
+          tipoCliente: '',
           asesor: '',
           nombreCliente: '',
           recaudo: '', // NUEVO CAMPO
-          vendio: false,
-          valorVendido: '',
-          abono: false,
-          valorAbono: '',
           efectivo: '',
           transferencia: '',
           dondeTransfirieron: '', // NUEVO CAMPO
@@ -2805,10 +2671,10 @@ const RecaudoForm = ({ onReturnToMenu }) => {
           observaciones: ''
         });
         setFieldValidation({
-          nombreCliente: false,
+          fecha: true,
+          tipoCliente: true,
           asesor: false,
-          valorVendido: true,
-          valorAbono: true,
+          nombreCliente: false,
           matematica: true
         });
       } else {
@@ -2952,6 +2818,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 onChange={handleInputChange}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
+                <option value="">Seleccione tipo de cliente</option>
                 <option value="nuevo">Nuevo</option>
                 <option value="antiguo">Antiguo</option>
               </select>
@@ -3014,70 +2881,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
             </div>
           </div>
 
-          {/* Sección de Ventas y Abonos */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
-            {/* ¿Vendió? */}
-            <div className="bg-white p-4 rounded-lg border">
-              <div className="flex items-center mb-3">
-                <input
-                  type="checkbox"
-                  name="vendio"
-                  checked={recaudoData.vendio}
-                  onChange={handleInputChange}
-                  className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label className="text-sm font-medium text-gray-700">
-                  ¿Vendió?
-                </label>
-              </div>
-              {recaudoData.vendio && (
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-600 mb-1">
-                    Valor Vendido:
-                  </label>
-                  <input
-                    type="text"
-                    name="valorVendido"
-                    placeholder="$0"
-                    value={formatCurrency(recaudoData.valorVendido)}
-                    onChange={(e) => handleCurrencyChange('valorVendido', e.target.value)}
-                    className={getFieldClasses('valorVendido', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
-                  />
-                </div>
-              )}
-            </div>
 
-            {/* ¿Abonó? */}
-            <div className="bg-white p-4 rounded-lg border">
-              <div className="flex items-center mb-3">
-                <input
-                  type="checkbox"
-                  name="abono"
-                  checked={recaudoData.abono}
-                  onChange={handleInputChange}
-                  className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label className="text-sm font-medium text-gray-700">
-                  ¿Abonó?
-                </label>
-              </div>
-              {recaudoData.abono && (
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-600 mb-1">
-                    Valor Abono:
-                  </label>
-                  <input
-                    type="text"
-                    name="valorAbono"
-                    placeholder="$0"
-                    value={formatCurrency(recaudoData.valorAbono)}
-                    onChange={(e) => handleCurrencyChange('valorAbono', e.target.value)}
-                    className={getFieldClasses('valorAbono', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* Sección de Formas de Pago */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
@@ -3116,14 +2920,18 @@ const RecaudoForm = ({ onReturnToMenu }) => {
               <label className="text-sm font-medium text-gray-600 mb-1">
                 ¿Dónde Transfirieron?:
               </label>
-              <input
-                type="text"
+              <select
                 name="dondeTransfirieron"
-                placeholder="Banco, cuenta, etc."
                 value={recaudoData.dondeTransfirieron}
                 onChange={handleInputChange}
                 className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              />
+              >
+                <option value="">Seleccione una opción</option>
+                <option value="nequi">Nequi</option>
+                <option value="daviplata">Daviplata</option>
+                <option value="bancolombia comercializadora">Bancolombia Comercializadora</option>
+                <option value="daviplata comercializadora">Daviplata Comercializadora</option>
+              </select>
             </div>
           </div>
 
@@ -3258,24 +3066,6 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 
                 {/* Información de Ventas y Abonos */}
                 <div className="border-t pt-3 mt-3">
-                  {recaudoResult.recaudoData.vendio && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-green-600 font-medium">💰 Vendió:</span>
-                      <span className="text-green-800 font-semibold">
-                        ${parseInt(recaudoResult.recaudoData.valorVendido || 0).toLocaleString('es-CO')}
-                      </span>
-                    </div>
-                  )}
-                  {recaudoResult.recaudoData.abono && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-blue-600 font-medium">💳 Abonó:</span>
-                      <span className="text-blue-800 font-semibold">
-                        ${parseInt(recaudoResult.recaudoData.valorAbono || 0).toLocaleString('es-CO')}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {/* Formas de Pago */}
                   <div className="border-t pt-2 mt-2">
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600 font-medium">💵 Efectivo:</span>
@@ -3346,7 +3136,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
             </div>
           </div>
         </div>
-      )}
+      )}  
     </div>
   );
 };

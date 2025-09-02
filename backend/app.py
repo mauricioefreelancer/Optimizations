@@ -832,17 +832,15 @@ def append_to_recaudo_sheet():
             data.get('tipoCliente', ''),                             # B - Tipo Cliente
             data.get('vendedor', ''),                                # C - Asesor/Vendedor
             data.get('nombreCliente', ''),                           # D - Nombre Cliente
-            data.get('recaudo', ''),                                 # E - Recaudo (NUEVO)
-            'Sí' if data.get('vendio') == 'Sí' else 'No',           # F - Vendió (Sí/No)
-            data.get('valorVendido', '') if data.get('vendio') == 'Sí' else '',  # G - Valor Vendido
-            data.get('efectivo', ''),                                # H - Efectivo
-            data.get('transferencia', ''),                           # I - Transferencia
-            data.get('dondeTransfirieron', ''),                      # J - ¿Dónde Transfirieron? (NUEVO)
-            'Sí' if data.get('generoAcuerdo') else 'No',            # K - ¿Generó acuerdo de pago? (NUEVO)
-            data.get('valorAcuerdo', '') if data.get('generoAcuerdo') else '',  # L - Valor del acuerdo (NUEVO)
-            data.get('fechaCompromiso', '') if data.get('generoAcuerdo') else '', # M - Fecha de compromiso (NUEVO)
-            data.get('observaciones', ''),                           # N - Observaciones
-            current_timestamp                                        # O - Timestamp
+            data.get('recaudo', ''),                                 # E - Recaudo
+            data.get('efectivo', ''),                                # F - Efectivo
+            data.get('transferencia', ''),                           # G - Transferencia
+            data.get('dondeTransfirieron', ''),                      # H - ¿Dónde Transfirieron?
+            'Sí' if data.get('generoAcuerdo') else 'No',            # I - ¿Generó acuerdo de pago?
+            data.get('valorAcuerdo', '') if data.get('generoAcuerdo') else '',  # J - Valor del acuerdo
+            data.get('fechaCompromiso', '') if data.get('generoAcuerdo') else '', # K - Fecha de compromiso
+            data.get('observaciones', ''),                           # L - Observaciones
+            current_timestamp                                        # M - Timestamp
         ]
         
         print(f"🚀 Procesando datos de recaudo para: {data.get('nombreCliente')}")
@@ -854,8 +852,8 @@ def append_to_recaudo_sheet():
         if not service:
             return jsonify({"error": "No se pudo autenticar con Google Sheets"}), 401
         
-        # Agregar la fila al final de la hoja (columnas A hasta O)
-        range_name = 'Hoja 1!A:O'  # Expandido para incluir las nuevas columnas
+        # Agregar la fila al final de la hoja (columnas A hasta M)
+        range_name = 'Hoja 1!A:M'  # Actualizado para reflejar la nueva estructura
         
         body = {
             'values': [row_data]
@@ -949,7 +947,7 @@ def create_recaudo_spreadsheet():
         # Agregar encabezados actualizados
         headers = [
             'Fecha', 'Tipo Cliente', 'Asesor/Vendedor', 'Nombre Cliente', 
-            'Recaudo', 'Vendió', 'Efectivo', 'Transferencia', 
+            'Recaudo', 'Efectivo', 'Transferencia', 
             '¿Dónde Transfirieron?', '¿Generó acuerdo de pago?', 
             '¿De cuánto fue el acuerdo de pago?', 'Fecha de compromiso de pago',
             'Observaciones', 'Timestamp'
@@ -961,7 +959,7 @@ def create_recaudo_spreadsheet():
         
         service.spreadsheets().values().update(
             spreadsheetId=spreadsheet_id,
-            range='Hoja1!A1:N1',  # Expandido para incluir todas las columnas
+            range='Hoja1!A1:M1',  # Actualizado para reflejar la nueva estructura
             valueInputOption='RAW',
             body=body
         ).execute()
