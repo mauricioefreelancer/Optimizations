@@ -2294,6 +2294,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     tipoCliente: '', // nuevo/antiguo
     asesor: '',
     nombreCliente: '',
+    vendio: '', // NUEVO CAMPO - si o no
     recaudo: '', // NUEVO CAMPO
     efectivo: '',
     transferencia: '',
@@ -2384,6 +2385,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
       tipoCliente: '',
       asesor: '',
       nombreCliente: '',
+      vendio: '', // NUEVO CAMPO - si o no
       recaudo: '', // NUEVO CAMPO
       efectivo: '',
       transferencia: '',
@@ -2863,6 +2865,23 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 className={getFieldClasses('nombreCliente', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
                 required
               />
+            </div>
+
+            {/* Vendió */}
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-600 mb-1">
+                Vendió:
+              </label>
+              <select
+                name="vendio"
+                value={recaudoData.vendio}
+                onChange={handleInputChange}
+                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Seleccione una opción</option>
+                <option value="si">Sí</option>
+                <option value="no">No</option>
+              </select>
             </div>
 
             {/* NUEVO CAMPO: Recaudo */}
