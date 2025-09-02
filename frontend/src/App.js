@@ -3333,16 +3333,150 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [pendingOrders, setPendingOrders] = useState([]);
   const [prefilledClientName, setPrefilledClientName] = useState("");
+  
+  // Estados para autenticación Google (igual que RecaudoForm)
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [accessToken, setAccessToken] = useState(null);
+  const [showAuthErrorModal, setShowAuthErrorModal] = useState(false);
+  const [authErrorMessage, setAuthErrorMessage] = useState('');
 
-  // Función para verificar y obtener email del usuario
-  const verifyUserEmail = () => {
-    // Aquí implementaremos la verificación del email
-    // Por ahora usaremos un email de prueba
-    const email = prompt("Ingrese su email de vendedor:");
-    if (email && email.includes("@")) {
+  // Función de autenticación OAuth 2.0 (reutilizada del RecaudoForm)
+  const authenticateWithGoogle = async () => {
+    try {
+      console.log('🔐 Iniciando autenticación OAuth2 para Gestión Diaria...');
+      
+      const response = await fetch(`${API_BASE_URL}/auth/google`);
+      const data = await response.json();
+      
+      if (data.auth_url) {
+        const authWindow = window.open(
+          data.auth_url, 
+          'google-auth', 
+          'width=500,height=600,scrollbars=yes,resizable=yes'
+        );
+        
+        return new Promise((resolve, reject) => {
+          const messageListener = (event) => {
+            if (event.origin !== window.location.origin && 
+                !event.origin.includes('optimizations-c6pm.onrender.com')) {
+              return;
+            }
+            
+            if (event.data.type === 'OAUTH_SUCCESS' && event.data.access_token) {
+              console.log('✅ Token OAuth2 obtenido automáticamente para Gestión Diaria');
+              window.removeEventListener('message', messageListener);
+              authWindow.close();
+              resolve(event.data.access_token);
+            } else if (event.data.type === 'OAUTH_ERROR') {
+              console.error('❌ Error en OAuth2:', event.data.error);
+              window.removeEventListener('message', messageListener);
+              authWindow.close();
+              reject(new Error(event.data.error || 'Error en autenticación'));
+            }
+          };
+          
+          window.addEventListener('message', messageListener);
+          
+          const checkClosed = setInterval(() => {
+            if (authWindow.closed) {
+              clearInterval(checkClosed);
+              window.removeEventListener('message', messageListener);
+              reject(new Error('Autenticación cancelada por el usuario'));
+            }
+          }, 1000);
+          
+          setTimeout(() => {
+            clearInterval(checkClosed);
+            window.removeEventListener('message', messageListener);
+            if (!authWindow.closed) {
+              authWindow.close();
+            }
+            reject(new Error('Timeout de autenticación'));
+          }, 300000);
+        });
+      } else {
+        throw new Error('No se pudo obtener URL de autenticación');
+      }
+    } catch (error) {
+      console.error('❌ Error en autenticación:', error);
+      throw error;
+    }
+  };
+
+  // Función para obtener email del usuario autenticado
+  const getUserEmailFromToken = async (token) => {
+    try {
+      // Hacer una llamada simple a Google API para obtener información del usuario
+      const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const userInfo = await response.json();
+        return userInfo.email;
+      } else {
+        throw new Error('No se pudo obtener información del usuario');
+      }
+    } catch (error) {
+      console.error('❌ Error obteniendo email del usuario:', error);
+      throw error;
+    }
+  };
+
+  // Autenticación automática al montar el componente
+  useEffect(() => {
+    const initAuth = async () => {
+      setIsAuthenticating(true);
+      try {
+        const token = await authenticateWithGoogle();
+        setAccessToken(token);
+        setIsAuthenticated(true);
+        
+        // Obtener email del usuario autenticado
+        const email = await getUserEmailFromToken(token);
+        setUserEmail(email);
+        setIsEmailVerified(true);
+        loadPendingOrders(email);
+        
+        console.log('✅ Autenticación exitosa para Gestión Diaria:', email);
+      } catch (error) {
+        console.error('❌ Error en autenticación automática:', error);
+        setAuthErrorMessage(error.message);
+        setShowAuthErrorModal(true);
+      } finally {
+        setIsAuthenticating(false);
+      }
+    };
+
+    initAuth();
+  }, []);
+
+  // Función para reintentar autenticación
+  const handleRetryAuth = async () => {
+    setShowAuthErrorModal(false);
+    setAuthErrorMessage('');
+    setIsAuthenticating(true);
+    
+    try {
+      const token = await authenticateWithGoogle();
+      setAccessToken(token);
+      setIsAuthenticated(true);
+      
+      const email = await getUserEmailFromToken(token);
       setUserEmail(email);
       setIsEmailVerified(true);
       loadPendingOrders(email);
+      
+      console.log('✅ Reintento de autenticación exitoso para Gestión Diaria:', email);
+    } catch (error) {
+      console.error('❌ Error en reintento de autenticación:', error);
+      setAuthErrorMessage(error.message);
+      setShowAuthErrorModal(true);
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
@@ -3448,8 +3582,52 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
     };
   }, [isEmailVerified, userEmail, cleanupExpiredOrders]);
 
-  // Renderizar verificación de email
-  if (!isEmailVerified) {
+  // Renderizar pantalla de autenticación
+  if (isAuthenticating) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Autenticando con Google</h2>
+            <p className="text-gray-600">Por favor, completa la autenticación en la ventana emergente...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Renderizar modal de error de autenticación
+  if (showAuthErrorModal) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+          <div className="text-center">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Error de Autenticación</h2>
+            <p className="text-gray-600 mb-6">{authErrorMessage}</p>
+            <div className="space-y-3">
+              <button
+                onClick={handleRetryAuth}
+                className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg hover:bg-orange-700 transition-colors font-medium"
+              >
+                🔄 Reintentar Autenticación
+              </button>
+              <button
+                onClick={onReturnToMenu}
+                className="w-full bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                ← Volver al Menú
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Renderizar verificación de email (solo si no está autenticado)
+  if (!isEmailVerified || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
@@ -3457,15 +3635,15 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
             <h1 className="text-2xl font-bold text-gray-800 mb-2">
               🏢 Gestión Diaria del Vendedor
             </h1>
-            <p className="text-gray-600">Verificación de Email Requerida</p>
+            <p className="text-gray-600">Autenticación con Google requerida</p>
           </div>
           
           <div className="space-y-4">
             <button
-              onClick={verifyUserEmail}
+              onClick={handleRetryAuth}
               className="w-full bg-orange-600 text-white py-3 px-6 rounded-lg hover:bg-orange-700 transition-colors font-medium"
             >
-              🔐 Verificar Email
+              🔐 Autenticar con Google
             </button>
             
             <button
