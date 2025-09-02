@@ -2294,7 +2294,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     tipoCliente: '', // nuevo/antiguo
     asesor: '',
     nombreCliente: '',
-    vendio: '', // NUEVO CAMPO - si o no
+    vendio: false, // NUEVO CAMPO - checkbox (true = Sí, false = No)
     recaudo: '', // NUEVO CAMPO
     efectivo: '',
     transferencia: '',
@@ -2385,7 +2385,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
       tipoCliente: '',
       asesor: '',
       nombreCliente: '',
-      vendio: '', // NUEVO CAMPO - si o no
+      vendio: false, // NUEVO CAMPO - checkbox (true = Sí, false = No)
       recaudo: '', // NUEVO CAMPO
       efectivo: '',
       transferencia: '',
@@ -2541,13 +2541,16 @@ const RecaudoForm = ({ onReturnToMenu }) => {
 
   // Función especial para manejar cambios en campos monetarios - CORREGIDA
   const handleCurrencyChange = (fieldName, value) => {
-    // Remover caracteres no numéricos
+    // Remover caracteres no numéricos (mantener solo dígitos)
     const numericValue = value.replace(/[^0-9]/g, '');
+    
+    // Validar que no exceda un límite razonable (ej: 10 dígitos)
+    const limitedValue = numericValue.slice(0, 10);
     
     // Actualizar el estado con el valor numérico limpio
     const updatedData = {
       ...recaudoData,
-      [fieldName]: numericValue
+      [fieldName]: limitedValue
     };
     
     setRecaudoData(updatedData);
@@ -2562,7 +2565,20 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   // Función para manejar cambios en los inputs
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const newValue = type === 'checkbox' ? checked : value;
+    let newValue = type === 'checkbox' ? checked : value;
+    
+    // Validaciones de tipo de datos
+    if (name === 'nombreCliente') {
+      // Solo permitir letras, espacios y algunos caracteres especiales para nombres
+      newValue = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s\.\-]/g, '');
+      // Limitar longitud a 50 caracteres
+      newValue = newValue.slice(0, 50);
+    } else if (name === 'observaciones') {
+      // Para observaciones, permitir más caracteres pero limitar longitud
+      newValue = value.slice(0, 200);
+      // Remover caracteres que puedan causar problemas en Excel
+      newValue = newValue.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+    }
     
     const updatedData = { ...recaudoData, [name]: newValue };
     setRecaudoData(updatedData);
@@ -2863,25 +2879,25 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 value={recaudoData.nombreCliente}
                 onChange={handleInputChange}
                 className={getFieldClasses('nombreCliente', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
+                maxLength="50"
+                pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\.\-]+"
+                title="Solo se permiten letras, espacios, puntos y guiones"
                 required
               />
             </div>
 
             {/* Vendió */}
-            <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-600 mb-1">
-                Vendió:
-              </label>
-              <select
+            <div className="flex items-center">
+              <input
+                type="checkbox"
                 name="vendio"
-                value={recaudoData.vendio}
-                onChange={handleInputChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Seleccione una opción</option>
-                <option value="si">Sí</option>
-                <option value="no">No</option>
-              </select>
+                checked={recaudoData.vendio}
+                onChange={(e) => setRecaudoData({...recaudoData, vendio: e.target.checked})}
+                className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label className="text-sm font-medium text-gray-600">
+                Vendió
+              </label>
             </div>
 
             {/* NUEVO CAMPO: Recaudo */}
@@ -3014,6 +3030,8 @@ const RecaudoForm = ({ onReturnToMenu }) => {
               value={recaudoData.observaciones}
               onChange={handleInputChange}
               rows={3}
+              maxLength="200"
+              title="Solo se permiten hasta 200 caracteres. No se permiten caracteres especiales que puedan causar problemas en Excel."
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
