@@ -2475,6 +2475,14 @@ const RecaudoForm = ({ onReturnToMenu }) => {
         const recaudo = parseFloat(parseCurrency(formData.recaudo) || '0');
         const totalFormasPago = efectivo + transferencia;
         return Math.abs(totalFormasPago - recaudo) < 0.01;
+      case 'dondeTransfirieron':
+        // Obligatorio solo si hay valor en transferencia
+        const transferenciaValue = parseFloat(parseCurrency(formData.transferencia) || '0');
+        return transferenciaValue === 0 || (value && value.trim() !== '');
+      case 'valorAcuerdo':
+      case 'fechaCompromiso':
+        // Obligatorio solo si generoAcuerdo es true
+        return !formData.generoAcuerdo || (value && value.trim() !== '');
       default:
         return true;
     }
@@ -2483,6 +2491,20 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   // Función para obtener clases CSS - EXPANDIDA para más campos
   const getFieldClasses = (fieldName, baseClasses) => {
     const isValid = fieldValidation[fieldName];
+    
+    // Nombre del cliente tiene fondo azul cuando es válido
+    if (fieldName === 'nombreCliente') {
+      return isValid 
+        ? `${baseClasses} border-blue-500 bg-blue-100` // ✅ AZUL: Nombre válido
+        : `${baseClasses} border-red-500 bg-red-50`;   // ❌ ROJO: Campo con error
+    }
+    
+    // Campos de acuerdo de pago tienen validación visual rojo/verde
+    if (fieldName === 'valorAcuerdo' || fieldName === 'fechaCompromiso') {
+      return isValid 
+        ? `${baseClasses} border-green-500 bg-green-50` // ✅ VERDE: Campo válido
+        : `${baseClasses} border-red-500 bg-red-50`;   // ❌ ROJO: Campo con error
+    }
     
     return isValid 
       ? `${baseClasses} border-green-500 bg-green-50` // ✅ VERDE: Campo válido
@@ -2594,8 +2616,22 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   const validateForm = () => {
     const errors = [];
     
+    // Campos obligatorios básicos
+    if (!recaudoData.tipoCliente) errors.push('Tipo de Cliente');
     if (!recaudoData.asesor) errors.push('Asesor/Vendedor');
     if (!recaudoData.nombreCliente.trim()) errors.push('Nombre del Cliente');
+    
+    // Validación condicional: Donde Transfirieron
+    const transferenciaValue = parseFloat(parseCurrency(recaudoData.transferencia) || '0');
+    if (transferenciaValue > 0 && !recaudoData.dondeTransfirieron.trim()) {
+      errors.push('¿Dónde Transfirieron? (requerido cuando hay transferencia)');
+    }
+    
+    // Validación condicional: Campos de acuerdo de pago
+    if (recaudoData.generoAcuerdo) {
+      if (!recaudoData.valorAcuerdo.trim()) errors.push('Valor del Acuerdo');
+      if (!recaudoData.fechaCompromiso.trim()) errors.push('Fecha de Compromiso');
+    }
     
     return errors;
   };
@@ -2886,19 +2922,7 @@ const RecaudoForm = ({ onReturnToMenu }) => {
               />
             </div>
 
-            {/* Vendió */}
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                name="vendio"
-                checked={recaudoData.vendio}
-                onChange={(e) => setRecaudoData({...recaudoData, vendio: e.target.checked})}
-                className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label className="text-sm font-medium text-gray-600">
-                Vendió
-              </label>
-            </div>
+
 
             {/* NUEVO CAMPO: Recaudo */}
             <div className="flex flex-col">
@@ -3017,6 +3041,20 @@ const RecaudoForm = ({ onReturnToMenu }) => {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Vendió */}
+          <div className="flex items-center mt-6">
+            <input
+              type="checkbox"
+              name="vendio"
+              checked={recaudoData.vendio}
+              onChange={(e) => setRecaudoData({...recaudoData, vendio: e.target.checked})}
+              className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label className="text-sm font-medium text-gray-600">
+              Vendió
+            </label>
           </div>
 
           {/* Observaciones */}
