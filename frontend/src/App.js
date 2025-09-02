@@ -3407,18 +3407,25 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
   // Función para obtener email del usuario autenticado
   const getUserEmailFromToken = async (token) => {
     try {
-      // Hacer una llamada simple a Google API para obtener información del usuario
-      const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      console.log('🔍 Obteniendo información del usuario desde el backend...');
+      
+      const response = await fetch(`${API_BASE_URL}/get-user-info`, {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          access_token: token
+        })
       });
       
-      if (response.ok) {
-        const userInfo = await response.json();
-        return userInfo.email;
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        console.log('✅ Email del usuario obtenido:', data.email);
+        return data.email;
       } else {
-        throw new Error('No se pudo obtener información del usuario');
+        throw new Error(data.error || 'No se pudo obtener información del usuario');
       }
     } catch (error) {
       console.error('❌ Error obteniendo email del usuario:', error);

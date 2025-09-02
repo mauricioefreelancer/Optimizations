@@ -913,6 +913,59 @@ def get_google_sheets_service_oauth(access_token):
         print(f"❌ Error al crear servicio de Google Sheets: {e}")
         return None
 
+@app.route('/get-user-info', methods=['POST'])
+def get_user_info():
+    """Obtiene información del usuario autenticado usando el token de acceso."""
+    try:
+        data = request.get_json()
+        access_token = data.get('access_token')
+        
+        if not access_token:
+            return jsonify({"error": "Token de acceso requerido"}), 400
+        
+        print(f"🔍 Obteniendo información del usuario...")
+        
+        # Crear credenciales con el token
+        credentials = Credentials(
+            token=access_token,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=GOOGLE_CLIENT_ID,
+            client_secret=GOOGLE_CLIENT_SECRET,
+            scopes=SCOPES
+        )
+        
+        # Verificar que las credenciales sean válidas
+        if not credentials.valid:
+            print("⚠️ Credenciales no válidas")
+            return jsonify({"error": "Token de acceso inválido"}), 401
+        
+        # Crear servicio de Drive para obtener información del usuario
+        service = build('drive', 'v3', credentials=credentials)
+        
+        # Obtener información del usuario
+        about = service.about().get(fields='user').execute()
+        user_info = about.get('user', {})
+        user_email = user_info.get('emailAddress')
+        
+        if not user_email:
+            print("❌ No se pudo obtener el email del usuario")
+            return jsonify({"error": "No se pudo obtener información del usuario"}), 500
+        
+        print(f"✅ Información del usuario obtenida: {user_email}")
+        
+        return jsonify({
+            "success": True,
+            "email": user_email,
+            "display_name": user_info.get('displayName', ''),
+            "photo_link": user_info.get('photoLink', '')
+        })
+        
+    except Exception as e:
+        print(f"❌ Error obteniendo información del usuario: {e}")
+        return jsonify({
+            "error": f"Error obteniendo información del usuario: {str(e)}"
+        }), 500
+
 @app.route('/create-recaudo-spreadsheet', methods=['POST'])
 def create_recaudo_spreadsheet():
     """Crea el archivo XLSX base para recaudo en Google Drive."""
