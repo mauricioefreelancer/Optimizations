@@ -2455,9 +2455,11 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   // Nuevo estado para validación en tiempo real - EXPANDIDO
   const [fieldValidation, setFieldValidation] = useState({
     fecha: true,
-    tipoCliente: true,
+    tipoCliente: false,  // ❌ ROJO por defecto hasta que se seleccione
     asesor: false,       // ✅ Validación para asesor
     nombreCliente: false,
+    valorAcuerdo: true,  // Validación para valor del acuerdo
+    fechaCompromiso: true, // Validación para fecha de compromiso
     matematica: true     // Validación matemática
   });
 
@@ -2492,16 +2494,15 @@ const RecaudoForm = ({ onReturnToMenu }) => {
   const getFieldClasses = (fieldName, baseClasses) => {
     const isValid = fieldValidation[fieldName];
     
-    // Campos de acuerdo de pago tienen validación visual rojo/verde
-    if (fieldName === 'valorAcuerdo' || fieldName === 'fechaCompromiso') {
+    // Todos los campos obligatorios tienen validación visual rojo/verde
+    if (fieldName === 'tipoCliente' || fieldName === 'asesor' || fieldName === 'nombreCliente' || 
+        fieldName === 'valorAcuerdo' || fieldName === 'fechaCompromiso') {
       return isValid 
         ? `${baseClasses} border-green-500 bg-green-50` // ✅ VERDE: Campo válido
         : `${baseClasses} border-red-500 bg-red-50`;   // ❌ ROJO: Campo con error
     }
     
-    return isValid 
-      ? `${baseClasses} border-green-500 bg-green-50` // ✅ VERDE: Campo válido
-      : `${baseClasses} border-red-500 bg-red-50`;   // ❌ ROJO: Campo con error
+    return baseClasses; // Campos no obligatorios mantienen estilo normal
   };
 
   // Función para verificar si el botón de guardar debe estar habilitado - MEJORADA
@@ -2598,9 +2599,22 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     const updatedData = { ...recaudoData, [name]: newValue };
     setRecaudoData(updatedData);
     
+    // Validación en tiempo real para el campo que cambió
     const isValid = validateField(name, newValue, updatedData);
     setFieldValidation(prev => ({ ...prev, [name]: isValid }));
     
+    // Si cambió generoAcuerdo, revalidar campos de acuerdo
+    if (name === 'generoAcuerdo') {
+      const valorAcuerdoValid = validateField('valorAcuerdo', updatedData.valorAcuerdo, updatedData);
+      const fechaCompromisoValid = validateField('fechaCompromiso', updatedData.fechaCompromiso, updatedData);
+      setFieldValidation(prev => ({ 
+        ...prev, 
+        valorAcuerdo: valorAcuerdoValid,
+        fechaCompromiso: fechaCompromisoValid
+      }));
+    }
+    
+    // Validación matemática
     const matematicaValid = validateField('matematica', null, updatedData);
     setFieldValidation(prev => ({ ...prev, matematica: matematicaValid }));
   };
@@ -2634,12 +2648,28 @@ const RecaudoForm = ({ onReturnToMenu }) => {
     const validationErrors = validateForm();
     
     if (validationErrors.length > 0) {
-      alert(`Por favor complete los siguientes campos obligatorios:\n\n• ${validationErrors.join('\n• ')}`);
+      // En lugar de alert, actualizar validación visual
+      const newValidation = { ...fieldValidation };
+      
+      // Marcar campos faltantes como inválidos
+      if (!recaudoData.tipoCliente) newValidation.tipoCliente = false;
+      if (!recaudoData.asesor) newValidation.asesor = false;
+      if (!recaudoData.nombreCliente.trim()) newValidation.nombreCliente = false;
+      
+      // Validar campos de acuerdo de pago si es necesario
+      if (recaudoData.generoAcuerdo) {
+        if (!recaudoData.valorAcuerdo.trim()) newValidation.valorAcuerdo = false;
+        if (!recaudoData.fechaCompromiso.trim()) newValidation.fechaCompromiso = false;
+      }
+      
+      setFieldValidation(newValidation);
       return;
     }
 
     if (!isAuthenticated || !accessToken) {
-      alert('Error: No hay autenticación válida. Por favor recargue la página.');
+      // Mostrar error de autenticación en el modal existente
+      setAuthErrorMessage('Error: No hay autenticación válida. Por favor recargue la página.');
+      setShowAuthErrorModal(true);
       return;
     }
 
@@ -2686,10 +2716,10 @@ const RecaudoForm = ({ onReturnToMenu }) => {
           efectivo: recaudoEntry.efectivo,
           transferencia: recaudoEntry.transferencia,
           dondeTransfirieron: recaudoEntry.dondeTransfirieron, // NUEVO CAMPO
-          generoAcuerdo: recaudoEntry.generoAcuerdo, // NUEVO CAMPO
+          generoAcuerdo: recaudoData.generoAcuerdo ? 'Sí' : 'No', // NUEVO CAMPO
           valorAcuerdo: recaudoEntry.valorAcuerdo, // NUEVO CAMPO
           fechaCompromiso: recaudoEntry.fechaCompromiso, // NUEVO CAMPO
-          vendio: recaudoEntry.vendio ? 'Sí' : 'No', // NUEVO CAMPO
+          vendio: recaudoData.vendio ? 'Sí' : 'No', // NUEVO CAMPO
           observaciones: recaudoEntry.observaciones,
           spreadsheetId: SPREADSHEET_ID
         })
@@ -2734,7 +2764,12 @@ const RecaudoForm = ({ onReturnToMenu }) => {
       
     } catch (error) {
       console.error('❌ Error enviando recaudo:', error);
-      alert(`Error al guardar datos: ${error.message}`);
+      setShowModal({
+        show: true,
+        title: 'Error al Guardar',
+        message: `Error al guardar datos: ${error.message}`,
+        type: 'error'
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -2874,13 +2909,13 @@ const RecaudoForm = ({ onReturnToMenu }) => {
             {/* Tipo de Cliente */}
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Tipo de Cliente:
+                Tipo de Cliente: *
               </label>
               <select
                 name="tipoCliente"
                 value={recaudoData.tipoCliente}
                 onChange={handleInputChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className={getFieldClasses('tipoCliente', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
               >
                 <option value="">Seleccione tipo de cliente</option>
                 <option value="nuevo">Nuevo</option>
