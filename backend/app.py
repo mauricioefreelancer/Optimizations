@@ -832,14 +832,14 @@ def append_to_recaudo_sheet():
             data.get('tipoCliente', ''),                             # B - Tipo Cliente
             data.get('vendedor', ''),                                # C - Asesor/Vendedor
             data.get('nombreCliente', ''),                           # D - Nombre Cliente
-            'Sí' if data.get('vendio') else 'No',                   # E - Vendió
+            data.get('vendio', 'No'),                               # E - Vendió
             data.get('recaudo', ''),                                 # F - Recaudo
             data.get('efectivo', ''),                                # G - Efectivo
             data.get('transferencia', ''),                           # H - Transferencia
             data.get('dondeTransfirieron', ''),                      # I - ¿Dónde Transfirieron?
-            'Sí' if data.get('generoAcuerdo') else 'No',            # J - ¿Generó acuerdo de pago?
-            data.get('valorAcuerdo', '') if data.get('generoAcuerdo') else '',  # K - Valor del acuerdo
-            data.get('fechaCompromiso', '') if data.get('generoAcuerdo') else '', # L - Fecha de compromiso
+            data.get('generoAcuerdo', 'No'),                        # J - ¿Generó acuerdo de pago?
+            data.get('valorAcuerdo', '') if data.get('generoAcuerdo') == 'Sí' else '',  # K - Valor del acuerdo
+            data.get('fechaCompromiso', '') if data.get('generoAcuerdo') == 'Sí' else '', # L - Fecha de compromiso
             data.get('observaciones', ''),                           # M - Observaciones
             current_timestamp                                        # N - Timestamp
         ]
