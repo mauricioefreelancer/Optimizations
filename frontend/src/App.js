@@ -4040,7 +4040,8 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
             }
           }
           
-          setCurrentSubView("menu");
+          // NO redirigir automáticamente - dejar que el modal se muestre
+          // setCurrentSubView("menu"); // REMOVIDO para permitir que se muestre el modal
         }}
       />
     );
