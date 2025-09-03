@@ -3266,25 +3266,88 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
               
               {/* Botones de Acción */}
               <div className="flex flex-col gap-3 pt-4">
-                <button
-                  onClick={handleNewRecaudo}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Llenar Otro Recaudo
-                </button>
+                {/* Cuando NO vendió: mostrar "Llenar Otro Recaudo" y "Regresar al Menú" */}
+                {!recaudoResult.recaudoData.vendio && (
+                  <>
+                    <button
+                      onClick={handleNewRecaudo}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      ➕ Llenar Otro Recaudo
+                    </button>
+                    
+                    <button
+                      onClick={handleReturnToMenuFromSuccess}
+                      className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                      </svg>
+                      🏠 Regresar al Menú
+                    </button>
+                  </>
+                )}
                 
-                <button
-                  onClick={handleReturnToMenuFromSuccess}
-                  className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                  Regresar al Menú
-                </button>
+                {/* Cuando SÍ vendió (en modo integrado): mostrar "Tomar Pedido", "Guardar para Después" y "Regresar al Menú" */}
+                {recaudoResult.recaudoData.vendio && isIntegratedMode && (
+                  <>
+                    <button
+                      onClick={() => {
+                        // Navegar al formulario de pedidos con cliente prellenado
+                        if (onSaveForLater) {
+                          onSaveForLater(recaudoResult.recaudoData.nombreCliente, 'direct');
+                        }
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      📝 Tomar Pedido
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        // Guardar en tabla de gestión y navegar a ver tabla
+                        if (onSaveForLater) {
+                          onSaveForLater(recaudoResult.recaudoData.nombreCliente, 'save');
+                        }
+                      }}
+                      className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                      </svg>
+                      💾 Guardar para Después
+                    </button>
+                    
+                    <button
+                      onClick={handleReturnToMenuFromSuccess}
+                      className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                      </svg>
+                      🏠 Regresar al Menú
+                    </button>
+                  </>
+                )}
+                
+                {/* Cuando SÍ vendió pero NO está en modo integrado: solo mostrar "Regresar al Menú" */}
+                {recaudoResult.recaudoData.vendio && !isIntegratedMode && (
+                  <button
+                    onClick={handleReturnToMenuFromSuccess}
+                    className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    🏠 Regresar al Menú
+                  </button>
+                )}
               </div>
             </div>
           </div>
