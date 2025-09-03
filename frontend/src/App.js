@@ -3595,6 +3595,33 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
         }
       }
       
+      // Limpiar archivos expirados de Google Drive (ejecutar en segundo plano)
+      if (accessToken) {
+        try {
+          fetch(`${API_BASE_URL}/cleanup-expired-orders`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              access_token: accessToken
+            })
+          }).then(response => {
+            if (response.ok) {
+              return response.json();
+            }
+          }).then(data => {
+            if (data && data.deleted_count > 0) {
+              console.log(`🗑️ Limpieza automática: ${data.deleted_count} archivos expirados eliminados`);
+            }
+          }).catch(error => {
+            console.log('⚠️ Error en limpieza automática:', error);
+          });
+        } catch (error) {
+          console.log('⚠️ Error iniciando limpieza automática:', error);
+        }
+      }
+      
     } catch (error) {
       console.error('Error cargando pedidos pendientes:', error);
       // Fallback a localStorage solo
