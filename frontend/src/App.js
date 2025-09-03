@@ -823,7 +823,8 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
     barrio: false,
     correo: false,
     vendedor: false,
-    cliente: prefilledClientName ? true : false
+    cliente: prefilledClientName ? true : false,
+    nit: false
   });
 
   // Efecto para actualizar el cliente cuando se proporciona un nombre pre-llenado
@@ -847,6 +848,8 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
         return value && value.trim() !== '';
       case 'cliente':
         return value && value.trim() !== '';
+      case 'nit':
+        return value && value.trim() !== '';
       case 'correo':
         // Solo obligatorio si orden de salida es "facturado"
         if (ordenSalida === 'facturado') {
@@ -860,7 +863,7 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
 
   // Función para obtener clases CSS - ROJO por defecto, VERDE cuando se llena
   const getFieldClasses = (fieldName, baseClasses) => {
-    const requiredFields = ['zone', 'direccion', 'barrio', 'vendedor', 'cliente'];
+    const requiredFields = ['zone', 'direccion', 'barrio', 'vendedor', 'cliente', 'nit'];
     const isRequired = requiredFields.includes(fieldName) || (fieldName === 'correo' && clientInfo.ordenSalida === 'facturado');
     
     if (!isRequired) {
@@ -921,7 +924,8 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
       barrio: false,
       correo: false,
       vendedor: false,
-      cliente: false
+      cliente: false,
+      nit: false
     });
   };
 
@@ -1079,6 +1083,9 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
     }
     if (!clientInfo.barrio || clientInfo.barrio.trim() === "") {
       errors.push("Barrio");
+    }
+    if (!clientInfo.nit || clientInfo.nit.trim() === "") {
+      errors.push("NIT");
     }
     
     // Validación condicional del correo: obligatorio solo si orden de salida es "facturado"
@@ -1711,17 +1718,29 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
             
             {/* Contenido del Modal */}
             <div className="p-6 space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600 font-medium">📄 Archivo:</span>
-                  <span className="text-gray-800 text-sm font-mono">{uploadResult.filename}</span>
+                  <span className="text-gray-600 font-medium">👤 Cliente:</span>
+                  <span className="text-gray-800 font-semibold">{uploadResult.cliente || 'N/A'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-medium">👨‍💼 Asesor:</span>
+                  <span className="text-gray-800 font-semibold">{uploadResult.vendedor || 'N/A'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-medium">📅 Fecha:</span>
+                  <span className="text-gray-800 font-semibold">{uploadResult.fecha || new Date().toISOString().split('T')[0]}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-medium">📋 Pedido:</span>
+                  <span className="text-gray-800 font-semibold">{uploadResult.filename || 'Pedido generado'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 font-medium">📍 Zona:</span>
-                  <span className="text-gray-800 font-semibold">{uploadResult.zone}</span>
+                  <span className="text-gray-800 font-semibold">{uploadResult.zone || 'N/A'}</span>
                 </div>
                 {uploadResult.webViewLink && (
-                  <div className="pt-2">
+                  <div className="pt-2 border-t border-gray-200">
                     <a 
                       href={uploadResult.webViewLink} 
                       target="_blank" 
@@ -1730,7 +1749,7 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
                     >
                       🔗 Ver archivo en Google Drive
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>
                     </a>
                   </div>
@@ -1752,7 +1771,25 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
-                    📋 Ver pedidos de las últimas 12 horas
+                    📋 Tomar Pedido
+                  </button>
+                )}
+                
+                {/* Botón para guardar para después - solo en modo integrado cuando NO venimos de 'Tomar Pedido' */}
+                {isIntegratedMode && onViewOrders && !currentOrderId && (
+                  <button
+                    onClick={() => {
+                      setShowSuccessModalPedido(false);
+                      setUploadResult(null);
+                      // Aquí podrías agregar lógica para guardar para después si es necesario
+                      onReturnToMenu();
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    💾 Guardar para Después
                   </button>
                 )}
                 
@@ -1924,7 +1961,7 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                NIT:
+                NIT: *
               </label>
               <input
                 type="text"
@@ -1932,7 +1969,7 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
                 placeholder="NIT"
                 value={clientInfo.nit}
                 onChange={handleClientInfoChange}
-                className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className={getFieldClasses('nit', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
               />
             </div>
             <div className="flex flex-col">
