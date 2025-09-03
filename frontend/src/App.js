@@ -3146,6 +3146,25 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
 
 
 
+          {/* NUEVO CAMPO: ¿Vendió? */}
+          <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="flex items-center mb-2">
+              <input
+                type="checkbox"
+                name="vendio"
+                checked={recaudoData.vendio}
+                onChange={handleInputChange}
+                className="mr-3 h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label className="text-lg font-semibold text-blue-800">
+                ¿Vendió productos durante la visita?
+              </label>
+            </div>
+            <p className="text-sm text-blue-600 ml-8">
+              Marque esta casilla si realizó ventas durante la visita al cliente
+            </p>
+          </div>
+
           {/* Observaciones */}
           <div className="mt-6">
             <label className="text-sm font-medium text-gray-600 mb-1 block">
