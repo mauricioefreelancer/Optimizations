@@ -1722,20 +1722,8 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
             <div className="p-6 space-y-4">
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600 font-medium">👤 Cliente:</span>
-                  <span className="text-gray-800 font-semibold">{uploadResult.cliente || 'N/A'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 font-medium">👨‍💼 Asesor:</span>
-                  <span className="text-gray-800 font-semibold">{uploadResult.vendedor || 'N/A'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 font-medium">📅 Fecha:</span>
-                  <span className="text-gray-800 font-semibold">{uploadResult.fecha || new Date().toISOString().split('T')[0]}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 font-medium">📋 Pedido:</span>
-                  <span className="text-gray-800 font-semibold">{uploadResult.filename || 'Pedido generado'}</span>
+                  <span className="text-gray-600 font-medium">🆔 No. Documento:</span>
+                  <span className="text-gray-800 font-semibold">{uploadResult.filename || 'Documento generado'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 font-medium">📍 Zona:</span>
