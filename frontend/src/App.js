@@ -1739,8 +1739,8 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
               
               {/* Botones de Acción */}
               <div className="flex flex-col gap-3 pt-4">
-                {/* Mostrar botón especial solo en modo integrado */}
-                {isIntegratedMode && onViewOrders && (
+                {/* Mostrar botón especial solo en modo integrado Y cuando NO venimos de 'Tomar Pedido' */}
+                {isIntegratedMode && onViewOrders && !currentOrderId && (
                   <button
                     onClick={() => {
                       setShowSuccessModalPedido(false);
