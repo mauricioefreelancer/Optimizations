@@ -3523,7 +3523,7 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
             },
             body: JSON.stringify({
               access_token: accessToken,
-              email: email
+              user_email: email
             })
           });
           
@@ -3586,7 +3586,7 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
             },
             body: JSON.stringify({
               access_token: accessToken,
-              email: email,
+              user_email: email,
               orders: validOrders
             })
           });
@@ -3673,7 +3673,7 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
             },
             body: JSON.stringify({
               access_token: accessToken,
-              email: userEmail,
+              user_email: userEmail,
               orders: updatedOrders
             })
           });

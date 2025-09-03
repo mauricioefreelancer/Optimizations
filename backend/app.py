@@ -16,7 +16,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from google.auth.transport.requests import Request
 import tempfile
-from datetime import datetime
+from datetime import datetime, timedelta
 import signal
 from functools import wraps
 
@@ -1038,7 +1038,7 @@ def sync_pending_orders():
         data = request.get_json()
         access_token = data.get('access_token')
         user_email = data.get('user_email')
-        local_orders = data.get('local_orders', [])
+        local_orders = data.get('orders', [])
         
         if not access_token or not user_email:
             return jsonify({"error": "Token de acceso y email requeridos"}), 400
@@ -1114,7 +1114,7 @@ def sync_pending_orders():
             'timestamp': current_time.isoformat(),
             'user_email': user_email,
             'orders': valid_orders,
-            'expires_at': (current_time.replace(hour=current_time.hour + 15)).isoformat()
+            'expires_at': (current_time + timedelta(hours=15)).isoformat()
         }
         
         # Subir archivo actualizado
