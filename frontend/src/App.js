@@ -779,7 +779,7 @@ const ExcelAnalyser = ({ onReturnToMenu }) => {
 };
 
 // Componente para la funcionalidad de Llenado de Toma de Pedido
-const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete, isIntegratedMode = false, onViewOrders = null }) => {
+const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete, isIntegratedMode = false, onViewOrders = null, currentOrderId = null }) => {
   const SELLERS = [
     "Nohora Triana",
     "Alejandra Niño",
@@ -1518,8 +1518,8 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
         setShowSuccessModalPedido(true);
         
         // Notificar al componente padre si hay un callback
-        if (onOrderComplete && clientInfo.cliente) {
-          onOrderComplete(clientInfo.cliente);
+        if (onOrderComplete && currentOrderId) {
+          onOrderComplete(currentOrderId);
         }
       } else {
         const error = await response.json();
@@ -3803,18 +3803,34 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
                                 📁 Ver en Drive
                               </a>
                             ) : (
-                              <button
-                                onClick={() => {
-                                  navigateToPedidoWithClient(order.clientName);
-                                }}
-                                className={isExpired ? 
-                                  "bg-gray-400 text-white px-3 py-1 rounded text-sm cursor-not-allowed" : 
-                                  "bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-                                }
-                                disabled={isExpired}
-                              >
-                                📝 Llenar Pedido
-                              </button>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    setCurrentOrderId(order.id);
+                                    navigateToPedidoWithClient(order.clientName);
+                                  }}
+                                  className={isExpired ? 
+                                    "bg-gray-400 text-white px-3 py-1 rounded text-sm cursor-not-allowed" : 
+                                    "bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                                  }
+                                  disabled={isExpired}
+                                >
+                                  📝 Llenar Pedido
+                                </button>
+                                {order.uploaded && (
+                                  <button
+                                    onClick={() => {
+                                      const updatedOrders = pendingOrders.filter(o => o.id !== order.id);
+                                      setPendingOrders(updatedOrders);
+                                      const storageKey = `pendingOrders_${userEmail}`;
+                                      localStorage.setItem(storageKey, JSON.stringify(updatedOrders));
+                                    }}
+                                    className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                                  >
+                                    🗑️ Eliminar
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </td>
                           <td className="border border-gray-300 px-4 py-2 text-center text-sm">
@@ -3847,6 +3863,9 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
     );
   }
 
+  // Estado para el ID del pedido actual
+  const [currentOrderId, setCurrentOrderId] = useState(null);
+
   // Renderizar PedidoForm integrado con cliente pre-llenado
   if (currentSubView === "pedido") {
     return (
@@ -3855,10 +3874,11 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
         prefilledClientName={prefilledClientName}
         isIntegratedMode={true}
         onViewOrders={() => setCurrentSubView("orders")}
-        onOrderComplete={(clientName) => {
-          // Actualizar la lista de pedidos pendientes cuando se complete un pedido
+        currentOrderId={currentOrderId}
+        onOrderComplete={(orderId) => {
+          // Actualizar la lista de pedidos pendientes cuando se complete un pedido usando ID único
           const updatedOrders = pendingOrders.map(order => 
-            order.clientName === clientName 
+            order.id === orderId 
               ? { ...order, uploaded: true, driveLink: "#" }
               : order
           );
