@@ -3295,9 +3295,9 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
                   <>
                     <button
                       onClick={() => {
-                        // Navegar al formulario de pedidos con cliente prellenado
+                        // Registrar pedido en tabla de gestión Y navegar al formulario
                         if (onSaveForLater) {
-                          onSaveForLater(recaudoResult.recaudoData.nombreCliente, 'direct');
+                          onSaveForLater(recaudoResult.recaudoData.nombreCliente, 'take_order');
                         }
                       }}
                         className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
@@ -3575,6 +3575,44 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
   const handleSaveForLater = async (clientName, action) => {
     if (action === 'direct') {
       // Navegar directamente al PedidoForm con cliente pre-llenado
+      setPrefilledClientName(clientName);
+      setCurrentSubView("pedido");
+    } else if (action === 'take_order') {
+      // Registrar pedido en tabla de gestión Y navegar al formulario
+      const newOrder = {
+        id: Date.now().toString(),
+        clientName,
+        timestamp: new Date().toISOString(),
+        uploaded: false,
+        driveLink: null
+      };
+      
+      const updatedOrders = [...pendingOrders, newOrder];
+      setPendingOrders(updatedOrders);
+      setCurrentOrderId(newOrder.id); // Establecer el ID del pedido actual
+      
+      // Guardar en Google Drive
+      const accessToken = localStorage.getItem('google_access_token');
+      if (accessToken) {
+        try {
+          await fetch(`${API_BASE_URL}/sync-pending-orders`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              access_token: accessToken,
+              user_email: userEmail,
+              orders: updatedOrders
+            })
+          });
+          console.log('✅ Pedido registrado en Google Drive');
+        } catch (error) {
+          console.log('⚠️ Error guardando en Google Drive:', error);
+        }
+      }
+      
+      // Navegar al formulario de pedidos con cliente pre-llenado
       setPrefilledClientName(clientName);
       setCurrentSubView("pedido");
     } else if (action === 'save') {
