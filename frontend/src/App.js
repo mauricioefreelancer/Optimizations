@@ -3507,136 +3507,66 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
     };
   }, []);
 
-  // Función para cargar pedidos pendientes con sincronización Google Drive
+  // Función para cargar pedidos pendientes SOLO desde Google Drive
   const loadPendingOrders = async (email) => {
     try {
-      // Primero intentar cargar desde Google Drive
       const accessToken = localStorage.getItem('google_access_token');
-      let driveOrders = [];
       
-      if (accessToken) {
-        try {
-          const response = await fetch(`${API_BASE_URL}/get-pending-orders`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              access_token: accessToken,
-              user_email: email
-            })
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            driveOrders = data.orders || [];
-          }
-        } catch (error) {
-          console.log('No se pudo cargar desde Google Drive, usando localStorage:', error);
-        }
+      if (!accessToken) {
+        console.log('No hay token de acceso, no se pueden cargar pedidos');
+        setPendingOrders([]);
+        return;
       }
-      
-      // Cargar desde localStorage
-      const storageKey = `pendingOrders_${email}`;
-      const stored = localStorage.getItem(storageKey);
-      let localOrders = [];
-      
-      if (stored) {
-        const orders = JSON.parse(stored);
-        // Filtrar pedidos que no hayan expirado (12 horas)
-        const now = Date.now();
-        localOrders = orders.filter(order => {
-          const orderTime = new Date(order.timestamp).getTime();
-          return (now - orderTime) < 12 * 60 * 60 * 1000; // 12 horas en milisegundos
-        });
-      }
-      
-      // Combinar pedidos de Drive y localStorage, eliminando duplicados
-      const combinedOrders = [...driveOrders];
-      localOrders.forEach(localOrder => {
-        const exists = combinedOrders.find(driveOrder => 
-          driveOrder.id === localOrder.id || 
-          (driveOrder.clientName === localOrder.clientName && 
-           Math.abs(new Date(driveOrder.timestamp).getTime() - new Date(localOrder.timestamp).getTime()) < 60000)
-        );
-        if (!exists) {
-          combinedOrders.push(localOrder);
-        }
+
+      const response = await fetch(`${API_BASE_URL}/get-pending-orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          access_token: accessToken,
+          user_email: email
+        })
       });
       
-      // Filtrar pedidos válidos (12 horas)
-      const now = Date.now();
-      const validOrders = combinedOrders.filter(order => {
-        const orderTime = new Date(order.timestamp).getTime();
-        return (now - orderTime) < 12 * 60 * 60 * 1000;
-      });
-      
-      setPendingOrders(validOrders);
-      
-      // Actualizar localStorage con pedidos válidos
-      localStorage.setItem(storageKey, JSON.stringify(validOrders));
-      
-      // Sincronizar con Google Drive si hay token
-      if (accessToken && validOrders.length > 0) {
-        try {
-          await fetch(`${API_BASE_URL}/sync-pending-orders`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              access_token: accessToken,
-              user_email: email,
-              orders: validOrders
-            })
-          });
-        } catch (error) {
-          console.log('Error sincronizando con Google Drive:', error);
-        }
+      if (response.ok) {
+        const data = await response.json();
+        const driveOrders = data.orders || [];
+        setPendingOrders(driveOrders);
+        console.log(`📥 Cargados ${driveOrders.length} pedidos desde Google Drive`);
+      } else {
+        console.log('Error al cargar desde Google Drive');
+        setPendingOrders([]);
       }
       
       // Limpiar archivos expirados de Google Drive (ejecutar en segundo plano)
-      if (accessToken) {
-        try {
-          fetch(`${API_BASE_URL}/cleanup-expired-orders`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              access_token: accessToken
-            })
-          }).then(response => {
-            if (response.ok) {
-              return response.json();
-            }
-          }).then(data => {
-            if (data && data.deleted_count > 0) {
-              console.log(`🗑️ Limpieza automática: ${data.deleted_count} archivos expirados eliminados`);
-            }
-          }).catch(error => {
-            console.log('⚠️ Error en limpieza automática:', error);
-          });
-        } catch (error) {
-          console.log('⚠️ Error iniciando limpieza automática:', error);
-        }
+      try {
+        fetch(`${API_BASE_URL}/cleanup-expired-orders`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            access_token: accessToken
+          })
+        }).then(response => {
+          if (response.ok) {
+            return response.json();
+          }
+        }).then(data => {
+          if (data && data.deleted_count > 0) {
+            console.log(`🗑️ Limpieza automática: ${data.deleted_count} archivos expirados eliminados`);
+          }
+        }).catch(error => {
+          console.log('⚠️ Error en limpieza automática:', error);
+        });
+      } catch (error) {
+        console.log('⚠️ Error iniciando limpieza automática:', error);
       }
       
     } catch (error) {
       console.error('Error cargando pedidos pendientes:', error);
-      // Fallback a localStorage solo
-      const storageKey = `pendingOrders_${email}`;
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const orders = JSON.parse(stored);
-        const now = Date.now();
-        const validOrders = orders.filter(order => {
-          const orderTime = new Date(order.timestamp).getTime();
-          return (now - orderTime) < 12 * 60 * 60 * 1000;
-        });
-        setPendingOrders(validOrders);
-        localStorage.setItem(storageKey, JSON.stringify(validOrders));
-      }
+      setPendingOrders([]);
     }
   };
 
@@ -3659,10 +3589,7 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
       const updatedOrders = [...pendingOrders, newOrder];
       setPendingOrders(updatedOrders);
       
-      const storageKey = `pendingOrders_${userEmail}`;
-      localStorage.setItem(storageKey, JSON.stringify(updatedOrders));
-      
-      // Sincronizar con Google Drive si hay token
+      // Guardar SOLO en Google Drive
       const accessToken = localStorage.getItem('google_access_token');
       if (accessToken) {
         try {
@@ -3677,10 +3604,16 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
               orders: updatedOrders
             })
           });
-          console.log('✅ Pedido sincronizado con Google Drive');
+          console.log('✅ Pedido guardado en Google Drive');
         } catch (error) {
-          console.log('⚠️ Error sincronizando con Google Drive:', error);
+          console.log('⚠️ Error guardando en Google Drive:', error);
+          // Si falla, remover el pedido del estado
+          setPendingOrders(pendingOrders);
         }
+      } else {
+        console.log('⚠️ No hay token de acceso, no se puede guardar');
+        // Si no hay token, remover el pedido del estado
+        setPendingOrders(pendingOrders);
       }
       
       // Navegar a la vista de gestión de pedidos
@@ -3705,43 +3638,22 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
     return `${hours}h ${minutes}m`;
   };
 
-  // Función para limpiar automáticamente los pedidos expirados
-  const cleanupExpiredOrders = React.useCallback(() => {
-    if (!userEmail) return;
-    
-    const storageKey = `pendingOrders_${userEmail}`;
-    const stored = localStorage.getItem(storageKey);
-    if (stored) {
-      const orders = JSON.parse(stored);
-      const now = Date.now();
-      const validOrders = orders.filter(order => {
-        const orderTime = new Date(order.timestamp).getTime();
-        return (now - orderTime) < 12 * 60 * 60 * 1000; // 12 horas en milisegundos
-      });
-      
-      // Solo actualizar si hay cambios
-      if (validOrders.length !== orders.length) {
-        setPendingOrders(validOrders);
-        localStorage.setItem(storageKey, JSON.stringify(validOrders));
-        console.log(`🧹 Limpieza automática: ${orders.length - validOrders.length} pedidos expirados eliminados`);
-      }
-    }
-  }, [userEmail]);
-
-  // Sistema de limpieza automática cada 5 minutos
+  // Sistema de recarga automática cada 5 minutos para mantener datos actualizados
   React.useEffect(() => {
     if (!isEmailVerified || !userEmail) return;
     
-    // Ejecutar limpieza inicial
-    cleanupExpiredOrders();
+    // Cargar pedidos inicial
+    loadPendingOrders(userEmail);
     
-    // Configurar limpieza automática cada 5 minutos
-    const cleanupInterval = setInterval(cleanupExpiredOrders, 5 * 60 * 1000);
+    // Configurar recarga automática cada 5 minutos
+    const reloadInterval = setInterval(() => {
+      loadPendingOrders(userEmail);
+    }, 5 * 60 * 1000);
     
     return () => {
-      clearInterval(cleanupInterval);
+      clearInterval(reloadInterval);
     };
-  }, [isEmailVerified, userEmail, cleanupExpiredOrders]);
+  }, [isEmailVerified, userEmail]);
 
   // Renderizar pantalla de autenticación
   if (isAuthenticating) {
@@ -3940,11 +3852,30 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
                               )}
                               {order.uploaded && (
                                 <button
-                                  onClick={() => {
+                                  onClick={async () => {
                                     const updatedOrders = pendingOrders.filter(o => o.id !== order.id);
                                     setPendingOrders(updatedOrders);
-                                    const storageKey = `pendingOrders_${userEmail}`;
-                                    localStorage.setItem(storageKey, JSON.stringify(updatedOrders));
+                                    
+                                    // Actualizar en Google Drive
+                                    const accessToken = localStorage.getItem('google_access_token');
+                                    if (accessToken) {
+                                      try {
+                                        await fetch(`${API_BASE_URL}/sync-pending-orders`, {
+                                          method: 'POST',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                          },
+                                          body: JSON.stringify({
+                                            access_token: accessToken,
+                                            user_email: userEmail,
+                                            orders: updatedOrders
+                                          })
+                                        });
+                                        console.log('✅ Pedido eliminado de Google Drive');
+                                      } catch (error) {
+                                        console.log('⚠️ Error eliminando de Google Drive:', error);
+                                      }
+                                    }
                                   }}
                                   className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
                                 >
@@ -3995,7 +3926,7 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
         isIntegratedMode={true}
         onViewOrders={() => setCurrentSubView("orders")}
         currentOrderId={currentOrderId}
-        onOrderComplete={(orderId) => {
+        onOrderComplete={async (orderId) => {
           // Actualizar la lista de pedidos pendientes cuando se complete un pedido usando ID único
           const updatedOrders = pendingOrders.map(order => 
             order.id === orderId 
@@ -4003,8 +3934,28 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
               : order
           );
           setPendingOrders(updatedOrders);
-          const storageKey = `pendingOrders_${userEmail}`;
-          localStorage.setItem(storageKey, JSON.stringify(updatedOrders));
+          
+          // Actualizar en Google Drive
+          const accessToken = localStorage.getItem('google_access_token');
+          if (accessToken) {
+            try {
+              await fetch(`${API_BASE_URL}/sync-pending-orders`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  access_token: accessToken,
+                  user_email: userEmail,
+                  orders: updatedOrders
+                })
+              });
+              console.log('✅ Estado del pedido actualizado en Google Drive');
+            } catch (error) {
+              console.log('⚠️ Error actualizando en Google Drive:', error);
+            }
+          }
+          
           setCurrentSubView("menu");
         }}
       />
