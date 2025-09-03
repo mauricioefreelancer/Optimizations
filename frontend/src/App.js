@@ -1727,63 +1727,27 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
               
               {/* Botones de Acción */}
               <div className="flex flex-col gap-3 pt-4">
-                {/* Mostrar botones especiales solo en modo integrado y si hubo venta */}
-                {isIntegratedMode && recaudoResult.recaudoData.vendio && (
-                  <>
-                    <button
-                      onClick={() => {
-                        // Navegar directamente al formulario de pedidos con el nombre pre-llenado
-                        onSaveForLater(recaudoResult.recaudoData.nombreCliente);
-                        // Cambiar a vista de pedido con nombre pre-llenado
-                        if (window.gestionDiariaRef) {
-                          window.gestionDiariaRef.navigateToPedidoWithClient(recaudoResult.recaudoData.nombreCliente);
-                        }
-                      }}
-                      className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      📝 Tomar Pedido
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        if (onSaveForLater && userEmail) {
-                          onSaveForLater({
-                            clientName: recaudoResult.recaudoData.nombreCliente,
-                            seller: recaudoResult.recaudoData.asesor,
-                            timestamp: new Date().toISOString(),
-                            userEmail: userEmail
-                          });
-                          setShowSuccessModalRecaudo(false);
-                          setRecaudoResult(null);
-                          onReturnToMenu();
-                        }
-                      }}
-                      className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0V6a2 2 0 012-2h4a2 2 0 012 2v1m-6 0h6m-6 0l-.5 5.5A3 3 0 003.5 18H20.5a3 3 0 002.5-2.5L22.5 10" />
-                      </svg>
-                      💾 Guardar para Después
-                    </button>
-                  </>
+                {/* Mostrar botón especial solo en modo integrado */}
+                {isIntegratedMode && onViewOrders && (
+                  <button
+                    onClick={() => {
+                      setShowSuccessModalPedido(false);
+                      setUploadResult(null);
+                      onViewOrders();
+                    }}
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    📋 Ver pedidos de las últimas 12 horas
+                  </button>
                 )}
-                <button
-                  onClick={handleNewRecaudo}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  + Llenar Otro Recaudo
-                </button>
                 
                 <button
                   onClick={() => {
-                    setShowSuccessModalRecaudo(false);
-                    setRecaudoResult(null);
+                    setShowSuccessModalPedido(false);
+                    setUploadResult(null);
                     onReturnToMenu();
                   }}
                   className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
