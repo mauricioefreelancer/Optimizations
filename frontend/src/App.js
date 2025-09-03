@@ -1284,13 +1284,13 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
         
         <div class="info-line">
           <div class="left">
-            <span>Fecha: ${clientInfo.fecha}</span>
+            <span>Fecha: {clientInfo.fecha}</span>
           </div>
           <div class="center">
-            <span>Zona: ${clientInfo.zone}</span>
+            <span>Zona: {clientInfo.zone}</span>
           </div>
           <div class="right">
-            <span><strong>No: ${serial.replace('Pedido__', '').replace(clientInfo.fecha + '_', '')}</strong></span>
+            <span><strong>No: {serial.replace('Pedido__', '').replace(clientInfo.fecha + '_', '')}</strong></span>
           </div>
         </div>
         
@@ -1298,38 +1298,38 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
           <div class="info-column">
             <div class="info-row">
               <div class="info-label">Cliente:</div>
-              <div class="info-value">${clientInfo.cliente}</div>
+              <div class="info-value">{clientInfo.cliente}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Dirección:</div>
-              <div class="info-value">${clientInfo.direccion} - ${clientInfo.ciudad} - ${clientInfo.barrio}</div>
+              <div class="info-value">{clientInfo.direccion} - {clientInfo.ciudad} - {clientInfo.barrio}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Orden de salida:</div>
-              <div class="info-value">${clientInfo.ordenSalida === "facturado" ? "FACTURADO" : "SALIDA DE BODEGA"}</div>
+              <div class="info-value">{clientInfo.ordenSalida === "facturado" ? "FACTURADO" : "SALIDA DE BODEGA"}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Forma de pago:</div>
-              <div class="info-value">${clientInfo.contado === "X" ? "CONTADO" : "CRÉDITO"}</div>
+              <div class="info-value">{clientInfo.contado === "X" ? "CONTADO" : "CRÉDITO"}</div>
             </div>
           </div>
           
           <div class="info-column">
             <div class="info-row">
               <div class="info-label">Nit:</div>
-              <div class="info-value">${clientInfo.nit || ''}</div>
+              <div class="info-value">{clientInfo.nit || ''}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Vendedor:</div>
-              <div class="info-value">${clientInfo.vendedor}</div>
+              <div class="info-value">{clientInfo.vendedor}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Cel:</div>
-              <div class="info-value">${clientInfo.cel || ''}</div>
+              <div class="info-value">{clientInfo.cel || ''}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Correo:</div>
-              <div class="info-value">${clientInfo.correo && clientInfo.correo.trim() !== '' ? clientInfo.correo : ''}</div>
+              <div class="info-value">{clientInfo.correo && clientInfo.correo.trim() !== '' ? clientInfo.correo : ''}</div>
             </div>
           </div>
         </div>
@@ -1525,9 +1525,11 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
       if (response.ok) {
         const result = await response.json();
         console.log('✅ Subida exitosa:', result);
+        console.log('🔍 Configurando modal de éxito...');
         // REEMPLAZAR ALERT CON MODAL
         setUploadResult(result);
         setShowSuccessModalPedido(true);
+        console.log('🔍 Estados configurados - showSuccessModalPedido: true, uploadResult:', result);
         
         // Notificar al componente padre si hay un callback
         if (onOrderComplete) {
@@ -1657,7 +1659,7 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
                     <div className="mb-2 sm:mb-3">
                       <h3 className="font-semibold text-gray-800 text-sm">{product.cod}</h3>
                       <p className="text-gray-600 text-xs mb-1">{product.description}</p>
-                      <p className="text-purple-600 font-medium text-sm">${product.unitPrice.toLocaleString()}</p>
+                      <p className="text-purple-600 font-medium text-sm">{product.unitPrice.toLocaleString()}</p>
                     </div>
                     <div className="flex flex-col">
                       <label className="text-xs font-medium text-gray-600 mb-1">
@@ -2242,7 +2244,7 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
                         </div>
                         {/* Mostrar información adicional en móvil */}
                         <div className="sm:hidden text-xs text-gray-500 mt-1">
-                          Bonif: {item.bonus} | V.Unit: ${item.unitPrice?.toLocaleString("es-CO")}
+                          Bonif: {item.bonus} | V.Unit: {item.unitPrice?.toLocaleString("es-CO")}
                         </div>
                       </td>
                       <td className="py-1 px-1 sm:py-2 sm:px-2 border-b text-center text-xs sm:text-sm">
@@ -2252,10 +2254,10 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
                         {item.bonus}
                       </td>
                       <td className="py-1 px-1 sm:py-2 sm:px-2 border-b text-right text-xs sm:text-sm hidden sm:table-cell">
-                        ${item.unitPrice?.toLocaleString("es-CO")}
+                        {item.unitPrice?.toLocaleString("es-CO")}
                       </td>
                       <td className="py-1 px-1 sm:py-2 sm:px-2 border-b text-right text-xs sm:text-sm font-semibold">
-                        ${item.subtotal?.toLocaleString("es-CO")}
+                        {item.subtotal?.toLocaleString("es-CO")}
                       </td>
                       <td className="py-1 px-1 sm:py-2 sm:px-2 border-b text-center">
                         <button
@@ -2294,16 +2296,16 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm sm:text-base">
                   <div className="space-y-1">
-                    <p>Subtotal: ${subtotalGlobal.toLocaleString("es-CO")}</p>
+                    <p>Subtotal: {subtotalGlobal.toLocaleString("es-CO")}</p>
                     <p>
                       Descuento ({clientInfo.descuento || 0}%): $
                       {descuentoGlobal.toLocaleString("es-CO")}
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p>IVA ({ivaRate === 0.19 ? '19' : '0'}%): ${ivaGlobal.toLocaleString("es-CO")}</p>
+                    <p>IVA ({ivaRate === 0.19 ? '19' : '0'}%): {ivaGlobal.toLocaleString("es-CO")}</p>
                     <p className="font-bold text-lg">
-                      Total: ${totalGlobal.toLocaleString("es-CO")}
+                      Total: {totalGlobal.toLocaleString("es-CO")}
                     </p>
                   </div>
                 </div>
@@ -3277,13 +3279,13 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600 font-medium">💵 Efectivo:</span>
                       <span className="text-gray-800">
-                        ${parseInt(recaudoResult.recaudoData.efectivo || 0).toLocaleString('es-CO')}
+                        {parseInt(recaudoResult.recaudoData.efectivo || 0).toLocaleString('es-CO')}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600 font-medium">🏦 Transferencia:</span>
                       <span className="text-gray-800">
-                        ${parseInt(recaudoResult.recaudoData.transferencia || 0).toLocaleString('es-CO')}
+                        {parseInt(recaudoResult.recaudoData.transferencia || 0).toLocaleString('es-CO')}
                       </span>
                     </div>
                   </div>
