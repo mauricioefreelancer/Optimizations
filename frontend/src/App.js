@@ -2771,9 +2771,12 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
       if (response.ok) {
         const result = await response.json();
         // REEMPLAZAR ALERT CON MODAL
+        // Guardar los datos antes de limpiar el formulario
+        const savedRecaudoData = { ...recaudoData };
+        
         setRecaudoResult({
           ...result,
-          recaudoData: { ...recaudoData }
+          recaudoData: savedRecaudoData
         });
         setShowSuccessModalRecaudo(true);
         
