@@ -3553,7 +3553,34 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
     }
   };
 
-  // Función para agregar un nuevo pedido pendiente
+  // Función para manejar las acciones desde RecaudoForm
+  const handleSaveForLater = (clientName, action) => {
+    if (action === 'direct') {
+      // Navegar directamente al PedidoForm con cliente pre-llenado
+      setPrefilledClientName(clientName);
+      setCurrentSubView("pedido");
+    } else if (action === 'save') {
+      // Agregar a la tabla de gestión y navegar a ver pedidos
+      const newOrder = {
+        id: Date.now().toString(),
+        clientName,
+        timestamp: new Date().toISOString(),
+        uploaded: false,
+        driveLink: null
+      };
+      
+      const updatedOrders = [...pendingOrders, newOrder];
+      setPendingOrders(updatedOrders);
+      
+      const storageKey = `pendingOrders_${userEmail}`;
+      localStorage.setItem(storageKey, JSON.stringify(updatedOrders));
+      
+      // Navegar a la vista de gestión de pedidos
+      setCurrentSubView("orders");
+    }
+  };
+
+  // Función para agregar un nuevo pedido pendiente (mantener para compatibilidad)
   const addPendingOrder = (clientName) => {
     const newOrder = {
       id: Date.now().toString(),
@@ -3793,17 +3820,17 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
                             )}
                           </td>
                           <td className="border border-gray-300 px-4 py-2 text-center">
-                            {order.uploaded && order.driveLink ? (
-                              <a
-                                href={order.driveLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
-                              >
-                                📁 Ver en Drive
-                              </a>
-                            ) : (
-                              <div className="flex gap-2">
+                            <div className="flex gap-2 justify-center">
+                              {order.uploaded && order.driveLink ? (
+                                <a
+                                  href={order.driveLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                                >
+                                  📁 Ver en Drive
+                                </a>
+                              ) : (
                                 <button
                                   onClick={() => {
                                     setCurrentOrderId(order.id);
@@ -3817,21 +3844,21 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
                                 >
                                   📝 Llenar Pedido
                                 </button>
-                                {order.uploaded && (
-                                  <button
-                                    onClick={() => {
-                                      const updatedOrders = pendingOrders.filter(o => o.id !== order.id);
-                                      setPendingOrders(updatedOrders);
-                                      const storageKey = `pendingOrders_${userEmail}`;
-                                      localStorage.setItem(storageKey, JSON.stringify(updatedOrders));
-                                    }}
-                                    className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
-                                  >
-                                    🗑️ Eliminar
-                                  </button>
-                                )}
-                              </div>
-                            )}
+                              )}
+                              {order.uploaded && (
+                                <button
+                                  onClick={() => {
+                                    const updatedOrders = pendingOrders.filter(o => o.id !== order.id);
+                                    setPendingOrders(updatedOrders);
+                                    const storageKey = `pendingOrders_${userEmail}`;
+                                    localStorage.setItem(storageKey, JSON.stringify(updatedOrders));
+                                  }}
+                                  className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                                >
+                                  🗑️ Eliminar
+                                </button>
+                              )}
+                            </div>
                           </td>
                           <td className="border border-gray-300 px-4 py-2 text-center text-sm">
                             <span className={isExpired ? "text-red-600 font-bold" : "text-gray-600"}>
@@ -3857,7 +3884,7 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
       <RecaudoForm 
         onReturnToMenu={() => setCurrentSubView("menu")}
         isIntegratedMode={true}
-        onSaveForLater={addPendingOrder}
+        onSaveForLater={handleSaveForLater}
         userEmail={userEmail}
       />
     );
