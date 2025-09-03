@@ -1031,6 +1031,262 @@ def create_recaudo_spreadsheet():
         print(f"❌ Error al crear archivo de recaudo: {e}")
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
+@app.route('/sync-pending-orders', methods=['POST'])
+def sync_pending_orders():
+    """Sincroniza pedidos pendientes con Google Drive para consistencia entre dispositivos."""
+    try:
+        data = request.get_json()
+        access_token = data.get('access_token')
+        user_email = data.get('user_email')
+        local_orders = data.get('local_orders', [])
+        
+        if not access_token or not user_email:
+            return jsonify({"error": "Token de acceso y email requeridos"}), 400
+        
+        print(f"🔄 Sincronizando pedidos para: {user_email}")
+        
+        # Obtener servicio de Google Drive
+        service = get_google_drive_service_oauth(access_token)
+        if not service:
+            return jsonify({"error": "No se pudo autenticar con Google Drive"}), 401
+        
+        # Nombre del archivo de sincronización
+        sync_filename = f"pending_orders_{user_email.replace('@', '_at_').replace('.', '_')}.json"
+        
+        # Buscar archivo existente
+        query = f"name='{sync_filename}' and trashed=false"
+        results = service.files().list(q=query, fields='files(id, name, modifiedTime)').execute()
+        files = results.get('files', [])
+        
+        current_time = datetime.now()
+        
+        if files:
+            # Archivo existe, descargar y verificar expiración
+            file_id = files[0]['id']
+            print(f"📁 Archivo de sincronización encontrado: {file_id}")
+            
+            # Descargar contenido
+            file_content = service.files().get_media(fileId=file_id).execute()
+            drive_data = json.loads(file_content.decode('utf-8'))
+            
+            # Verificar expiración (15 horas)
+            file_timestamp = datetime.fromisoformat(drive_data.get('timestamp', '1970-01-01T00:00:00'))
+            hours_elapsed = (current_time - file_timestamp).total_seconds() / 3600
+            
+            if hours_elapsed > 15:
+                print(f"⏰ Datos expirados ({hours_elapsed:.1f}h), eliminando archivo")
+                service.files().delete(fileId=file_id).execute()
+                drive_orders = []
+            else:
+                drive_orders = drive_data.get('orders', [])
+                print(f"✅ Datos válidos encontrados: {len(drive_orders)} pedidos")
+        else:
+            drive_orders = []
+            print(f"📄 No se encontró archivo de sincronización")
+        
+        # Combinar pedidos locales y de Drive, eliminando duplicados
+        all_orders = {}
+        
+        # Agregar pedidos de Drive
+        for order in drive_orders:
+            order_id = order.get('id')
+            if order_id:
+                all_orders[order_id] = order
+        
+        # Agregar pedidos locales (sobrescribir si existen)
+        for order in local_orders:
+            order_id = order.get('id')
+            if order_id:
+                all_orders[order_id] = order
+        
+        # Filtrar pedidos expirados (12 horas desde timestamp)
+        valid_orders = []
+        for order in all_orders.values():
+            order_time = datetime.fromisoformat(order.get('timestamp', '1970-01-01T00:00:00'))
+            hours_since_order = (current_time - order_time).total_seconds() / 3600
+            if hours_since_order < 12:
+                valid_orders.append(order)
+        
+        print(f"📊 Pedidos válidos después de filtrado: {len(valid_orders)}")
+        
+        # Crear nuevo contenido para subir
+        sync_data = {
+            'timestamp': current_time.isoformat(),
+            'user_email': user_email,
+            'orders': valid_orders,
+            'expires_at': (current_time.replace(hour=current_time.hour + 15)).isoformat()
+        }
+        
+        # Subir archivo actualizado
+        file_content = json.dumps(sync_data, indent=2).encode('utf-8')
+        file_stream = io.BytesIO(file_content)
+        
+        file_metadata = {
+            'name': sync_filename,
+            'description': f'Sincronización de pedidos pendientes para {user_email}'
+        }
+        
+        media = MediaIoBaseUpload(file_stream, mimetype='application/json')
+        
+        if files:
+            # Actualizar archivo existente
+            updated_file = service.files().update(
+                fileId=files[0]['id'],
+                body=file_metadata,
+                media_body=media
+            ).execute()
+            print(f"🔄 Archivo actualizado: {updated_file['id']}")
+        else:
+            # Crear nuevo archivo
+            new_file = service.files().create(
+                body=file_metadata,
+                media_body=media
+            ).execute()
+            print(f"📁 Nuevo archivo creado: {new_file['id']}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Pedidos sincronizados exitosamente",
+            "orders": valid_orders,
+            "total_orders": len(valid_orders),
+            "sync_timestamp": current_time.isoformat()
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Error en sincronización: {e}")
+        return jsonify({"error": f"Error en sincronización: {str(e)}"}), 500
+
+@app.route('/get-pending-orders', methods=['POST'])
+def get_pending_orders():
+    """Obtiene pedidos pendientes desde Google Drive."""
+    try:
+        data = request.get_json()
+        access_token = data.get('access_token')
+        user_email = data.get('user_email')
+        
+        if not access_token or not user_email:
+            return jsonify({"error": "Token de acceso y email requeridos"}), 400
+        
+        print(f"📥 Obteniendo pedidos para: {user_email}")
+        
+        # Obtener servicio de Google Drive
+        service = get_google_drive_service_oauth(access_token)
+        if not service:
+            return jsonify({"error": "No se pudo autenticar con Google Drive"}), 401
+        
+        # Nombre del archivo de sincronización
+        sync_filename = f"pending_orders_{user_email.replace('@', '_at_').replace('.', '_')}.json"
+        
+        # Buscar archivo
+        query = f"name='{sync_filename}' and trashed=false"
+        results = service.files().list(q=query, fields='files(id, name, modifiedTime)').execute()
+        files = results.get('files', [])
+        
+        if not files:
+            print(f"📄 No se encontró archivo de sincronización")
+            return jsonify({
+                "success": True,
+                "orders": [],
+                "message": "No hay pedidos sincronizados"
+            }), 200
+        
+        # Descargar y verificar contenido
+        file_id = files[0]['id']
+        file_content = service.files().get_media(fileId=file_id).execute()
+        drive_data = json.loads(file_content.decode('utf-8'))
+        
+        # Verificar expiración
+        current_time = datetime.now()
+        file_timestamp = datetime.fromisoformat(drive_data.get('timestamp', '1970-01-01T00:00:00'))
+        hours_elapsed = (current_time - file_timestamp).total_seconds() / 3600
+        
+        if hours_elapsed > 15:
+            print(f"⏰ Datos expirados ({hours_elapsed:.1f}h), eliminando archivo")
+            service.files().delete(fileId=file_id).execute()
+            return jsonify({
+                "success": True,
+                "orders": [],
+                "message": "Datos expirados, archivo eliminado"
+            }), 200
+        
+        # Filtrar pedidos válidos (12 horas)
+        orders = drive_data.get('orders', [])
+        valid_orders = []
+        
+        for order in orders:
+            order_time = datetime.fromisoformat(order.get('timestamp', '1970-01-01T00:00:00'))
+            hours_since_order = (current_time - order_time).total_seconds() / 3600
+            if hours_since_order < 12:
+                valid_orders.append(order)
+        
+        print(f"📊 Pedidos válidos encontrados: {len(valid_orders)}")
+        
+        return jsonify({
+            "success": True,
+            "orders": valid_orders,
+            "total_orders": len(valid_orders),
+            "sync_timestamp": drive_data.get('timestamp')
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Error obteniendo pedidos: {e}")
+        return jsonify({"error": f"Error obteniendo pedidos: {str(e)}"}), 500
+
+@app.route('/cleanup-expired-orders', methods=['POST'])
+def cleanup_expired_orders():
+    """Limpia archivos de sincronización expirados de Google Drive"""
+    try:
+        data = request.get_json()
+        access_token = data.get('access_token')
+        
+        if not access_token:
+            return jsonify({'success': False, 'error': 'Token de acceso requerido'}), 400
+        
+        service = get_google_drive_service_oauth(access_token)
+        current_time = datetime.now()
+        
+        # Buscar todos los archivos de sincronización
+        query = "name contains 'pending_orders_sync_' and mimeType='application/json'"
+        results = service.files().list(
+            q=query,
+            fields="files(id, name, createdTime, description)"
+        ).execute()
+        
+        files = results.get('files', [])
+        deleted_count = 0
+        
+        for file in files:
+            try:
+                # Descargar y verificar si está expirado
+                file_content = service.files().get_media(fileId=file['id']).execute()
+                file_data = json.loads(file_content.decode('utf-8'))
+                
+                expires_at_str = file_data.get('expires_at')
+                if expires_at_str:
+                    expires_at = datetime.fromisoformat(expires_at_str)
+                    if current_time > expires_at:
+                        # Archivo expirado, eliminarlo
+                        service.files().delete(fileId=file['id']).execute()
+                        deleted_count += 1
+                        print(f"🗑️ Archivo expirado eliminado: {file['name']}")
+                
+            except Exception as file_error:
+                print(f"⚠️ Error procesando archivo {file['name']}: {str(file_error)}")
+                continue
+        
+        return jsonify({
+            'success': True,
+            'deleted_count': deleted_count,
+            'message': f'Se eliminaron {deleted_count} archivos expirados'
+        })
+    
+    except Exception as e:
+        print(f"❌ Error limpiando archivos expirados: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(debug=True, host='0.0.0.0', port=port)
