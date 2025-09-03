@@ -3346,6 +3346,7 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [pendingOrders, setPendingOrders] = useState([]);
   const [prefilledClientName, setPrefilledClientName] = useState("");
+  const [currentOrderId, setCurrentOrderId] = useState(null);
   
   // Estados para autenticación Google (igual que RecaudoForm)
   const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -3959,8 +3960,7 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
     );
   }
 
-  // Estado para el ID del pedido actual
-  const [currentOrderId, setCurrentOrderId] = useState(null);
+  // Estado para el ID del pedido actual ya declarado arriba
 
   // Renderizar PedidoForm integrado con cliente pre-llenado
   if (currentSubView === "pedido") {
