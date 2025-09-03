@@ -1748,41 +1748,6 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
               
               {/* Botones de Acción */}
               <div className="flex flex-col gap-3 pt-4">
-                {/* Mostrar botón especial solo en modo integrado Y cuando NO venimos de 'Tomar Pedido' */}
-                {isIntegratedMode && onViewOrders && !currentOrderId && (
-                  <button
-                    onClick={() => {
-                      setShowSuccessModalPedido(false);
-                      setUploadResult(null);
-                      onViewOrders();
-                    }}
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    📋 Tomar Pedido
-                  </button>
-                )}
-                
-                {/* Botón para guardar para después - solo en modo integrado cuando NO venimos de 'Tomar Pedido' */}
-                {isIntegratedMode && onViewOrders && !currentOrderId && (
-                  <button
-                    onClick={() => {
-                      setShowSuccessModalPedido(false);
-                      setUploadResult(null);
-                      // Aquí podrías agregar lógica para guardar para después si es necesario
-                      onReturnToMenu();
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                    </svg>
-                    💾 Guardar para Después
-                  </button>
-                )}
-                
                 <button
                   onClick={() => {
                     setShowSuccessModalPedido(false);
