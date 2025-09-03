@@ -1284,13 +1284,13 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
         
         <div class="info-line">
           <div class="left">
-            <span>Fecha: {clientInfo.fecha}</span>
+            <span>Fecha: ${clientInfo.fecha}</span>
           </div>
           <div class="center">
-            <span>Zona: {clientInfo.zone}</span>
+            <span>Zona: ${clientInfo.zone}</span>
           </div>
           <div class="right">
-            <span><strong>No: {serial.replace('Pedido__', '').replace(clientInfo.fecha + '_', '')}</strong></span>
+            <span><strong>No: ${serial.replace('Pedido__', '').replace(clientInfo.fecha + '_', '')}</strong></span>
           </div>
         </div>
         
@@ -1298,38 +1298,38 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
           <div class="info-column">
             <div class="info-row">
               <div class="info-label">Cliente:</div>
-              <div class="info-value">{clientInfo.cliente}</div>
+              <div class="info-value">${clientInfo.cliente}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Dirección:</div>
-              <div class="info-value">{clientInfo.direccion} - {clientInfo.ciudad} - {clientInfo.barrio}</div>
+              <div class="info-value">${clientInfo.direccion} - ${clientInfo.ciudad} - ${clientInfo.barrio}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Orden de salida:</div>
-              <div class="info-value">{clientInfo.ordenSalida === "facturado" ? "FACTURADO" : "SALIDA DE BODEGA"}</div>
+              <div class="info-value">${clientInfo.ordenSalida === "facturado" ? "FACTURADO" : "SALIDA DE BODEGA"}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Forma de pago:</div>
-              <div class="info-value">{clientInfo.contado === "X" ? "CONTADO" : "CRÉDITO"}</div>
+              <div class="info-value">${clientInfo.contado === "X" ? "CONTADO" : "CRÉDITO"}</div>
             </div>
           </div>
           
           <div class="info-column">
             <div class="info-row">
               <div class="info-label">Nit:</div>
-              <div class="info-value">{clientInfo.nit || ''}</div>
+              <div class="info-value">${clientInfo.nit || ''}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Vendedor:</div>
-              <div class="info-value">{clientInfo.vendedor}</div>
+              <div class="info-value">${clientInfo.vendedor}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Cel:</div>
-              <div class="info-value">{clientInfo.cel || ''}</div>
+              <div class="info-value">${clientInfo.cel || ''}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Correo:</div>
-              <div class="info-value">{clientInfo.correo && clientInfo.correo.trim() !== '' ? clientInfo.correo : ''}</div>
+              <div class="info-value">${clientInfo.correo && clientInfo.correo.trim() !== '' ? clientInfo.correo : ''}</div>
             </div>
           </div>
         </div>
