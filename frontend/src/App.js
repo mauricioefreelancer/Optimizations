@@ -1523,8 +1523,9 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
         setShowSuccessModalPedido(true);
         
         // Notificar al componente padre si hay un callback
-        if (onOrderComplete && currentOrderId) {
-          onOrderComplete(currentOrderId);
+        if (onOrderComplete) {
+          const driveLink = result.webViewLink || result.file_url || result.driveLink || null;
+          onOrderComplete(currentOrderId, driveLink, clientInfo.cliente);
         }
       } else {
         const error = await response.json();
@@ -3926,11 +3927,11 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
         isIntegratedMode={true}
         onViewOrders={() => setCurrentSubView("orders")}
         currentOrderId={currentOrderId}
-        onOrderComplete={async (orderId) => {
+        onOrderComplete={async (orderId, driveLink) => {
           // Actualizar la lista de pedidos pendientes cuando se complete un pedido usando ID único
           const updatedOrders = pendingOrders.map(order => 
             order.id === orderId 
-              ? { ...order, uploaded: true, driveLink: "#" }
+              ? { ...order, uploaded: true, driveLink: driveLink || "#" }
               : order
           );
           setPendingOrders(updatedOrders);
