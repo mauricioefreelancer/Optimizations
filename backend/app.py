@@ -1108,26 +1108,62 @@ def sync_pending_orders():
                 all_orders[order_id] = order
         
         print(f"📋 Total de pedidos después de combinar: {len(all_orders)}")
-        print(f"📋 IDs de pedidos: {list(all_orders.keys())}")
+        print(f"📋 IDs de pedidos combinados: {list(all_orders.keys())}")
+        
+        # Comparar con pedidos locales para detectar eliminaciones
+        local_order_ids = set(order.get('id') for order in local_orders if order.get('id'))
+        drive_order_ids = set(order.get('id') for order in drive_orders if order.get('id'))
+        combined_order_ids = set(all_orders.keys())
+        
+        print(f"🔍 Análisis de eliminación:")
+        print(f"   📥 IDs locales: {local_order_ids}")
+        print(f"   ☁️ IDs en Drive: {drive_order_ids}")
+        print(f"   🔄 IDs combinados: {combined_order_ids}")
+        
+        # Detectar pedidos que fueron eliminados localmente
+        deleted_from_local = drive_order_ids - local_order_ids
+        if deleted_from_local:
+            print(f"🗑️ Pedidos eliminados localmente: {deleted_from_local}")
         
         # Filtrar pedidos expirados (12 horas desde timestamp)
         valid_orders = []
+        expired_by_time = []
+        
         for order in all_orders.values():
+            order_id = order.get('id')
             order_timestamp_str = order.get('timestamp', '1970-01-01T00:00:00+00:00')
             if '+' not in order_timestamp_str and 'Z' not in order_timestamp_str:
                 order_timestamp_str += '+00:00'
-            order_time = datetime.fromisoformat(order_timestamp_str)
-            hours_since_order = (current_time - order_time).total_seconds() / 3600
-            if hours_since_order < 12:
+            
+            try:
+                order_time = datetime.fromisoformat(order_timestamp_str)
+                hours_since_order = (current_time - order_time).total_seconds() / 3600
+                
+                if hours_since_order < 12:
+                    valid_orders.append(order)
+                    print(f"✅ Pedido {order_id} válido ({hours_since_order:.1f}h)")
+                else:
+                    expired_by_time.append(order_id)
+                    print(f"⏰ Pedido {order_id} expirado por tiempo ({hours_since_order:.1f}h)")
+            except Exception as timestamp_error:
+                print(f"⚠️ Error procesando timestamp del pedido {order_id}: {timestamp_error}")
+                # En caso de error, mantener el pedido
                 valid_orders.append(order)
         
-        print(f"📊 Pedidos válidos después de filtrado: {len(valid_orders)}")
-        print(f"📊 IDs de pedidos válidos: {[order.get('id') for order in valid_orders]}")
+        print(f"📊 Resultado final:")
+        print(f"   ✅ Pedidos válidos: {len(valid_orders)} - IDs: {[o.get('id') for o in valid_orders]}")
+        print(f"   🗑️ Eliminados localmente: {deleted_from_local}")
+        print(f"   ⏰ Expirados por tiempo: {expired_by_time}")
         
-        # Log de pedidos eliminados
-        eliminated_orders = set(all_orders.keys()) - set(order.get('id') for order in valid_orders)
-        if eliminated_orders:
-            print(f"🗑️ Pedidos eliminados/expirados: {eliminated_orders}")
+        # Verificar que la eliminación local se refleje correctamente
+        final_order_ids = set(order.get('id') for order in valid_orders if order.get('id'))
+        successfully_deleted = deleted_from_local - final_order_ids
+        if successfully_deleted:
+            print(f"✅ Confirmado: Pedidos eliminados exitosamente: {successfully_deleted}")
+        
+        failed_deletions = deleted_from_local & final_order_ids
+        if failed_deletions:
+            print(f"❌ Error: Estos pedidos debían eliminarse pero aún existen: {failed_deletions}")
         
         # Crear nuevo contenido para subir
         sync_data = {
@@ -1174,13 +1210,27 @@ def sync_pending_orders():
                 print(f"❌ Error creando archivo: {create_error}")
                 raise create_error
         
-        return jsonify({
+        # Preparar respuesta detallada
+        response_data = {
             "success": True,
             "message": "Pedidos sincronizados exitosamente",
             "orders": valid_orders,
             "total_orders": len(valid_orders),
-            "sync_timestamp": current_time.isoformat()
-        }), 200
+            "sync_timestamp": current_time.isoformat(),
+            "operation_details": {
+                "orders_received": len(local_orders),
+                "orders_in_drive": len(drive_orders),
+                "orders_combined": len(all_orders),
+                "orders_valid": len(valid_orders),
+                "deleted_locally": list(deleted_from_local),
+                "expired_by_time": expired_by_time,
+                "successfully_deleted": list(successfully_deleted) if 'successfully_deleted' in locals() else [],
+                "failed_deletions": list(failed_deletions) if 'failed_deletions' in locals() else []
+            }
+        }
+        
+        print(f"📤 Enviando respuesta: {json.dumps(response_data, indent=2)}")
+        return jsonify(response_data), 200
         
     except Exception as e:
         print(f"❌ Error en sincronización: {e}")

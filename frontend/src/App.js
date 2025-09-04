@@ -4042,45 +4042,99 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
                               )}
                               {order.uploaded && (
                                 <button
-                                  onClick={async () => {
-                                    const updatedOrders = pendingOrders.filter(o => o.id !== order.id);
+                                  onClick={async (e) => {
+                                    e.target.disabled = true;
+                                    e.target.textContent = '⏳ Eliminando...';
                                     
-                                    // Actualizar en Google Drive primero
+                                    const orderToDelete = order.id;
+                                    const updatedOrders = pendingOrders.filter(o => o.id !== orderToDelete);
+                                    
+                                    console.log(`🗑️ Iniciando eliminación del pedido ${orderToDelete}`);
+                                    console.log(`📊 Pedidos antes de eliminar: ${pendingOrders.length}`);
+                                    console.log(`📊 Pedidos después de eliminar: ${updatedOrders.length}`);
+                                    
+                                    // Verificar autenticación
                                     const accessToken = localStorage.getItem('google_access_token');
-                                    if (accessToken) {
-                                      try {
-                                        console.log(`🗑️ Eliminando pedido ${order.id} de Google Drive...`);
-                                        const response = await fetch(`${API_BASE_URL}/sync-pending-orders`, {
-                                          method: 'POST',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                          },
-                                          body: JSON.stringify({
-                                            access_token: accessToken,
-                                            user_email: userEmail,
-                                            orders: updatedOrders
-                                          })
-                                        });
-                                        
-                                        if (response.ok) {
-                                          const result = await response.json();
-                                          console.log('✅ Pedido eliminado exitosamente:', result);
-                                          // Solo actualizar el estado local si la sincronización fue exitosa
-                                          setPendingOrders(updatedOrders);
-                                        } else {
+                                    if (!accessToken) {
+                                      alert('❌ No se encontró token de acceso. Por favor, vuelva a autenticarse con Google.');
+                                      e.target.disabled = false;
+                                      e.target.textContent = '🗑️ Eliminar';
+                                      return;
+                                    }
+                                    
+                                    try {
+                                      console.log(`🔄 Enviando solicitud de eliminación a Google Drive...`);
+                                      const response = await fetch(`${API_BASE_URL}/sync-pending-orders`, {
+                                        method: 'POST',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({
+                                          access_token: accessToken,
+                                          user_email: userEmail,
+                                          orders: updatedOrders
+                                        })
+                                      });
+                                      
+                                      console.log(`📡 Respuesta del servidor: ${response.status} ${response.statusText}`);
+                                      
+                                      if (response.ok) {
+                                         const result = await response.json();
+                                         console.log('✅ Respuesta exitosa del servidor:', result);
+                                         
+                                         // Verificar detalles de la operación
+                                         const operationDetails = result.operation_details || {};
+                                         const serverOrders = result.orders || [];
+                                         const deletedOrderExists = serverOrders.some(o => o.id === orderToDelete);
+                                         
+                                         console.log('📊 Detalles de la operación:', operationDetails);
+                                         
+                                         // Verificar si el pedido fue eliminado exitosamente
+                                         const wasSuccessfullyDeleted = operationDetails.successfully_deleted?.includes(orderToDelete);
+                                         const failedDeletion = operationDetails.failed_deletions?.includes(orderToDelete);
+                                         
+                                         if (!deletedOrderExists && (wasSuccessfullyDeleted || !failedDeletion)) {
+                                           console.log(`✅ Confirmado: Pedido ${orderToDelete} eliminado correctamente`);
+                                           console.log(`📊 Pedidos restantes en servidor: ${serverOrders.length}`);
+                                           setPendingOrders(updatedOrders);
+                                           
+                                           // Mensaje detallado de éxito
+                                           const successMessage = `✅ Pedido #${orderToDelete} eliminado exitosamente\n` +
+                                             `📊 Pedidos restantes: ${serverOrders.length}\n` +
+                                             `🔄 Sincronización completada`;
+                                           alert(successMessage);
+                                         } else if (failedDeletion) {
+                                           console.error(`❌ Error: Fallo confirmado en eliminación del pedido ${orderToDelete}`);
+                                           alert(`❌ Error confirmado: El pedido #${orderToDelete} no se pudo eliminar del servidor.\nDetalles: ${JSON.stringify(operationDetails, null, 2)}`);
+                                         } else if (deletedOrderExists) {
+                                           console.error(`❌ Error: El pedido ${orderToDelete} aún existe en el servidor`);
+                                           alert(`❌ Error: El pedido #${orderToDelete} aún existe en Google Drive.\nPor favor, intente nuevamente o contacte soporte técnico.`);
+                                         } else {
+                                           // Caso ambiguo - actualizar pero advertir
+                                           console.warn(`⚠️ Estado ambiguo para pedido ${orderToDelete}`);
+                                           setPendingOrders(updatedOrders);
+                                           alert(`⚠️ Pedido #${orderToDelete} procesado, pero verifique el estado.\nSi persisten problemas, contacte soporte técnico.`);
+                                         }
+                                       } else {
+                                        let errorMessage = 'Error desconocido del servidor';
+                                        try {
                                           const errorData = await response.json();
+                                          errorMessage = errorData.error || errorData.message || errorMessage;
                                           console.error('❌ Error del servidor:', errorData);
-                                          alert('Error al eliminar el pedido. Por favor, intente nuevamente.');
+                                        } catch (parseError) {
+                                          console.error('❌ Error parseando respuesta del servidor:', parseError);
                                         }
-                                      } catch (error) {
-                                        console.error('⚠️ Error eliminando de Google Drive:', error);
-                                        alert('Error de conexión al eliminar el pedido. Verifique su conexión a internet.');
+                                        alert(`❌ Error del servidor (${response.status}): ${errorMessage}`);
                                       }
-                                    } else {
-                                      alert('No se encontró token de acceso. Por favor, vuelva a autenticarse.');
+                                    } catch (networkError) {
+                                      console.error('⚠️ Error de red al eliminar:', networkError);
+                                      alert(`❌ Error de conexión: ${networkError.message}. Verifique su conexión a internet y vuelva a intentar.`);
+                                    } finally {
+                                      e.target.disabled = false;
+                                      e.target.textContent = '🗑️ Eliminar';
                                     }
                                   }}
-                                  className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                                  className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   🗑️ Eliminar
                                 </button>
