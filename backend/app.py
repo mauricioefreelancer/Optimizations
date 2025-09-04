@@ -16,7 +16,8 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from google.auth.transport.requests import Request
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import pytz
 import signal
 from functools import wraps
 
@@ -824,8 +825,9 @@ def append_to_recaudo_sheet():
         access_token = data['access_token']
         spreadsheet_id = data['spreadsheetId']
         
-        # Preparar los datos de la fila con los nuevos campos
-        current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # Preparar los datos de la fila con los nuevos campos - usar zona horaria de Colombia
+        colombia_tz = pytz.timezone('America/Bogota')
+        current_timestamp = datetime.now(colombia_tz).strftime("%Y-%m-%d %H:%M:%S")
         
         row_data = [
             data.get('fecha', ''),                                    # A - Fecha
@@ -981,10 +983,11 @@ def create_recaudo_spreadsheet():
         if not service:
             return jsonify({"error": "No se pudo autenticar con Google Sheets"}), 401
         
-        # Crear nueva hoja de cálculo
+        # Crear nueva hoja de cálculo - usar zona horaria de Colombia
+        colombia_tz = pytz.timezone('America/Bogota')
         spreadsheet = {
             'properties': {
-                'title': f'Reporte de Recaudo - {datetime.now().strftime("%Y-%m-%d")}'
+                'title': f'Reporte de Recaudo - {datetime.now(colombia_tz).strftime("%Y-%m-%d")}'
             },
             'sheets': [{
                 'properties': {
@@ -1060,7 +1063,7 @@ def sync_pending_orders():
         results = service.files().list(q=query, fields='files(id, name, modifiedTime)').execute()
         files = results.get('files', [])
         
-        current_time = datetime.now()
+        current_time = datetime.now(timezone.utc)
         
         if files:
             # Archivo existe, descargar y verificar expiración
@@ -1072,7 +1075,10 @@ def sync_pending_orders():
             drive_data = json.loads(file_content.decode('utf-8'))
             
             # Verificar expiración (15 horas)
-            file_timestamp = datetime.fromisoformat(drive_data.get('timestamp', '1970-01-01T00:00:00'))
+            timestamp_str = drive_data.get('timestamp', '1970-01-01T00:00:00+00:00')
+            if '+' not in timestamp_str and 'Z' not in timestamp_str:
+                timestamp_str += '+00:00'
+            file_timestamp = datetime.fromisoformat(timestamp_str)
             hours_elapsed = (current_time - file_timestamp).total_seconds() / 3600
             
             if hours_elapsed > 15:
@@ -1104,7 +1110,10 @@ def sync_pending_orders():
         # Filtrar pedidos expirados (12 horas desde timestamp)
         valid_orders = []
         for order in all_orders.values():
-            order_time = datetime.fromisoformat(order.get('timestamp', '1970-01-01T00:00:00'))
+            order_timestamp_str = order.get('timestamp', '1970-01-01T00:00:00+00:00')
+            if '+' not in order_timestamp_str and 'Z' not in order_timestamp_str:
+                order_timestamp_str += '+00:00'
+            order_time = datetime.fromisoformat(order_timestamp_str)
             hours_since_order = (current_time - order_time).total_seconds() / 3600
             if hours_since_order < 12:
                 valid_orders.append(order)
@@ -1208,8 +1217,11 @@ def get_pending_orders():
         drive_data = json.loads(file_content.decode('utf-8'))
         
         # Verificar expiración
-        current_time = datetime.now()
-        file_timestamp = datetime.fromisoformat(drive_data.get('timestamp', '1970-01-01T00:00:00'))
+        current_time = datetime.now(timezone.utc)
+        timestamp_str = drive_data.get('timestamp', '1970-01-01T00:00:00+00:00')
+        if '+' not in timestamp_str and 'Z' not in timestamp_str:
+            timestamp_str += '+00:00'
+        file_timestamp = datetime.fromisoformat(timestamp_str)
         hours_elapsed = (current_time - file_timestamp).total_seconds() / 3600
         
         if hours_elapsed > 15:
@@ -1255,7 +1267,7 @@ def cleanup_expired_orders():
             return jsonify({'success': False, 'error': 'Token de acceso requerido'}), 400
         
         service = get_google_drive_service_oauth(access_token)
-        current_time = datetime.now()
+        current_time = datetime.now(timezone.utc)
         
         # Buscar todos los archivos de sincronización
         query = "name contains 'pending_orders_sync_' and mimeType='application/json'"
