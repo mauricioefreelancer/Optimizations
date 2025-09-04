@@ -4102,7 +4102,7 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
                                            const successMessage = `✅ Pedido #${orderToDelete} eliminado exitosamente\n` +
                                              `📊 Pedidos restantes: ${serverOrders.length}\n` +
                                              `🔄 Sincronización completada`;
-                                           alert(successMessage);
+                                           showModal('Eliminación Exitosa', successMessage, 'success');
                                          } else if (failedDeletion) {
                                            console.error(`❌ Error: Fallo confirmado en eliminación del pedido ${orderToDelete}`);
                                            alert(`❌ Error confirmado: El pedido #${orderToDelete} no se pudo eliminar del servidor.\nDetalles: ${JSON.stringify(operationDetails, null, 2)}`);
