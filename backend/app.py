@@ -1044,11 +1044,13 @@ def sync_pending_orders():
             return jsonify({"error": "Token de acceso y email requeridos"}), 400
         
         print(f"🔄 Sincronizando pedidos para: {user_email}")
+        print(f"📊 Pedidos locales recibidos: {len(local_orders)}")
         
         # Obtener servicio de Google Drive
         service = get_google_drive_service_oauth(access_token)
         if not service:
-            return jsonify({"error": "No se pudo autenticar con Google Drive"}), 401
+            print(f"❌ Fallo en autenticación OAuth para: {user_email}")
+            return jsonify({"error": "No se pudo autenticar con Google Drive. Verifique su token de acceso."}), 401
         
         # Nombre del archivo de sincronización
         sync_filename = f"pending_orders_{user_email.replace('@', '_at_').replace('.', '_')}.json"
@@ -1130,19 +1132,29 @@ def sync_pending_orders():
         
         if files:
             # Actualizar archivo existente
-            updated_file = service.files().update(
-                fileId=files[0]['id'],
-                body=file_metadata,
-                media_body=media
-            ).execute()
-            print(f"🔄 Archivo actualizado: {updated_file['id']}")
+            print(f"🔄 Actualizando archivo existente: {files[0]['id']}")
+            try:
+                updated_file = service.files().update(
+                    fileId=files[0]['id'],
+                    body=file_metadata,
+                    media_body=media
+                ).execute()
+                print(f"✅ Archivo actualizado exitosamente: {updated_file['id']}")
+            except Exception as update_error:
+                print(f"❌ Error actualizando archivo: {update_error}")
+                raise update_error
         else:
             # Crear nuevo archivo
-            new_file = service.files().create(
-                body=file_metadata,
-                media_body=media
-            ).execute()
-            print(f"📁 Nuevo archivo creado: {new_file['id']}")
+            print(f"📁 Creando nuevo archivo de sincronización para: {user_email}")
+            try:
+                new_file = service.files().create(
+                    body=file_metadata,
+                    media_body=media
+                ).execute()
+                print(f"✅ Nuevo archivo creado exitosamente: {new_file['id']}")
+            except Exception as create_error:
+                print(f"❌ Error creando archivo: {create_error}")
+                raise create_error
         
         return jsonify({
             "success": True,

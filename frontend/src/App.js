@@ -3624,14 +3624,39 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
         driveLink: null
       };
       
+      console.log(`💾 Guardando pedido para después - Cliente: ${clientName}`);
+      
       const updatedOrders = [...pendingOrders, newOrder];
       setPendingOrders(updatedOrders);
       
       // Guardar SOLO en Google Drive
       const accessToken = localStorage.getItem('google_access_token');
       if (accessToken) {
+        // Mostrar estado de carga
+        const loadingMessage = document.createElement('div');
+        loadingMessage.id = 'save-loading';
+        loadingMessage.style.cssText = `
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(0, 0, 0, 0.8);
+          color: white;
+          padding: 20px;
+          border-radius: 10px;
+          z-index: 10000;
+          text-align: center;
+          font-family: Arial, sans-serif;
+        `;
+        loadingMessage.innerHTML = `
+          <div style="margin-bottom: 10px;">💾 Guardando pedido...</div>
+          <div style="font-size: 12px; opacity: 0.8;">Sincronizando con Google Drive</div>
+        `;
+        document.body.appendChild(loadingMessage);
+
         try {
-          await fetch(`${API_BASE_URL}/sync-pending-orders`, {
+          console.log('🔄 Sincronizando con Google Drive...');
+          const response = await fetch(`${API_BASE_URL}/sync-pending-orders`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -3642,16 +3667,134 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
               orders: updatedOrders
             })
           });
-          console.log('✅ Pedido guardado en Google Drive');
+          
+          // Remover mensaje de carga
+          const loadingEl = document.getElementById('save-loading');
+          if (loadingEl) loadingEl.remove();
+          
+          if (response.ok) {
+            const result = await response.json();
+            console.log('✅ Pedido guardado exitosamente en Google Drive:', result);
+            console.log(`📊 Total de pedidos sincronizados: ${result.total_orders}`);
+            
+            // Mostrar mensaje de éxito
+            const successMessage = document.createElement('div');
+            successMessage.style.cssText = `
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background: #4CAF50;
+              color: white;
+              padding: 15px 20px;
+              border-radius: 5px;
+              z-index: 10000;
+              font-family: Arial, sans-serif;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            `;
+            successMessage.innerHTML = '✅ Pedido guardado exitosamente';
+            document.body.appendChild(successMessage);
+            
+            // Remover mensaje después de 3 segundos
+            setTimeout(() => {
+              if (successMessage.parentNode) {
+                successMessage.remove();
+              }
+            }, 3000);
+          } else {
+            const errorData = await response.json();
+            console.error('❌ Error del servidor al guardar:', errorData);
+            // Si falla, remover el pedido del estado
+            setPendingOrders(pendingOrders);
+            
+            // Mostrar mensaje de error
+            const errorMessage = document.createElement('div');
+            errorMessage.style.cssText = `
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background: #f44336;
+              color: white;
+              padding: 15px 20px;
+              border-radius: 5px;
+              z-index: 10000;
+              font-family: Arial, sans-serif;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+              max-width: 300px;
+            `;
+            errorMessage.innerHTML = `❌ Error: ${errorData.error || 'Error desconocido'}`;
+            document.body.appendChild(errorMessage);
+            
+            // Remover mensaje después de 5 segundos
+            setTimeout(() => {
+              if (errorMessage.parentNode) {
+                errorMessage.remove();
+              }
+            }, 5000);
+          }
         } catch (error) {
-          console.log('⚠️ Error guardando en Google Drive:', error);
+          console.error('⚠️ Error de red guardando en Google Drive:', error);
+          
+          // Remover mensaje de carga si aún existe
+          const loadingEl = document.getElementById('save-loading');
+          if (loadingEl) loadingEl.remove();
+          
           // Si falla, remover el pedido del estado
           setPendingOrders(pendingOrders);
+          
+          // Mostrar mensaje de error
+          const errorMessage = document.createElement('div');
+          errorMessage.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #f44336;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            z-index: 10000;
+            font-family: Arial, sans-serif;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-width: 300px;
+          `;
+          errorMessage.innerHTML = `❌ Error de conexión: ${error.message}`;
+          document.body.appendChild(errorMessage);
+          
+          // Remover mensaje después de 5 segundos
+          setTimeout(() => {
+            if (errorMessage.parentNode) {
+              errorMessage.remove();
+            }
+          }, 5000);
         }
       } else {
-        console.log('⚠️ No hay token de acceso, no se puede guardar');
+        console.error('⚠️ No hay token de acceso, no se puede guardar');
         // Si no hay token, remover el pedido del estado
         setPendingOrders(pendingOrders);
+        
+        // Mostrar mensaje de error de autenticación
+        const authErrorMessage = document.createElement('div');
+        authErrorMessage.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: #ff9800;
+          color: white;
+          padding: 15px 20px;
+          border-radius: 5px;
+          z-index: 10000;
+          font-family: Arial, sans-serif;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+          max-width: 300px;
+        `;
+        authErrorMessage.innerHTML = '⚠️ Error: Autenticación requerida. Recargue la página.';
+        document.body.appendChild(authErrorMessage);
+        
+        // Remover mensaje después de 5 segundos
+        setTimeout(() => {
+          if (authErrorMessage.parentNode) {
+            authErrorMessage.remove();
+          }
+        }, 5000);
       }
       
       // Navegar a la vista de gestión de pedidos
