@@ -4044,13 +4044,13 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
                                 <button
                                   onClick={async () => {
                                     const updatedOrders = pendingOrders.filter(o => o.id !== order.id);
-                                    setPendingOrders(updatedOrders);
                                     
-                                    // Actualizar en Google Drive
+                                    // Actualizar en Google Drive primero
                                     const accessToken = localStorage.getItem('google_access_token');
                                     if (accessToken) {
                                       try {
-                                        await fetch(`${API_BASE_URL}/sync-pending-orders`, {
+                                        console.log(`🗑️ Eliminando pedido ${order.id} de Google Drive...`);
+                                        const response = await fetch(`${API_BASE_URL}/sync-pending-orders`, {
                                           method: 'POST',
                                           headers: {
                                             'Content-Type': 'application/json',
@@ -4061,10 +4061,23 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
                                             orders: updatedOrders
                                           })
                                         });
-                                        console.log('✅ Pedido eliminado de Google Drive');
+                                        
+                                        if (response.ok) {
+                                          const result = await response.json();
+                                          console.log('✅ Pedido eliminado exitosamente:', result);
+                                          // Solo actualizar el estado local si la sincronización fue exitosa
+                                          setPendingOrders(updatedOrders);
+                                        } else {
+                                          const errorData = await response.json();
+                                          console.error('❌ Error del servidor:', errorData);
+                                          alert('Error al eliminar el pedido. Por favor, intente nuevamente.');
+                                        }
                                       } catch (error) {
-                                        console.log('⚠️ Error eliminando de Google Drive:', error);
+                                        console.error('⚠️ Error eliminando de Google Drive:', error);
+                                        alert('Error de conexión al eliminar el pedido. Verifique su conexión a internet.');
                                       }
+                                    } else {
+                                      alert('No se encontró token de acceso. Por favor, vuelva a autenticarse.');
                                     }
                                   }}
                                   className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"

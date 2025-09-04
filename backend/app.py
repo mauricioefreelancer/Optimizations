@@ -1107,6 +1107,9 @@ def sync_pending_orders():
             if order_id:
                 all_orders[order_id] = order
         
+        print(f"📋 Total de pedidos después de combinar: {len(all_orders)}")
+        print(f"📋 IDs de pedidos: {list(all_orders.keys())}")
+        
         # Filtrar pedidos expirados (12 horas desde timestamp)
         valid_orders = []
         for order in all_orders.values():
@@ -1119,6 +1122,12 @@ def sync_pending_orders():
                 valid_orders.append(order)
         
         print(f"📊 Pedidos válidos después de filtrado: {len(valid_orders)}")
+        print(f"📊 IDs de pedidos válidos: {[order.get('id') for order in valid_orders]}")
+        
+        # Log de pedidos eliminados
+        eliminated_orders = set(all_orders.keys()) - set(order.get('id') for order in valid_orders)
+        if eliminated_orders:
+            print(f"🗑️ Pedidos eliminados/expirados: {eliminated_orders}")
         
         # Crear nuevo contenido para subir
         sync_data = {
