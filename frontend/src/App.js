@@ -1412,6 +1412,8 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
             
             if (event.data.type === 'OAUTH_SUCCESS' && event.data.access_token) {
               console.log('✅ Token OAuth2 obtenido automáticamente');
+              // Guardar token en localStorage
+              localStorage.setItem('google_access_token', event.data.access_token);
               window.removeEventListener('message', messageListener);
               authWindow.close();
               resolve(event.data.access_token);
@@ -1483,6 +1485,9 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
       if (!accessToken) {
         throw new Error('No se pudo obtener el token de acceso');
       }
+      
+      // Guardar token en localStorage para uso posterior
+      localStorage.setItem('google_access_token', accessToken);
       
       // Crear nombre del archivo con fecha y cliente
       const timestamp = Date.now();
@@ -2359,6 +2364,8 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
             
             if (event.data.type === 'OAUTH_SUCCESS' && event.data.access_token) {
               console.log('✅ Token OAuth2 obtenido para Recaudo');
+              // Guardar token en localStorage
+              localStorage.setItem('google_access_token', event.data.access_token);
               window.removeEventListener('message', messageListener);
               authWindow.close();
               resolve(event.data.access_token);
@@ -3371,6 +3378,8 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
             
             if (event.data.type === 'OAUTH_SUCCESS' && event.data.access_token) {
               console.log('✅ Token OAuth2 obtenido automáticamente para Gestión Diaria');
+              // Guardar token en localStorage para uso posterior
+              localStorage.setItem('google_access_token', event.data.access_token);
               window.removeEventListener('message', messageListener);
               authWindow.close();
               resolve(event.data.access_token);
