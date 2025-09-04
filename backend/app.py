@@ -1125,12 +1125,18 @@ def sync_pending_orders():
         if deleted_from_local:
             print(f"🗑️ Pedidos eliminados localmente: {deleted_from_local}")
         
-        # Filtrar pedidos expirados (12 horas desde timestamp)
+        # Filtrar pedidos expirados (12 horas desde timestamp) y excluir eliminados localmente
         valid_orders = []
         expired_by_time = []
         
         for order in all_orders.values():
             order_id = order.get('id')
+            
+            # Excluir pedidos que fueron eliminados localmente
+            if order_id in deleted_from_local:
+                print(f"🗑️ Pedido {order_id} excluido (eliminado localmente)")
+                continue
+                
             order_timestamp_str = order.get('timestamp', '1970-01-01T00:00:00+00:00')
             if '+' not in order_timestamp_str and 'Z' not in order_timestamp_str:
                 order_timestamp_str += '+00:00'
@@ -1147,7 +1153,7 @@ def sync_pending_orders():
                     print(f"⏰ Pedido {order_id} expirado por tiempo ({hours_since_order:.1f}h)")
             except Exception as timestamp_error:
                 print(f"⚠️ Error procesando timestamp del pedido {order_id}: {timestamp_error}")
-                # En caso de error, mantener el pedido
+                # En caso de error, mantener el pedido solo si no fue eliminado localmente
                 valid_orders.append(order)
         
         print(f"📊 Resultado final:")
@@ -1161,9 +1167,13 @@ def sync_pending_orders():
         if successfully_deleted:
             print(f"✅ Confirmado: Pedidos eliminados exitosamente: {successfully_deleted}")
         
+        # Como ya excluimos los pedidos eliminados localmente del bucle, 
+        # no deberían aparecer en final_order_ids
         failed_deletions = deleted_from_local & final_order_ids
         if failed_deletions:
             print(f"❌ Error: Estos pedidos debían eliminarse pero aún existen: {failed_deletions}")
+        else:
+            print(f"✅ Todos los pedidos eliminados localmente fueron procesados correctamente")
         
         # Crear nuevo contenido para subir
         sync_data = {
