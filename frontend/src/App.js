@@ -3353,6 +3353,10 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
   const [accessToken, setAccessToken] = useState(null);
   const [showAuthErrorModal, setShowAuthErrorModal] = useState(false);
   const [authErrorMessage, setAuthErrorMessage] = useState('');
+  
+  // Estados para el modal de confirmación de eliminación
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteResult, setDeleteResult] = useState(null);
 
   // Función de autenticación OAuth 2.0 (reutilizada del RecaudoForm)
   const authenticateWithGoogle = async () => {
@@ -3921,6 +3925,53 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
     );
   }
 
+  // Modal de confirmación de eliminación exitosa
+  if (showDeleteModal && deleteResult) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
+              <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">
+              ✅ Pedido Eliminado
+            </h3>
+            
+            <div className="text-sm text-gray-600 mb-6 space-y-2">
+              <p className="font-medium text-green-600">
+                El pedido ha sido eliminado exitosamente.
+              </p>
+              {deleteResult.successfully_deleted > 0 && (
+                <p>
+                  Pedidos eliminados: <span className="font-semibold">{deleteResult.successfully_deleted}</span>
+                </p>
+              )}
+              {deleteResult.expired_orders > 0 && (
+                <p>
+                  Pedidos expirados limpiados: <span className="font-semibold">{deleteResult.expired_orders}</span>
+                </p>
+              )}
+            </div>
+            
+            <button
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDeleteResult(null);
+              }}
+              className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-medium"
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Renderizar submenú de gestión diaria
   if (currentSubView === "menu") {
     return (
@@ -4102,7 +4153,14 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
                                            const successMessage = `✅ Pedido #${orderToDelete} eliminado exitosamente\n` +
                                              `📊 Pedidos restantes: ${serverOrders.length}\n` +
                                              `🔄 Sincronización completada`;
-                                           showModal('Eliminación Exitosa', successMessage, 'success');
+                                           setDeleteResult({
+                                             type: 'success',
+                                             title: 'Pedido Eliminado',
+                                             message: successMessage,
+                                             orderId: orderToDelete,
+                                             remainingOrders: serverOrders.length
+                                           });
+                                           setShowDeleteModal(true);
                                          } else if (failedDeletion) {
                                            console.error(`❌ Error: Fallo confirmado en eliminación del pedido ${orderToDelete}`);
                                            alert(`❌ Error confirmado: El pedido #${orderToDelete} no se pudo eliminar del servidor.\nDetalles: ${JSON.stringify(operationDetails, null, 2)}`);
