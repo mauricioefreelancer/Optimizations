@@ -1111,6 +1111,11 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
     const ivaRate = clientInfo.ordenSalida === 'facturado' ? 0.19 : 0;
     const ivaGlobal = subtotalGlobal * ivaRate;
     const totalGlobal = subtotalGlobal + ivaGlobal - descuentoGlobal;
+    
+    // Cálculo de totales de productos
+    const totalProductos = orderItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    const totalBonificados = orderItems.reduce((sum, item) => sum + (item.bonus || 0), 0);
+    const totalRegistrados = orderItems.length;
 
     // Generar serial único si no se proporciona
     const serial = serialNumber || `Pedido__${clientInfo.fecha}_${Date.now()}`;
@@ -1362,6 +1367,9 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
             <div>Subtotal: $${subtotalGlobal.toLocaleString("es-CO")}</div>
             <div>Descuento(${clientInfo.descuento || 0}%): $${descuentoGlobal.toLocaleString("es-CO")}</div>
             <div>Iva(${ivaRate === 0.19 ? '19' : '0'}%): $${ivaGlobal.toLocaleString("es-CO")}</div>
+            <div>Total Productos: ${totalProductos}</div>
+            <div>Total Bonificados: ${totalBonificados}</div>
+            <div>Productos Registrados: ${totalRegistrados}</div>
           </div>
           <div class="total">Total: $${totalGlobal.toLocaleString("es-CO")}</div>
         </div>
@@ -2246,6 +2254,17 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
             const ivaRate = clientInfo.ordenSalida === 'facturado' ? 0.19 : 0;
             const ivaGlobal = subtotalGlobal * ivaRate;
             const totalGlobal = subtotalGlobal + ivaGlobal - descuentoGlobal;
+            
+            // Calcular totales de productos
+            const totalProductos = orderItems.reduce(
+              (sum, item) => sum + (item.quantity || 0),
+              0
+            );
+            const totalBonificados = orderItems.reduce(
+              (sum, item) => sum + (item.bonus || 0),
+              0
+            );
+            const totalRegistrados = orderItems.length;
 
             return (
               <>
@@ -2259,12 +2278,15 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
                       Descuento ({clientInfo.descuento || 0}%): $
                       {descuentoGlobal.toLocaleString("es-CO")}
                     </p>
+                    <p>Total Productos: {totalProductos}</p>
                   </div>
                   <div className="space-y-1">
                     <p>IVA ({ivaRate === 0.19 ? '19' : '0'}%): {ivaGlobal.toLocaleString("es-CO")}</p>
                     <p className="font-bold text-lg">
                       Total: {totalGlobal.toLocaleString("es-CO")}
                     </p>
+                    <p>Total Bonificados: {totalBonificados}</p>
+                    <p>Productos Registrados: {totalRegistrados}</p>
                   </div>
                 </div>
               </>
@@ -2278,7 +2300,7 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
             onClick={handleDownload}
             className="bg-green-600 text-white font-bold text-sm sm:text-lg py-2 sm:py-3 px-4 sm:px-8 rounded-full shadow-lg hover:bg-green-700 transition duration-300 transform hover:scale-105 w-full sm:w-auto"
           >
-            Generar Orden de Pedido
+            Descargar
           </button>
           
           <button
