@@ -1113,7 +1113,7 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
     const totalGlobal = subtotalGlobal + ivaGlobal - descuentoGlobal;
     
     // Cálculo de totales de productos
-    const totalProductos = orderItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    const totalProductos = orderItems.reduce((sum, item) => sum + (item.quantity || 0) + (item.bonus || 0), 0);
     const totalBonificados = orderItems.reduce((sum, item) => sum + (item.bonus || 0), 0);
     const totalRegistrados = orderItems.length;
 
@@ -2257,7 +2257,7 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
             
             // Calcular totales de productos
             const totalProductos = orderItems.reduce(
-              (sum, item) => sum + (item.quantity || 0),
+              (sum, item) => sum + (item.quantity || 0) + (item.bonus || 0),
               0
             );
             const totalBonificados = orderItems.reduce(
