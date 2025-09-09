@@ -21,6 +21,9 @@ import pytz
 import signal
 from functools import wraps
 
+# Definir zona horaria de Colombia como variable global
+colombia_tz = pytz.timezone('America/Bogota')
+
 # Funciones para manejo de timeout
 def timeout_handler(signum, frame):
     """Manejador de señal para timeout."""
@@ -826,7 +829,6 @@ def append_to_recaudo_sheet():
         spreadsheet_id = data['spreadsheetId']
         
         # Preparar los datos de la fila con los nuevos campos - usar zona horaria de Colombia
-        colombia_tz = pytz.timezone('America/Bogota')
         current_timestamp = datetime.now(colombia_tz).strftime("%Y-%m-%d %H:%M:%S")
         
         row_data = [
@@ -984,7 +986,6 @@ def create_recaudo_spreadsheet():
             return jsonify({"error": "No se pudo autenticar con Google Sheets"}), 401
         
         # Crear nueva hoja de cálculo - usar zona horaria de Colombia
-        colombia_tz = pytz.timezone('America/Bogota')
         spreadsheet = {
             'properties': {
                 'title': f'Reporte de Recaudo - {datetime.now(colombia_tz).strftime("%Y-%m-%d")}'
