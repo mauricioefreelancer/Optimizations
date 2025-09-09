@@ -1311,7 +1311,7 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
             </div>
             <div class="info-row">
               <div class="info-label">Orden de salida:</div>
-              <div class="info-value">${clientInfo.ordenSalida === "facturado" ? "FACTURADO" : "SALIDA DE BODEGA"}</div>
+              <div class="info-value"><strong style="text-decoration: underline;">${clientInfo.ordenSalida === "facturado" ? "FACTURADO" : "SALIDA DE BODEGA"}</strong></div>
             </div>
             <div class="info-row">
               <div class="info-label">Forma de pago:</div>
@@ -1381,8 +1381,8 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
         </div>
         
         <div class="observations">
-          <div>Observaciones:</div>
-          <div class="observations-box">${clientInfo.observaciones}</div>
+          <div><strong>Observaciones:</strong></div>
+          <div class="observations-box"><strong style="color: red;">${clientInfo.observaciones}</strong></div>
         </div>
       </div>
     </body>
