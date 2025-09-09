@@ -23,9 +23,7 @@ const getColombiaDateString = () => {
 // Obtener timestamp ISO con zona horaria de Colombia
 const getColombiaTimestamp = () => {
   const date = getColombiaDateTime();
-  // Añadir explícitamente el offset de Colombia (-05:00)
-  const isoString = date.toISOString();
-  return isoString.replace('Z', '-05:00');
+  return date.toISOString();
 };
 
 const ZONES = [
