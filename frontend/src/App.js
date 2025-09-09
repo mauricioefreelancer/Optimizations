@@ -252,7 +252,7 @@ const PRODUCT_DATA = {
       {
         cod: "NC243",
         description: "SOS DOYPACK SHAMPOO X 100ml",
-        unitPrice: 7200,
+        unitPrice: 6600,
       },
     ],
     "LINEA RIZOS EFECTO MEMORIA": [
