@@ -316,7 +316,7 @@ const PRODUCT_DATA = {
       },
       {
         cod: "NC260",
-        description: 'FIJAOR FLUIDO DISP 14 X 40ml "LLEVE 50ml"',
+        description: 'FIJADOR FLUIDO DISP 14 X 40ml "LLEVE 50ml"',
         unitPrice: 35000,
       },
     ],
