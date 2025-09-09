@@ -4072,7 +4072,7 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
           <div className="bg-white rounded-2xl shadow-2xl p-6">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-gray-800">
-                📋 Gestión de Pedidos (Últimas 18 horas)
+                📋 Gestión de Pedidos
               </h1>
               <button
                 onClick={() => setCurrentSubView("menu")}
