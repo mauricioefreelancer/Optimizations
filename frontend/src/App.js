@@ -3,6 +3,29 @@ import React, { useState, useEffect } from "react";
 // Define la URL base de tu backend
 const API_BASE_URL = "https://optimizations-c6pm.onrender.com";
 
+// Utilidad para manejar fechas con zona horaria de Colombia
+const getColombiaDateTime = () => {
+  // Crear fecha en UTC
+  const now = new Date();
+  
+  // Ajustar a zona horaria de Colombia (UTC-5)
+  const colombiaTime = new Date(now.getTime() - (5 * 60 * 60 * 1000));
+  
+  return colombiaTime;
+};
+
+// Obtener fecha en formato YYYY-MM-DD con zona horaria de Colombia
+const getColombiaDateString = () => {
+  const date = getColombiaDateTime();
+  return date.toISOString().split('T')[0];
+};
+
+// Obtener timestamp ISO con zona horaria de Colombia
+const getColombiaTimestamp = () => {
+  const date = getColombiaDateTime();
+  return date.toISOString();
+};
+
 const ZONES = [
   "Soacha",
   "Suba",
@@ -798,7 +821,7 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
   ];
 
   const [clientInfo, setClientInfo] = useState({
-    fecha: new Date().toISOString().split("T")[0],
+    fecha: getColombiaDateString(),
     cliente: prefilledClientName || "",
     nit: "",
     vendedor: "",
@@ -1118,7 +1141,7 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
     const totalRegistrados = orderItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
 
     // Generar serial único si no se proporciona
-    const serial = serialNumber || `Pedido__${clientInfo.fecha}_${Date.now()}`;
+    const serial = serialNumber || `Pedido__${clientInfo.fecha}_${getColombiaDateTime().getTime()}`;
 
     const htmlContent = `
     <!DOCTYPE html>
@@ -1498,7 +1521,7 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
       localStorage.setItem('google_access_token', accessToken);
       
       // Crear nombre del archivo con fecha y cliente
-      const timestamp = Date.now();
+      const timestamp = getColombiaDateTime().getTime();
       const serial = `Pedido__${clientInfo.fecha}_${timestamp}`;
       const fileName = `${serial}.pdf`;
       
@@ -2350,7 +2373,7 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
   
   // Estado del formulario de recaudo
   const [recaudoData, setRecaudoData] = useState({
-    fecha: new Date().toISOString().split('T')[0],
+    fecha: getColombiaDateString(),
     tipoCliente: '', // nuevo/antiguo
     asesor: '',
     nombreCliente: '',
@@ -2758,7 +2781,7 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
       setIsSubmitting(true);
       
       // Preparar datos para envío
-      const timestamp = new Date().toISOString();
+      const timestamp = getColombiaTimestamp();
       const recaudoEntry = {
         fecha: recaudoData.fecha,
         tipoCliente: recaudoData.tipoCliente,
@@ -3617,9 +3640,9 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
     } else if (action === 'take_order') {
       // Registrar pedido en tabla de gestión Y navegar al formulario
       const newOrder = {
-        id: Date.now().toString(),
+        id: getColombiaDateTime().getTime().toString(),
         clientName,
-        timestamp: new Date().toISOString(),
+        timestamp: getColombiaTimestamp(),
         uploaded: false,
         driveLink: null
       };
@@ -3844,8 +3867,10 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
 
   // Función para calcular tiempo restante
   const getTimeRemaining = (timestamp) => {
-    const now = Date.now();
-    const orderTime = new Date(timestamp).getTime();
+    const now = getColombiaDateTime().getTime();
+    // Convertir el timestamp a la zona horaria de Colombia
+    const orderDate = new Date(timestamp);
+    const orderTime = orderDate.getTime();
     const elapsed = now - orderTime;
     const remaining = 18 * 60 * 60 * 1000 - elapsed; // 18 horas - tiempo transcurrido
     
