@@ -1077,7 +1077,7 @@ def sync_pending_orders():
             
             # Verificar expiración (15 horas)
             timestamp_str = drive_data.get('timestamp', '1970-01-01T00:00:00+00:00')
-            if '+' not in timestamp_str and 'Z' not in timestamp_str:
+            if '+' not in timestamp_str and '-' not in timestamp_str and 'Z' not in timestamp_str:
                 timestamp_str += '+00:00'
             file_timestamp = datetime.fromisoformat(timestamp_str)
             hours_elapsed = (current_time - file_timestamp).total_seconds() / 3600
@@ -1139,7 +1139,7 @@ def sync_pending_orders():
                 continue
                 
             order_timestamp_str = order.get('timestamp', '1970-01-01T00:00:00+00:00')
-            if '+' not in order_timestamp_str and 'Z' not in order_timestamp_str:
+            if '+' not in order_timestamp_str and '-' not in order_timestamp_str and 'Z' not in order_timestamp_str:
                 order_timestamp_str += '+00:00'
             
             try:
@@ -1289,7 +1289,7 @@ def get_pending_orders():
         # Verificar expiración
         current_time = datetime.now(colombia_tz)
         timestamp_str = drive_data.get('timestamp', '1970-01-01T00:00:00+00:00')
-        if '+' not in timestamp_str and 'Z' not in timestamp_str:
+        if '+' not in timestamp_str and '-' not in timestamp_str and 'Z' not in timestamp_str:
             timestamp_str += '+00:00'
         file_timestamp = datetime.fromisoformat(timestamp_str)
         hours_elapsed = (current_time - file_timestamp).total_seconds() / 3600
@@ -1309,7 +1309,7 @@ def get_pending_orders():
         
         for order in orders:
             order_timestamp_str = order.get('timestamp', '1970-01-01T00:00:00')
-            if '+' not in order_timestamp_str and 'Z' not in order_timestamp_str:
+            if '+' not in order_timestamp_str and '-' not in order_timestamp_str and 'Z' not in order_timestamp_str:
                 order_timestamp_str += '+00:00'
             order_time = datetime.fromisoformat(order_timestamp_str)
             hours_since_order = (current_time - order_time).total_seconds() / 3600
