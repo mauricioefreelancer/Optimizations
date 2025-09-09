@@ -4307,10 +4307,10 @@ const App = () => {
               
               <nav className="space-y-4">
                 <button
-                  onClick={() => setCurrentView("excel")}
-                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  onClick={() => setCurrentView("gestion")}
+                  className="w-full bg-orange-600 text-white py-3 px-6 rounded-lg hover:bg-orange-700 transition-colors font-medium"
                 >
-                  📊 Analizar Excel
+                  🏢 Gestión Diaria del Vendedor
                 </button>
                 
                 <button
@@ -4321,17 +4321,10 @@ const App = () => {
                 </button>
                 
                 <button
-                  onClick={() => setCurrentView("recaudo")}
-                  className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                  onClick={() => setCurrentView("excel")}
+                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
-                  💰 Reporte de Recaudo
-                </button>
-                
-                <button
-                  onClick={() => setCurrentView("gestion")}
-                  className="w-full bg-orange-600 text-white py-3 px-6 rounded-lg hover:bg-orange-700 transition-colors font-medium"
-                >
-                  🏢 Gestión Diaria del Vendedor
+                  📊 Analizar Excel
                 </button>
               </nav>
             </div>
