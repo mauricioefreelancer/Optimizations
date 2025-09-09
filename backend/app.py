@@ -1125,7 +1125,7 @@ def sync_pending_orders():
         if deleted_from_local:
             print(f"🗑️ Pedidos eliminados localmente: {deleted_from_local}")
         
-        # Filtrar pedidos expirados (12 horas desde timestamp) y excluir eliminados localmente
+        # Filtrar pedidos expirados (18 horas desde timestamp) y excluir eliminados localmente
         valid_orders = []
         expired_by_time = []
         
@@ -1145,7 +1145,7 @@ def sync_pending_orders():
                 order_time = datetime.fromisoformat(order_timestamp_str)
                 hours_since_order = (current_time - order_time).total_seconds() / 3600
                 
-                if hours_since_order < 12:
+                if hours_since_order < 18:
                     valid_orders.append(order)
                     print(f"✅ Pedido {order_id} válido ({hours_since_order:.1f}h)")
                 else:
@@ -1302,14 +1302,14 @@ def get_pending_orders():
                 "message": "Datos expirados, archivo eliminado"
             }), 200
         
-        # Filtrar pedidos válidos (12 horas)
+        # Filtrar pedidos válidos (18 horas)
         orders = drive_data.get('orders', [])
         valid_orders = []
         
         for order in orders:
             order_time = datetime.fromisoformat(order.get('timestamp', '1970-01-01T00:00:00'))
             hours_since_order = (current_time - order_time).total_seconds() / 3600
-            if hours_since_order < 12:
+            if hours_since_order < 18:
                 valid_orders.append(order)
         
         print(f"📊 Pedidos válidos encontrados: {len(valid_orders)}")
