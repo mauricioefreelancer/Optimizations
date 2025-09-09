@@ -1063,7 +1063,7 @@ def sync_pending_orders():
         results = service.files().list(q=query, fields='files(id, name, modifiedTime)').execute()
         files = results.get('files', [])
         
-        current_time = datetime.now(timezone.utc)
+        current_time = datetime.now(colombia_tz)
         
         if files:
             # Archivo existe, descargar y verificar expiración
@@ -1286,7 +1286,7 @@ def get_pending_orders():
         drive_data = json.loads(file_content.decode('utf-8'))
         
         # Verificar expiración
-        current_time = datetime.now(timezone.utc)
+        current_time = datetime.now(colombia_tz)
         timestamp_str = drive_data.get('timestamp', '1970-01-01T00:00:00+00:00')
         if '+' not in timestamp_str and 'Z' not in timestamp_str:
             timestamp_str += '+00:00'
@@ -1307,7 +1307,10 @@ def get_pending_orders():
         valid_orders = []
         
         for order in orders:
-            order_time = datetime.fromisoformat(order.get('timestamp', '1970-01-01T00:00:00'))
+            order_timestamp_str = order.get('timestamp', '1970-01-01T00:00:00')
+            if '+' not in order_timestamp_str and 'Z' not in order_timestamp_str:
+                order_timestamp_str += '+00:00'
+            order_time = datetime.fromisoformat(order_timestamp_str)
             hours_since_order = (current_time - order_time).total_seconds() / 3600
             if hours_since_order < 18:
                 valid_orders.append(order)
@@ -1336,7 +1339,7 @@ def cleanup_expired_orders():
             return jsonify({'success': False, 'error': 'Token de acceso requerido'}), 400
         
         service = get_google_drive_service_oauth(access_token)
-        current_time = datetime.now(timezone.utc)
+        current_time = datetime.now(colombia_tz)
         
         # Buscar todos los archivos de sincronización
         query = "name contains 'pending_orders_sync_' and mimeType='application/json'"
