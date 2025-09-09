@@ -1115,7 +1115,7 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
     // Cálculo de totales de productos
     const totalProductos = orderItems.reduce((sum, item) => sum + (item.quantity || 0) + (item.bonus || 0), 0);
     const totalBonificados = orderItems.reduce((sum, item) => sum + (item.bonus || 0), 0);
-    const totalRegistrados = orderItems.length;
+    const totalRegistrados = orderItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
 
     // Generar serial único si no se proporciona
     const serial = serialNumber || `Pedido__${clientInfo.fecha}_${Date.now()}`;
@@ -2264,7 +2264,10 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
               (sum, item) => sum + (item.bonus || 0),
               0
             );
-            const totalRegistrados = orderItems.length;
+            const totalRegistrados = orderItems.reduce(
+              (sum, item) => sum + (item.quantity || 0),
+              0
+            );
 
             return (
               <>
