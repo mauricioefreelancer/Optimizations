@@ -2373,6 +2373,11 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
   const [showSuccessModalRecaudo, setShowSuccessModalRecaudo] = useState(false);
   const [recaudoResult, setRecaudoResult] = useState(null);
   
+  // Estados para el modal de configuración de hojas
+  const [showSheetConfigModal, setShowSheetConfigModal] = useState(false);
+  const [newVendorName, setNewVendorName] = useState('');
+  const [newSheetId, setNewSheetId] = useState('');
+  
   // Estado del formulario de recaudo
   const [recaudoData, setRecaudoData] = useState({
     fecha: getColombiaDateString(),
@@ -2389,6 +2394,49 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
     fechaCompromiso: '', // NUEVO CAMPO
     observaciones: ''
   });
+  
+  // Mapeo de vendedores a IDs de hojas de cálculo (predefinido)
+  const [vendedorSheetIds, setVendedorSheetIds] = useState({
+    // IDs reales de las hojas de cálculo para cada vendedor
+    "Nohora Triana": "1YoeopGj783aByKZIf1Nh0bx9pNUlm8IaeLHKQF-Ijkw",
+    "Alejandra Niño": "1xtBMnS1tHIQOMapQWcVP8NVhXNv2TD3L-I7tlOfRoNA",
+    "Pilar Molano": "1nvNT2ZGLnt32bJjYaEXFflJIgpbV7kmmXwG_P2Tvyqg",
+    "Jhon Prada": "1CkutfI-leD800auwrZlSvPsQRNYzuAjNB81zEV7Hkq8",
+    "Dayana Leon": "1o2cWLF6WWDzHj94q2tOJ2P3f2c22tCelvX8bEEiDfYw",
+    "Johana Salazar": "1Ua7mCtWDtOD-OqYtiGroHW9WsiPzYS1_bVuxlBhz9Vo",
+    "Ingrid Rojas": "192sAq47XTQYtkewwm-j3hueMci-LAsFDdl05J4iKJLs",
+    "Enrique Herrera": "1RjNg0qjqEn0Ri-tA-GM6mEZR6kspGp0B99MoAuyH-L0",
+    "Sebastian Torres": "1RjNg0qjqEn0Ri-tA-GM6mEZR6kspGp0B99MoAuyH-L0" // Mismo ID que Enrique Herrera (oficina compartida)
+  });
+  
+  // Lista de vendedores disponibles (para el selector)
+  const vendedoresDisponibles = Object.keys(vendedorSheetIds);
+  
+  // Función para configurar un nuevo ID de hoja para un vendedor
+  const configureVendorSheet = (vendedor, sheetId) => {
+    setVendedorSheetIds(prev => ({
+      ...prev,
+      [vendedor]: sheetId
+    }));
+    
+    // Guardar en localStorage para persistencia
+    const savedSheetIds = JSON.parse(localStorage.getItem('vendedor_sheet_ids') || '{}');
+    savedSheetIds[vendedor] = sheetId;
+    localStorage.setItem('vendedor_sheet_ids', JSON.stringify(savedSheetIds));
+    
+    console.log(`✅ Configurada hoja para ${vendedor}: ${sheetId}`);
+  };
+  
+  // Cargar IDs de hojas guardados al iniciar
+  useEffect(() => {
+    // Combinar los IDs predefinidos con los guardados en localStorage
+    const savedSheetIds = JSON.parse(localStorage.getItem('vendedor_sheet_ids') || '{}');
+    setVendedorSheetIds(prev => ({
+      ...prev,
+      ...savedSheetIds
+    }));
+    console.log('📋 IDs de hojas cargados:', savedSheetIds);
+  }, []);
 
   // Función de autenticación OAuth 2.0 (reutilizada del PedidoForm)
   const authenticateWithGoogle = async () => {
@@ -2803,8 +2851,26 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
       
       console.log('📤 Enviando datos de recaudo...');
       
-      // ID de tu hoja de cálculo de Google Drive
-      const SPREADSHEET_ID = '1LegnA-Ew5vW44iG66xoyE5pKISkd76hYqDZcJ4WyEeo';
+      // Obtener el ID de hoja específico para el vendedor o usar el ID por defecto
+      const vendedor = recaudoEntry.asesor;
+      let SPREADSHEET_ID;
+      
+      if (vendedorSheetIds[vendedor] && vendedorSheetIds[vendedor].startsWith("ID_HOJA_")) {
+        // Si el ID aún tiene el formato placeholder, mostrar un mensaje de error
+        setIsSubmitting(false);
+        setAuthErrorMessage(`La hoja de cálculo para el vendedor "${vendedor}" aún no ha sido configurada con un ID real. Por favor, contacte al administrador para actualizar el ID.`);
+        setShowAuthErrorModal(true);
+        return;
+      } else if (vendedorSheetIds[vendedor]) {
+        SPREADSHEET_ID = vendedorSheetIds[vendedor];
+        console.log(`🔄 Usando hoja específica para vendedor ${vendedor}: ${SPREADSHEET_ID}`);
+      } else {
+        // Si no hay un ID específico para este vendedor, mostrar un mensaje de error
+        setIsSubmitting(false);
+        setAuthErrorMessage(`No se ha configurado una hoja de cálculo para el vendedor "${vendedor}". Por favor, contacte al administrador.`);
+        setShowAuthErrorModal(true);
+        return;
+      }
       
       // Llamada al endpoint para agregar fila al XLSX
       const response = await fetch(`${API_BASE_URL}/append-to-recaudo-sheet`, {
@@ -2814,6 +2880,7 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
         },
         body: JSON.stringify({
           access_token: accessToken,
+          spreadsheetId: SPREADSHEET_ID,
           fecha: recaudoEntry.fecha,
           tipoCliente: recaudoEntry.tipoCliente,
           vendedor: recaudoEntry.asesor,
@@ -3249,8 +3316,121 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
             <strong>📋 Información:</strong> Los datos se guardarán automáticamente en el archivo XLSX de Google Drive. 
             Todos los registros quedan almacenados de forma permanente para generar reportes y análisis.
           </p>
+          <div className="mt-2 flex justify-end">
+            <button
+              onClick={() => setShowSheetConfigModal(true)}
+              className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
+            >
+              ⚙️ Configurar Hojas por Vendedor
+            </button>
+          </div>
         </div>
       </div>
+      
+      {/* Modal de Configuración de Hojas por Vendedor */}
+      {showSheetConfigModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-5">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">
+                ⚙️ Configurar Hojas por Vendedor
+              </h3>
+              
+              <div className="mb-4 bg-yellow-50 p-3 rounded-md border-l-4 border-yellow-400">
+                <p className="text-sm text-yellow-800">
+                  <strong>Instrucciones:</strong> Selecciona un vendedor de la lista y actualiza su ID de hoja de Google. 
+                  Los IDs actuales son placeholders y deben ser reemplazados con los IDs reales.
+                </p>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Seleccionar Vendedor:
+                </label>
+                <select
+                  value={newVendorName}
+                  onChange={(e) => setNewVendorName(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Seleccionar vendedor...</option>
+                  {Object.keys(vendedorSheetIds).map(vendedor => (
+                    <option key={vendedor} value={vendedor}>
+                      {vendedor}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ID de Hoja de Google:
+                </label>
+                <input
+                  type="text"
+                  value={newSheetId}
+                  onChange={(e) => setNewSheetId(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  placeholder="Ej: 1LegnA-Ew5vW44iG66xoyE5pKISkd76hYqDZcJ4WyEeo"
+                />
+                {newVendorName && vendedorSheetIds[newVendorName] && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    ID actual: <span className={vendedorSheetIds[newVendorName].startsWith("ID_HOJA_") ? "text-red-500" : "text-green-600"}>
+                      {vendedorSheetIds[newVendorName]}
+                    </span>
+                    {vendedorSheetIds[newVendorName].startsWith("ID_HOJA_") && (
+                      <span className="ml-1 text-red-500">(Necesita actualización)</span>
+                    )}
+                  </p>
+                )}
+              </div>
+              
+              <div className="mb-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Estado de Configuración:</h4>
+                <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-2">
+                  {Object.entries(vendedorSheetIds).map(([vendedor, sheetId]) => (
+                    <div key={vendedor} className="flex justify-between items-center py-1 border-b border-gray-100">
+                      <span className="text-sm font-medium">{vendedor}</span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        sheetId.startsWith("ID_HOJA_") 
+                          ? "bg-red-100 text-red-800" 
+                          : "bg-green-100 text-green-800"
+                      }`}>
+                        {sheetId.startsWith("ID_HOJA_") ? "Pendiente" : "Configurado"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex justify-between">
+                <button
+                  onClick={() => setShowSheetConfigModal(false)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                >
+                  Cerrar
+                </button>
+                <button
+                  onClick={() => {
+                    if (newVendorName.trim() && newSheetId.trim()) {
+                      configureVendorSheet(newVendorName.trim(), newSheetId.trim());
+                      setNewSheetId('');
+                      // No limpiamos el nombre del vendedor para facilitar configuraciones consecutivas
+                    }
+                  }}
+                  disabled={!newVendorName.trim() || !newSheetId.trim()}
+                  className={`px-4 py-2 rounded-md ${
+                    newVendorName.trim() && newSheetId.trim()
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  Actualizar ID
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Modal de Éxito para RecaudoForm */}
       {showSuccessModalRecaudo && recaudoResult && (
