@@ -820,7 +820,8 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
     "Johana Salazar",
     "Ingrid Rojas",
     "Enrique Herrera",
-    "Sebastian Torres"
+    "Sebastian Torres",
+    "Jenny Gonzalez"
   ];
 
   const [clientInfo, setClientInfo] = useState({
