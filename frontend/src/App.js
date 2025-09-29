@@ -49,7 +49,8 @@ const SELLERS = [
   "Johana Salazar",
   "Ingrid Rojas",
   "Enrique Herrera",
-  "Sebastian Torres"
+  "Sebastian Torres",
+  "Jenny Gonzalez"
 ];
 
 // Datos de productos consolidados de los archivos CSV.
@@ -2406,7 +2407,8 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
     "Johana Salazar": "1Ua7mCtWDtOD-OqYtiGroHW9WsiPzYS1_bVuxlBhz9Vo",
     "Ingrid Rojas": "192sAq47XTQYtkewwm-j3hueMci-LAsFDdl05J4iKJLs",
     "Enrique Herrera": "1RjNg0qjqEn0Ri-tA-GM6mEZR6kspGp0B99MoAuyH-L0",
-    "Sebastian Torres": "1RjNg0qjqEn0Ri-tA-GM6mEZR6kspGp0B99MoAuyH-L0" // Mismo ID que Enrique Herrera (oficina compartida)
+    "Sebastian Torres": "1RjNg0qjqEn0Ri-tA-GM6mEZR6kspGp0B99MoAuyH-L0", // Mismo ID que Enrique Herrera (oficina compartida)
+    "Jenny Gonzalez": "1RjNg0qjqEn0Ri-tA-GM6mEZR6kspGp0B99MoAuyH-L0" // Mismo ID que Enrique Herrera y Sebastian Torres (oficina compartida)
   });
   
   // Lista de vendedores disponibles (para el selector)
@@ -3121,6 +3123,7 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
                 <option value="Ingrid Rojas">Ingrid Rojas</option>
                 <option value="Enrique Herrera">Enrique Herrera</option>
                 <option value="Sebastian Torres">Sebastian Torres</option>
+                <option value="Jenny Gonzalez">Jenny Gonzalez</option>
               </select>
             </div>
 
