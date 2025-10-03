@@ -1,4 +1,13 @@
 import React, { useState, useEffect } from "react";
+import { 
+  VENDOR_CONFIG, 
+  isVendorAuthorized, 
+  getVendorZone, 
+  verifyMasterPassword, 
+  getAuthorizedVendorsList,
+  getAllVendorsList,
+  isVendorInSystem
+} from "./authorized_vendors";
 
 // Define la URL base de tu backend
 const API_BASE_URL = "https://optimizations-c6pm.onrender.com";
@@ -810,7 +819,7 @@ const ExcelAnalyser = ({ onReturnToMenu }) => {
 };
 
 // Componente para la funcionalidad de Llenado de Toma de Pedido
-const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete, isIntegratedMode = false, onViewOrders = null, currentOrderId = null }) => {
+const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete, isIntegratedMode = false, onViewOrders = null, currentOrderId = null, prefilledVendor = "", prefilledZone = "" }) => {
   const SELLERS = [
     "Nohora Triana",
     "Alejandra Niño",
@@ -828,7 +837,7 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
     fecha: getColombiaDateString(),
     cliente: prefilledClientName || "",
     nit: "",
-    vendedor: "",
+    vendedor: prefilledVendor || "",
     contado: "X",
     credito: "",
     direccion: "",
@@ -839,17 +848,17 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
     correo: "",
     ordenSalida: "facturado",
     observaciones: "",
-    zone: "",
+    zone: prefilledZone || "",
     barrio: "",
   });
 
   // Nuevo estado para validación en tiempo real
   const [fieldValidation, setFieldValidation] = useState({
-    zone: false,
+    zone: prefilledZone ? true : false,
     direccion: false,
     barrio: false,
     correo: false,
-    vendedor: false,
+    vendedor: prefilledVendor ? true : false,
     cliente: prefilledClientName ? true : false,
     nit: false
   });
@@ -861,6 +870,22 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
       setFieldValidation(prev => ({ ...prev, cliente: true }));
     }
   }, [prefilledClientName]);
+
+  // Efecto para manejar los datos pre-llenados de vendedor y zona
+  React.useEffect(() => {
+    if (prefilledVendor || prefilledZone) {
+      setClientInfo(prev => ({
+        ...prev,
+        vendedor: prefilledVendor || prev.vendedor,
+        zone: prefilledZone || prev.zone
+      }));
+      setFieldValidation(prev => ({
+        ...prev,
+        vendedor: prefilledVendor ? true : prev.vendedor,
+        zone: prefilledZone ? true : prev.zone
+      }));
+    }
+  }, [prefilledVendor, prefilledZone]);
 
   // Función para validar un campo específico
   const validateField = (fieldName, value, ordenSalida = clientInfo.ordenSalida) => {
@@ -1914,19 +1939,25 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Vendedor: *
+                Vendedor: * {prefilledVendor && <span className="text-green-600 text-xs">(Pre-asignado)</span>}
               </label>
-              <select
-                name="vendedor"
-                value={clientInfo.vendedor}
-                onChange={handleClientInfoChange}
-                className={getFieldClasses('vendedor', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
-              >
-                <option value="">Seleccione un vendedor</option>
-                {SELLERS.map((seller) => (
-                  <option key={seller} value={seller}>{seller}</option>
-                ))}
-              </select>
+              {prefilledVendor ? (
+                <div className="p-2 border border-green-300 rounded-md bg-green-50 text-green-800 font-medium">
+                  🔒 {clientInfo.vendedor}
+                </div>
+              ) : (
+                <select
+                  name="vendedor"
+                  value={clientInfo.vendedor}
+                  onChange={handleClientInfoChange}
+                  className={getFieldClasses('vendedor', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
+                >
+                  <option value="">Seleccione un vendedor</option>
+                  {SELLERS.map((seller) => (
+                    <option key={seller} value={seller}>{seller}</option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
@@ -2035,19 +2066,25 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
-                Zona: *
+                Zona: * {prefilledZone && <span className="text-green-600 text-xs">(Pre-asignada)</span>}
               </label>
-              <select
-                name="zone"
-                value={clientInfo.zone}
-                onChange={handleClientInfoChange}
-                className={getFieldClasses('zone', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
-              >
-                <option value="">Seleccione una zona</option>
-                {ZONES.map((zone) => (
-                  <option key={zone} value={zone}>{zone}</option>
-                ))}
-              </select>
+              {prefilledZone ? (
+                <div className="p-2 border border-green-300 rounded-md bg-green-50 text-green-800 font-medium">
+                  🔒 {clientInfo.zone}
+                </div>
+              ) : (
+                <select
+                  name="zone"
+                  value={clientInfo.zone}
+                  onChange={handleClientInfoChange}
+                  className={getFieldClasses('zone', 'p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500')}
+                >
+                  <option value="">Seleccione una zona</option>
+                  {ZONES.map((zone) => (
+                    <option key={zone} value={zone}>{zone}</option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-600 mb-1">
@@ -2355,6 +2392,195 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
           </button>
 
         </div>
+      </div>
+    </div>
+  );
+};
+
+// Componente para la verificación de vendedores autorizados
+const VendorAuthModal = ({ onVendorAuthenticated, onCancel }) => {
+  const [selectedVendor, setSelectedVendor] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [showUnauthorizedMessage, setShowUnauthorizedMessage] = useState(false);
+
+  const handleVendorChange = (e) => {
+    const vendor = e.target.value;
+    setSelectedVendor(vendor);
+    setError("");
+    setShowUnauthorizedMessage(false);
+
+    // Si el vendedor no está autorizado, mostrar mensaje inmediatamente
+    if (vendor && !isVendorAuthorized(vendor)) {
+      setShowUnauthorizedMessage(true);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    // Validar que se haya seleccionado un vendedor
+    if (!selectedVendor) {
+      setError("Por favor seleccione su nombre");
+      setIsLoading(false);
+      return;
+    }
+
+    // Si el vendedor no está autorizado, no procesar
+    if (!isVendorAuthorized(selectedVendor)) {
+      setIsLoading(false);
+      return;
+    }
+
+    // Validar que se haya ingresado la clave
+    if (!password) {
+      setError("Por favor ingrese la clave de acceso");
+      setIsLoading(false);
+      return;
+    }
+
+    // Verificar la clave maestra
+    if (!verifyMasterPassword(password)) {
+      setError("Clave de acceso incorrecta");
+      setIsLoading(false);
+      return;
+    }
+
+    // Si todo está correcto, obtener la zona y autenticar
+    const vendorZone = getVendorZone(selectedVendor);
+    
+    setTimeout(() => {
+      setIsLoading(false);
+      onVendorAuthenticated({
+        vendorName: selectedVendor,
+        vendorZone: vendorZone
+      });
+    }, 500); // Pequeña pausa para mostrar el loading
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            🔐 Verificación de Vendedor
+          </h2>
+          <p className="text-gray-600">
+            Ingrese sus credenciales para acceder al sistema de pedidos
+          </p>
+        </div>
+
+        {!showUnauthorizedMessage ? (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Selector de Vendedor */}
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-700 mb-2">
+                Seleccione su nombre: *
+              </label>
+              <select
+                value={selectedVendor}
+                onChange={handleVendorChange}
+                className="p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                disabled={isLoading}
+              >
+                <option value="">-- Seleccione su nombre --</option>
+                {getAllVendorsList().map((vendor) => (
+                  <option key={vendor} value={vendor}>
+                    {vendor} {isVendorAuthorized(vendor) ? "✅" : "❌"}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Campo de Clave - Solo para vendedores autorizados */}
+            {selectedVendor && isVendorAuthorized(selectedVendor) && (
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-700 mb-2">
+                  Clave de acceso: *
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Ingrese la clave de acceso"
+                  className="p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                  disabled={isLoading}
+                />
+              </div>
+            )}
+
+            {/* Mostrar zona asignada si hay vendedor seleccionado */}
+            {selectedVendor && (
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  <strong>Zona asignada:</strong> {getVendorZone(selectedVendor)}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  {isVendorAuthorized(selectedVendor) ? "✅ Autorizado" : "❌ No autorizado"}
+                </p>
+              </div>
+            )}
+
+            {/* Mensaje de error */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-red-700 text-sm">{error}</p>
+              </div>
+            )}
+
+            {/* Botones */}
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="flex-1 bg-gray-500 text-white py-3 px-4 rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                disabled={isLoading}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-blue-400"
+                disabled={isLoading || !selectedVendor || !isVendorAuthorized(selectedVendor)}
+              >
+                {isLoading ? "Verificando..." : "Ingresar"}
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* Mensaje para vendedores no autorizados */
+          <div className="space-y-4">
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <div className="flex items-center mb-3">
+                <span className="text-2xl mr-2">⚠️</span>
+                <h3 className="text-lg font-semibold text-orange-800">
+                  Acceso No Autorizado
+                </h3>
+              </div>
+              <p className="text-orange-700 mb-3">
+                Señor <strong>{selectedVendor}</strong> de la <strong>{getVendorZone(selectedVendor)}</strong>, 
+                no tiene autorizado llenar el toma pedido sin hacer el registro en su gestión diaria del vendedor.
+              </p>
+              <p className="text-sm text-orange-600">
+                Por favor contacte con su supervisor para obtener los permisos necesarios.
+              </p>
+            </div>
+
+            {/* Botón para volver al menú */}
+            <div className="flex justify-center pt-4">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Volver al Menú Principal
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -4519,13 +4745,41 @@ const GestionDiariaVendedor = ({ onReturnToMenu }) => {
 // Componente principal que maneja el menú y la renderización condicional
 const App = () => {
   const [currentView, setCurrentView] = useState("menu");
+  const [showVendorAuth, setShowVendorAuth] = useState(false);
+  const [authenticatedVendor, setAuthenticatedVendor] = useState(null);
+
+  const handleVendorAuthenticated = (vendorData) => {
+    setAuthenticatedVendor(vendorData);
+    setShowVendorAuth(false);
+    setCurrentView("pedido");
+  };
+
+  const handleCancelVendorAuth = () => {
+    setShowVendorAuth(false);
+    setCurrentView("menu");
+  };
+
+  const handlePedidoClick = () => {
+    setShowVendorAuth(true);
+  };
+
+  const handleReturnToMenu = () => {
+    setCurrentView("menu");
+    setAuthenticatedVendor(null); // Limpiar autenticación al regresar
+  };
 
   const renderCurrentView = () => {
     switch (currentView) {
       case "excel":
         return <ExcelAnalyser onReturnToMenu={() => setCurrentView("menu")} />;
       case "pedido":
-        return <PedidoForm onReturnToMenu={() => setCurrentView("menu")} />;
+        return (
+          <PedidoForm 
+            onReturnToMenu={handleReturnToMenu}
+            prefilledVendor={authenticatedVendor?.vendorName}
+            prefilledZone={authenticatedVendor?.vendorZone}
+          />
+        );
       case "recaudo":
         return <RecaudoForm onReturnToMenu={() => setCurrentView("menu")} />;
       case "gestion":
@@ -4550,7 +4804,7 @@ const App = () => {
                 </button>
                 
                 <button
-                  onClick={() => setCurrentView("pedido")}
+                  onClick={handlePedidoClick}
                   className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-medium"
                 >
                   📝 Llenado de Pedido
@@ -4569,7 +4823,17 @@ const App = () => {
     }
   };
 
-  return renderCurrentView();
+  return (
+    <>
+      {renderCurrentView()}
+      {showVendorAuth && (
+        <VendorAuthModal
+          onVendorAuthenticated={handleVendorAuthenticated}
+          onCancel={handleCancelVendorAuth}
+        />
+      )}
+    </>
+  );
 };
 
 export default App;
