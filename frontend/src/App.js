@@ -2562,7 +2562,7 @@ const VendorAuthModal = ({ onVendorAuthenticated, onCancel }) => {
                 </h3>
               </div>
               <p className="text-orange-700 mb-3">
-                Señor <strong>{selectedVendor}</strong> de la <strong>{getVendorZone(selectedVendor)}</strong>, 
+                Señor(a) <strong>{selectedVendor}</strong> de la zona <strong>{getVendorZone(selectedVendor)}</strong>, 
                 no tiene autorizado llenar el toma pedido sin hacer el registro en su gestión diaria del vendedor.
               </p>
               <p className="text-sm text-orange-600">
