@@ -86,7 +86,8 @@ ZONE_FOLDER_MAPPING = {
     "Kennedy": "1pNweDshOpW6B1ZZXCY5HnItH7ScEnVlP",
     "Fontibon": "14uzyTwVy1codpnqbUEYoRLvx6xtCHavZ",
     "Costa Atlantica": "1KCguGNzgqg_rb4VOkqBYxLIYtiMsQ1Rn",
-    "Oficina": "14h87NczLeUH-wm9F9lI9ehmZ1EZP0W8f"
+    "Oficina": "14h87NczLeUH-wm9F9lI9ehmZ1EZP0W8f",
+    "Periferia": "1Y0klFdVbCoXqB--S1ldJt1i8o7TpyvuQ"
 }
 
 # Variable global para almacenar los datos del archivo Excel en memoria.

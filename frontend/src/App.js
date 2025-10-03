@@ -46,7 +46,8 @@ const ZONES = [
   "Kennedy",
   "Fontibon",
   "Costa Atlantica",
-  "Oficina"
+  "Oficina",
+  "Periferia",
 ];
 
 const SELLERS = [
