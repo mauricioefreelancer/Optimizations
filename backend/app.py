@@ -570,18 +570,12 @@ def upload_to_drive_oauth():
                     "method": "Service Account"
                 }), 200
             else:
-                # Guardar localmente como último recurso
-                print(f"⚠️ Ambos métodos fallaron, guardando localmente...")
-                local_path = save_html_locally(html_content, pdf_filename, zone)
-                
+                # Ambos métodos fallaron - no hay guardado local para mantener consistencia
+                print(f"❌ Ambos métodos de Google Drive fallaron")
                 return jsonify({
-                    "success": True,
-                    "message": f"Pedido guardado localmente en {local_path}",
-                    "filename": pdf_filename,
-                    "zone": zone,
-                    "local_path": local_path,
-                    "method": "Local Storage"
-                }), 200
+                    "error": "No se pudo subir el archivo a Google Drive. Ambos métodos (Service Account y OAuth) fallaron.",
+                    "details": "Verifique la configuración de Google Drive y los permisos."
+                }), 500
         
     except Exception as e:
         print(f"❌ Error en upload_to_drive_oauth: {e}")
@@ -665,8 +659,11 @@ def upload_file_to_drive_oauth(file_content, filename, folder_id, access_token):
             file_stream = io.BytesIO(file_content)
         else:
             mimetype = 'text/html'
-            # Para HTML, convertir string a bytes
-            file_stream = io.BytesIO(file_content.encode('utf-8'))
+            # Para HTML, verificar si ya son bytes o string
+            if isinstance(file_content, bytes):
+                file_stream = io.BytesIO(file_content)
+            else:
+                file_stream = io.BytesIO(file_content.encode('utf-8'))
         
         media = MediaIoBaseUpload(file_stream, mimetype=mimetype, resumable=False)
         
