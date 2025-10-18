@@ -25,12 +25,13 @@ export const VENDOR_CONFIG = {
     "Jenny Gonzalez": "Oficina",
     "Nohora Triana": "Soacha",
     "Alejandra Niño": "Suba", 
-    "Pilar Molano Eng": "Engativa",
-    "Pilar Molano Fon": "Fontivon",
+    "Mariela Betancur Eng": "Engativa",
+    "Mariela Betancur Fon": "Fontivon",
     "Jhon Prada": "Usme",
     "Dayana Leon CB": "Ciudad Bolivar",
     "Dayana Leon Per": "Periferia",
     "Johana Salazar": "Kennedy",
+    "Pilar Castrillo": "Centro"
   }
 };
 

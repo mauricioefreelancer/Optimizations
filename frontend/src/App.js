@@ -48,19 +48,21 @@ const ZONES = [
   "Costa Atlantica",
   "Oficina",
   "Periferia",
+  "Centro",
 ];
 
 const SELLERS = [
   "Nohora Triana",
   "Alejandra Niño",
-  "Pilar Molano",
+  "Mariela Betancur",
   "Jhon Prada",
   "Dayana Leon",
   "Johana Salazar",
   "Ingrid Rojas",
   "Enrique Herrera",
   "Sebastian Torres",
-  "Jenny Gonzalez"
+  "Jenny Gonzalez",
+  "Pilar Castrillo"
 ];
 
 // Datos de productos consolidados de los archivos CSV.
@@ -824,14 +826,15 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
   const SELLERS = [
     "Nohora Triana",
     "Alejandra Niño",
-    "Pilar Molano",
+    "Mariela Betancur",
     "Jhon Prada",
     "Dayana Leon",
     "Johana Salazar",
     "Ingrid Rojas",
     "Enrique Herrera",
     "Sebastian Torres",
-    "Jenny Gonzalez"
+    "Jenny Gonzalez",
+    "Pilar Castrillo"
   ];
 
   const [clientInfo, setClientInfo] = useState({
@@ -2629,14 +2632,15 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
     // IDs reales de las hojas de cálculo para cada vendedor
     "Nohora Triana": "1YoeopGj783aByKZIf1Nh0bx9pNUlm8IaeLHKQF-Ijkw",
     "Alejandra Niño": "1xtBMnS1tHIQOMapQWcVP8NVhXNv2TD3L-I7tlOfRoNA",
-    "Pilar Molano": "1nvNT2ZGLnt32bJjYaEXFflJIgpbV7kmmXwG_P2Tvyqg",
+    "Mariela Betancur": "1nvNT2ZGLnt32bJjYaEXFflJIgpbV7kmmXwG_P2Tvyqg",
     "Jhon Prada": "1CkutfI-leD800auwrZlSvPsQRNYzuAjNB81zEV7Hkq8",
     "Dayana Leon": "1o2cWLF6WWDzHj94q2tOJ2P3f2c22tCelvX8bEEiDfYw",
     "Johana Salazar": "1Ua7mCtWDtOD-OqYtiGroHW9WsiPzYS1_bVuxlBhz9Vo",
     "Ingrid Rojas": "192sAq47XTQYtkewwm-j3hueMci-LAsFDdl05J4iKJLs",
     "Enrique Herrera": "1RjNg0qjqEn0Ri-tA-GM6mEZR6kspGp0B99MoAuyH-L0",
     "Sebastian Torres": "1RjNg0qjqEn0Ri-tA-GM6mEZR6kspGp0B99MoAuyH-L0", // Mismo ID que Enrique Herrera (oficina compartida)
-    "Jenny Gonzalez": "1RjNg0qjqEn0Ri-tA-GM6mEZR6kspGp0B99MoAuyH-L0" // Mismo ID que Enrique Herrera y Sebastian Torres (oficina compartida)
+    "Jenny Gonzalez": "1RjNg0qjqEn0Ri-tA-GM6mEZR6kspGp0B99MoAuyH-L0", // Mismo ID que Enrique Herrera y Sebastian Torres (oficina compartida)
+    "Pilar Castrillo": "1WQEJLoVHurF9rfzscKo3LQqdKw3AGGL7jA-9oXQ7CyE"
   });
   
   // Lista de vendedores disponibles (para el selector)
@@ -2661,6 +2665,15 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
   useEffect(() => {
     // Combinar los IDs predefinidos con los guardados en localStorage
     const savedSheetIds = JSON.parse(localStorage.getItem('vendedor_sheet_ids') || '{}');
+
+    // Migrar clave antigua a nueva si existe
+    if (savedSheetIds["Pilar Molano"] && !savedSheetIds["Mariela Betancur"]) {
+      savedSheetIds["Mariela Betancur"] = savedSheetIds["Pilar Molano"];
+      delete savedSheetIds["Pilar Molano"];
+      localStorage.setItem('vendedor_sheet_ids', JSON.stringify(savedSheetIds));
+      console.log("🔁 Migrada hoja de 'Pilar Molano' a 'Mariela Betancur'");
+    }
+
     setVendedorSheetIds(prev => ({
       ...prev,
       ...savedSheetIds
@@ -3344,7 +3357,7 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
                 <option value="">Seleccione un asesor/vendedor</option>
                 <option value="Nohora Triana">Nohora Triana</option>
                 <option value="Alejandra Niño">Alejandra Niño</option>
-                <option value="Pilar Molano">Pilar Molano</option>
+                <option value="Mariela Betancur">Mariela Betancur</option>
                 <option value="Jhon Prada">Jhon Prada</option>
                 <option value="Dayana Leon">Dayana Leon</option>
                 <option value="Johana Salazar">Johana Salazar</option>
@@ -3352,6 +3365,7 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
                 <option value="Enrique Herrera">Enrique Herrera</option>
                 <option value="Sebastian Torres">Sebastian Torres</option>
                 <option value="Jenny Gonzalez">Jenny Gonzalez</option>
+                <option value="Pilar Castrillo">Pilar Castrillo</option>
               </select>
             </div>
 
