@@ -569,8 +569,15 @@ const PRODUCT_DATA = {
         }
       ]
     },
+    "SHOTS Y BOOSTER MOLECULARES": [
+      { cod: "NC261", description: "SHOT MOLECULAR CÉLULAS MADRE CAJA X 10 UND x 10ml", unitPrice: 84000 },
+      { cod: "NC262", description: "SHOT MOLECULAR SELLANTE DE CUTÍCULA CAJA X 10 UND x 10ml", unitPrice: 84000 },
+      { cod: "NC263", description: "SHOT MOLECULAR ENERGY FORTALECIMIENTO CAJA X 10 UND x 10ml", unitPrice: 84000 },
+      { cod: "NC264", description: "SHOT MOLECULAR LAMINADO TERMOPROTECCIÓN CAJA X 10 UND x 10ml", unitPrice: 84000 },
+      { cod: "NC265", description: "BOOSTER PLEX MOLECULAR 5G CAJA X 10 UND x 20ml", unitPrice: 100000 }
+    ]
   },
-
+  
   // Función auxiliar para obtener todos los productos en un array plano (para compatibilidad con código existente)
   getAllProducts: function () {
     let allProducts = [];
