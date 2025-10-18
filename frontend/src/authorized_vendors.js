@@ -4,7 +4,7 @@
 export const VENDOR_CONFIG = {
   // Clave única para todos los vendedores autorizados
   // CAMBIAR ESTA CLAVE CUANDO SEA NECESARIO
-  masterPassword: "naturalcolors2024",
+  masterPassword: "naturalcolors2025*",
   
   // Vendedores autorizados y sus zonas asignadas
   // Para agregar un vendedor: añadir línea con "NOMBRE": "ZONA"
