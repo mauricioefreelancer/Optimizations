@@ -62,7 +62,7 @@ const SELLERS = [
   "Enrique Herrera",
   "Sebastian Torres",
   "Jenny Gonzalez",
-  "Pilar Castrillo"
+  "Pilar Castrillon"
 ];
 
 // Datos de productos consolidados de los archivos CSV.
@@ -2647,7 +2647,7 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
     "Enrique Herrera": "1RjNg0qjqEn0Ri-tA-GM6mEZR6kspGp0B99MoAuyH-L0",
     "Sebastian Torres": "1RjNg0qjqEn0Ri-tA-GM6mEZR6kspGp0B99MoAuyH-L0", // Mismo ID que Enrique Herrera (oficina compartida)
     "Jenny Gonzalez": "1RjNg0qjqEn0Ri-tA-GM6mEZR6kspGp0B99MoAuyH-L0", // Mismo ID que Enrique Herrera y Sebastian Torres (oficina compartida)
-    "Pilar Castrillo": "1WQEJLoVHurF9rfzscKo3LQqdKw3AGGL7jA-9oXQ7CyE"
+    "Pilar Castrillon": "1WQEJLoVHurF9rfzscKo3LQqdKw3AGGL7jA-9oXQ7CyE"
   });
   
   // Lista de vendedores disponibles (para el selector)
@@ -2679,6 +2679,14 @@ const RecaudoForm = ({ onReturnToMenu, isIntegratedMode = false, onSaveForLater 
       delete savedSheetIds["Pilar Molano"];
       localStorage.setItem('vendedor_sheet_ids', JSON.stringify(savedSheetIds));
       console.log("🔁 Migrada hoja de 'Pilar Molano' a 'Mariela Betancur'");
+    }
+
+    // Migrar cambio de nombre: 'Pilar Castrillo' -> 'Pilar Castrillon'
+    if (savedSheetIds["Pilar Castrillo"] && !savedSheetIds["Pilar Castrillon"]) {
+      savedSheetIds["Pilar Castrillon"] = savedSheetIds["Pilar Castrillo"];
+      delete savedSheetIds["Pilar Castrillo"];
+      localStorage.setItem('vendedor_sheet_ids', JSON.stringify(savedSheetIds));
+      console.log("🔁 Migrada hoja de 'Pilar Castrillo' a 'Pilar Castrillon'");
     }
 
     setVendedorSheetIds(prev => ({

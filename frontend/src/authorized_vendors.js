@@ -31,7 +31,7 @@ export const VENDOR_CONFIG = {
     "Dayana Leon CB": "Ciudad Bolivar",
     "Dayana Leon Per": "Periferia",
     "Johana Salazar": "Kennedy",
-    "Pilar Castrillo": "Centro"
+    "Pilar Castrillon": "Centro"
   }
 };
 
