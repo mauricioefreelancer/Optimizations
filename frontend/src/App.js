@@ -11,6 +11,7 @@ import {
 
 // Define la URL base de tu backend
 const API_BASE_URL = "https://optimizations-c6pm.onrender.com";
+const FRONTEND_DISABLED = true;
 
 // Utilidad para manejar fechas con zona horaria de Colombia
 const getColombiaDateTime = () => {
@@ -1670,6 +1671,12 @@ const PedidoForm = ({ onReturnToMenu, prefilledClientName = "", onOrderComplete,
                 <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
+              </div>
+              <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex items-center justify-center">
+                <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg border border-red-200 text-center">
+                  <h1 className="text-2xl font-bold text-red-700 mb-3">Aviso</h1>
+                  <p className="text-red-700 text-lg font-semibold">Toma de pedidos inhabilitada. Intenta más tarde.</p>
+                </div>
               </div>
               
               <h3 className="text-lg font-medium text-gray-900 mb-4">
@@ -4777,6 +4784,7 @@ const App = () => {
   const [currentView, setCurrentView] = useState("menu");
   const [showVendorAuth, setShowVendorAuth] = useState(false);
   const [authenticatedVendor, setAuthenticatedVendor] = useState(null);
+  const [isDisabled, setIsDisabled] = useState(FRONTEND_DISABLED);
 
   const handleVendorAuthenticated = (vendorData) => {
     setAuthenticatedVendor(vendorData);
@@ -4827,22 +4835,25 @@ const App = () => {
               
               <nav className="space-y-4">
                 <button
-                  onClick={() => setCurrentView("gestion")}
-                  className="w-full bg-orange-600 text-white py-3 px-6 rounded-lg hover:bg-orange-700 transition-colors font-medium"
+                  onClick={isDisabled ? undefined : () => setCurrentView("gestion")}
+                  disabled={isDisabled}
+                  className={`${isDisabled ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-60' : 'bg-orange-600 text-white hover:bg-orange-700'} w-full py-3 px-6 rounded-lg transition-colors font-medium`}
                 >
                   🏢 Gestión Diaria del Vendedor
                 </button>
                 
                 <button
-                  onClick={handlePedidoClick}
-                  className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                  onClick={isDisabled ? undefined : handlePedidoClick}
+                  disabled={isDisabled}
+                  className={`${isDisabled ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-60' : 'bg-green-600 text-white hover:bg-green-700'} w-full py-3 px-6 rounded-lg transition-colors font-medium`}
                 >
                   📝 Llenado de Pedido
                 </button>
                 
                 <button
-                  onClick={() => setCurrentView("excel")}
-                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  onClick={isDisabled ? undefined : () => setCurrentView("excel")}
+                  disabled={isDisabled}
+                  className={`${isDisabled ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-60' : 'bg-blue-600 text-white hover:bg-blue-700'} w-full py-3 px-6 rounded-lg transition-colors font-medium`}
                 >
                   📊 Analizar Excel
                 </button>
@@ -4855,6 +4866,14 @@ const App = () => {
 
   return (
     <>
+      {isDisabled && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg border border-red-200 text-center">
+            <h1 className="text-2xl font-bold text-red-700 mb-3">Aviso</h1>
+                  <p className="text-red-700 text-lg font-semibold">Toma de pedidos inhabilitada. Esperando respuesta...</p>
+          </div>
+        </div>
+      )}
       {renderCurrentView()}
       {showVendorAuth && (
         <VendorAuthModal
