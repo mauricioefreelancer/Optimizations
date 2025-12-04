@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { getSyncConfig, setSyncConfig, pullEntries, pushEntries, mergeEntries } from './sync.js'
 
 const STORAGE_KEY = 'finanzas_entries_v1'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 const types = [
   { key:'ingreso', label:'Ingresos' },
   { key:'gasto', label:'Gastos' },
@@ -13,16 +14,32 @@ const types = [
 function useEntries() {
   const [entries, setEntries] = useState([])
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) setEntries(JSON.parse(raw))
-    } catch {}
+    const load = async () => {
+      if (API_BASE_URL) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/entries`)
+          if (res.ok) { setEntries(await res.json()); return }
+        } catch {}
+      }
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        if (raw) setEntries(JSON.parse(raw))
+      } catch {}
+    }
+    load()
   }, [])
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)) } catch {}
   }, [entries])
-  const add = e => setEntries(prev => [{ id:crypto.randomUUID(), ...e }, ...prev])
-  const remove = id => setEntries(prev => prev.filter(x => x.id !== id))
+  const add = async e => {
+    const entry = { id:crypto.randomUUID(), ...e }
+    setEntries(prev => [entry, ...prev])
+    if (API_BASE_URL) { try { await fetch(`${API_BASE_URL}/api/entries`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(entry) }) } catch {} }
+  }
+  const remove = async id => {
+    setEntries(prev => prev.filter(x => x.id !== id))
+    if (API_BASE_URL) { try { await fetch(`${API_BASE_URL}/api/entries/${id}`, { method:'DELETE' }) } catch {} }
+  }
   const clear = () => setEntries([])
   return { entries, add, remove, clear }
 }
@@ -35,7 +52,6 @@ export default function App() {
   const [tab, setTab] = useState('ingreso')
   const [form, setForm] = useState({ amount:'', date:todayStr(), note:'', who:'', category:'' })
   const [reportPeriod, setReportPeriod] = useState('mensual')
-  const [sync, setSync] = useState(() => getSyncConfig())
   const [syncStatus, setSyncStatus] = useState('')
 
   const summary = useMemo(() => {
@@ -89,21 +105,16 @@ export default function App() {
     setForm({ amount:'', date:todayStr(), note:'', who:'', category:'' })
   }
 
-  const doPull = async () => {
+  const doSyncNow = async () => {
     try {
-      setSyncStatus('Descargando...')
-      const remote = await pullEntries()
-      const merged = mergeEntries(entries, remote)
-      localStorage.setItem('finanzas_entries_v1', JSON.stringify(merged))
-      window.location.reload()
-    } catch (e) { setSyncStatus(`Error: ${e.message}`) } finally { setTimeout(()=>setSyncStatus(''), 1500) }
-  }
-
-  const doPush = async () => {
-    try {
-      setSyncStatus('Subiendo...')
-      await pushEntries(entries)
-      setSyncStatus('Subido')
+      setSyncStatus('Sincronizando...')
+      if (API_BASE_URL) {
+        await fetch(`${API_BASE_URL}/api/sync/pull`, { method:'POST' })
+        await fetch(`${API_BASE_URL}/api/sync/push`, { method:'POST' })
+        const res = await fetch(`${API_BASE_URL}/api/entries`)
+        if (res.ok) setEntries(await res.json())
+      }
+      setSyncStatus('OK')
     } catch (e) { setSyncStatus(`Error: ${e.message}`) } finally { setTimeout(()=>setSyncStatus(''), 1500) }
   }
 
@@ -123,20 +134,8 @@ export default function App() {
 
       <div className="card" style={{marginTop:8}}>
         <h3 style={{marginTop:0}}>Sincronización</h3>
-        <div className="row">
-          <div style={{flex:1}}>
-            <div className="label">GitHub Token (PAT)</div>
-            <input className="input" value={sync.token||''} onChange={e=>setSync(s=>({ ...s, token:e.target.value }))} placeholder="Token" />
-          </div>
-          <div style={{flex:1}}>
-            <div className="label">Gist ID</div>
-            <input className="input" value={sync.gistId||''} onChange={e=>setSync(s=>({ ...s, gistId:e.target.value }))} placeholder="ID del Gist" />
-          </div>
-        </div>
         <div className="row" style={{marginTop:10}}>
-          <button className="btn" onClick={()=>{ setSync(setSyncConfig(sync)); setSyncStatus('Guardado') }}>Guardar configuración</button>
-          <button className="btn" onClick={doPull}>Descargar desde nube</button>
-          <button className="btn" onClick={doPush}>Subir a nube</button>
+          <button className="btn" onClick={doSyncNow}>Sincronizar ahora</button>
           {syncStatus && <span className="label">{syncStatus}</span>}
         </div>
       </div>
