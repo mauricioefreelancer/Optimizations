@@ -17,9 +17,11 @@ export async function init() {
         type TEXT NOT NULL,
         amount NUMERIC NOT NULL,
         date DATE NOT NULL,
+        due_date DATE,
         note TEXT,
         who TEXT,
         category TEXT,
+        account TEXT,
         tags TEXT,
         updated_at BIGINT NOT NULL
       );
@@ -41,18 +43,20 @@ export async function all() {
 export async function upsert(e) {
   if (hasPg) {
     await pool.query(`
-      INSERT INTO entries(id,type,amount,date,note,who,category,tags,updated_at)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      INSERT INTO entries(id,type,amount,date,due_date,note,who,category,account,tags,updated_at)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
       ON CONFLICT(id) DO UPDATE SET
         type=EXCLUDED.type,
         amount=EXCLUDED.amount,
         date=EXCLUDED.date,
+        due_date=EXCLUDED.due_date,
         note=EXCLUDED.note,
         who=EXCLUDED.who,
         category=EXCLUDED.category,
+        account=EXCLUDED.account,
         tags=EXCLUDED.tags,
         updated_at=EXCLUDED.updated_at
-    `, [e.id, e.type, e.amount, e.date, e.note || null, e.who || null, e.category || null, Array.isArray(e.tags) ? e.tags.join(',') : null, e.updatedAt])
+    `, [e.id, e.type, e.amount, e.date, e.dueDate || null, e.note || null, e.who || null, e.category || null, e.account || null, Array.isArray(e.tags) ? e.tags.join(',') : null, e.updatedAt])
     return e
   }
   const list = await all()

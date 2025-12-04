@@ -5,26 +5,25 @@ const STORAGE_KEY = 'finanzas_entries_v1'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 const types = [
   { key:'ingreso', label:'Ingresos' },
-  { key:'gasto', label:'Gastos' },
-  { key:'hormiga', label:'Gastos hormiga' },
   { key:'pago', label:'Pagos' },
   { key:'deuda', label:'Deudas' },
 ]
 
 function useEntries() {
   const [entries, setEntries] = useState([])
+  const [error, setError] = useState('')
   useEffect(() => {
     const load = async () => {
-      if (API_BASE_URL) {
-        try {
-          const res = await fetch(`${API_BASE_URL}/api/entries`)
-          if (res.ok) { setEntries(await res.json()); return }
-        } catch {}
-      }
+      if (!API_BASE_URL) { setError('Falta VITE_API_BASE_URL'); return }
       try {
-        const raw = localStorage.getItem(STORAGE_KEY)
-        if (raw) setEntries(JSON.parse(raw))
-      } catch {}
+        const res = await fetch(`${API_BASE_URL}/api/entries`)
+        if (!res.ok) throw new Error('API no disponible')
+        const data = await res.json()
+        setEntries(data)
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
+      } catch (e) {
+        setError(e.message || 'Error de carga')
+      }
     }
     load()
   }, [])
@@ -41,26 +40,40 @@ function useEntries() {
     if (API_BASE_URL) { try { await fetch(`${API_BASE_URL}/api/entries/${id}`, { method:'DELETE' }) } catch {} }
   }
   const clear = () => setEntries([])
-  return { entries, add, remove, clear }
+  return { entries, add, remove, clear, error }
 }
 
-function formatCurrency(n) { return new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', maximumFractionDigits:0 }).format(Number(n||0)) }
+function formatCurrency(n) { return new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', currencyDisplay:'symbol', maximumFractionDigits:0 }).format(Number(n||0)) }
 function todayStr() { return new Date().toISOString().slice(0,10) }
 
 export default function App() {
-  const { entries, add, remove, clear } = useEntries()
+  const { entries, add, remove, clear, error } = useEntries()
   const [tab, setTab] = useState('ingreso')
-  const [form, setForm] = useState({ amount:'', date:todayStr(), note:'', who:'', category:'' })
+  const [form, setForm] = useState({ amount:'', date:todayStr(), dueDate:'', note:'', who:'', category:'', account:'' })
   const [reportPeriod, setReportPeriod] = useState('mensual')
   const [syncStatus, setSyncStatus] = useState('')
 
   const summary = useMemo(() => {
     const sum = k => entries.filter(e => e.type === k).reduce((a,b) => a + Number(b.amount||0), 0)
     const ingresos = sum('ingreso')
-    const gastos = sum('gasto') + sum('hormiga') + sum('pago')
+    const pagos = sum('pago') + sum('gasto')
     const deudas = sum('deuda')
-    const saldo = ingresos - gastos
-    return { ingresos, gastos, deudas, saldo }
+    const saldo = ingresos - pagos
+    return { ingresos, pagos, deudas, saldo }
+  }, [entries])
+
+  const accountsList = ['Efectivo','Nequi','Daviplata','Banco','Otros']
+  const byAccount = useMemo(() => {
+    const map = new Map()
+    accountsList.forEach(a => map.set(a, 0))
+    entries.forEach(e => {
+      const acc = e.account || 'Otros'
+      if (!map.has(acc)) map.set(acc, 0)
+      const val = Number(e.amount||0)
+      if (e.type === 'ingreso') map.set(acc, map.get(acc) + val)
+      else if (e.type === 'pago' || e.type === 'gasto') map.set(acc, map.get(acc) - val)
+    })
+    return accountsList.map(a => ({ account:a, saldo: map.get(a) }))
   }, [entries])
 
   const filtered = useMemo(() => entries.filter(e => e.type === tab), [entries, tab])
@@ -87,22 +100,22 @@ export default function App() {
       const d = toDate(e.date)
       const k = keyFor(d)
       const s = startFor(d).getTime()
-      if (!agg.has(k)) agg.set(k, { key:k, start:s, ingresos:0, gastos:0, deudas:0, count:0 })
+      if (!agg.has(k)) agg.set(k, { key:k, start:s, ingresos:0, pagos:0, deudas:0, count:0 })
       const row = agg.get(k)
       if (e.type === 'ingreso') row.ingresos += Number(e.amount||0)
       else if (e.type === 'deuda') row.deudas += Number(e.amount||0)
-      else row.gastos += Number(e.amount||0)
+      else row.pagos += Number(e.amount||0)
       row.count += 1
     })
-    const rows = Array.from(agg.values()).map(r => ({ ...r, saldo: r.ingresos - r.gastos }))
+    const rows = Array.from(agg.values()).map(r => ({ ...r, saldo: r.ingresos - r.pagos }))
     rows.sort((a,b) => b.start - a.start)
     return rows
   }, [entries, reportPeriod])
 
   const submit = () => {
     if (!form.amount || Number(form.amount) <= 0) return
-    add({ type:tab, amount:Number(form.amount), date:form.date, note:form.note, who:form.who, category:form.category, updatedAt: Date.now() })
-    setForm({ amount:'', date:todayStr(), note:'', who:'', category:'' })
+    add({ type:tab, amount:Number(form.amount), date:form.date, dueDate: form.dueDate || undefined, note:form.note, who:form.who, category:form.category, account:form.account, updatedAt: Date.now() })
+    setForm({ amount:'', date:todayStr(), dueDate:'', note:'', who:'', category:'', account:'' })
   }
 
   const doSyncNow = async () => {
@@ -131,6 +144,12 @@ export default function App() {
           </button>
         ))}
       </div>
+
+      {error && (
+        <div className="card" style={{marginTop:8}}>
+          <div className="label">{error}</div>
+        </div>
+      )}
 
       <div className="card" style={{marginTop:8}}>
         <h3 style={{marginTop:0}}>Sincronización</h3>
@@ -162,7 +181,7 @@ export default function App() {
             </div>
           )}
 
-          {(tab === 'gasto' || tab === 'hormiga' || tab === 'pago') && (
+          {(tab === 'pago') && (
             <div className="row" style={{marginTop:10}}>
               <div style={{flex:1}}>
                 <div className="label">Categoría</div>
@@ -173,7 +192,29 @@ export default function App() {
                   <option value="Transporte">Transporte</option>
                   <option value="Entretenimiento">Entretenimiento</option>
                   <option value="Hormiga">Hormiga</option>
+                  <option value="Bebé">Bebé</option>
                   <option value="Otros">Otros</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {tab === 'deuda' && (
+            <div className="row" style={{marginTop:10}}>
+              <div style={{width:200}}>
+                <div className="label">Fecha de pago</div>
+                <input className="input" type="date" value={form.dueDate} onChange={e => setForm(f => ({...f, dueDate:e.target.value}))} />
+              </div>
+            </div>
+          )}
+
+          {(tab === 'ingreso' || tab === 'pago') && (
+            <div className="row" style={{marginTop:10}}>
+              <div style={{flex:1}}>
+                <div className="label">Cuenta</div>
+                <select className="select" value={form.account} onChange={e => setForm(f => ({...f, account:e.target.value}))}>
+                  <option value="">Selecciona</option>
+                  {accountsList.map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
               </div>
             </div>
@@ -194,9 +235,17 @@ export default function App() {
           <h3 style={{marginTop:0}}>Resumen</h3>
           <div className="summary">
             <div className="card"><div className="label">Ingresos</div><div className="mono">{formatCurrency(summary.ingresos)}</div></div>
-            <div className="card"><div className="label">Gastos</div><div className="mono">{formatCurrency(summary.gastos)}</div></div>
+            <div className="card"><div className="label">Pagos</div><div className="mono">{formatCurrency(summary.pagos)}</div></div>
             <div className="card"><div className="label">Deudas</div><div className="mono">{formatCurrency(summary.deudas)}</div></div>
             <div className="card"><div className="label">Saldo</div><div className="mono">{formatCurrency(summary.saldo)}</div></div>
+          </div>
+          <div className="list" style={{marginTop:10}}>
+            {byAccount.map(x => (
+              <div key={x.account} className="item">
+                <div className="label">{x.account}</div>
+                <div className="mono">{formatCurrency(x.saldo)}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -213,7 +262,7 @@ export default function App() {
               </div>
               <div style={{flex:1, marginLeft:10}}>
                 <div>{e.note || '-'}</div>
-                <div className="label">{e.who || e.category || e.type}</div>
+                <div className="label">{e.account || e.who || e.category || e.type}{e.type==='deuda' && e.dueDate ? ` · Pagar: ${e.dueDate}` : ''}</div>
               </div>
               <button className="btn danger" onClick={() => remove(e.id)}>Eliminar</button>
             </div>
@@ -245,8 +294,8 @@ export default function App() {
                   <div className="mono">{formatCurrency(r.ingresos)}</div>
                 </div>
                 <div>
-                  <div className="label">Gastos</div>
-                  <div className="mono">{formatCurrency(r.gastos)}</div>
+                  <div className="label">Pagos</div>
+                  <div className="mono">{formatCurrency(r.pagos)}</div>
                 </div>
                 <div>
                   <div className="label">Deudas</div>
