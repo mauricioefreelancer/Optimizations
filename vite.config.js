@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  base: '/Optimizations/'
+  base: process.env.VITE_BASE || '/Optimizations/'
 })
