@@ -77,6 +77,8 @@ export default function App() {
   const [lastSyncAt, setLastSyncAt] = useState(() => {
     try { const v = localStorage.getItem('finanzas_last_sync'); return v ? Number(v) : 0 } catch { return 0 }
   })
+  const [movPeriod, setMovPeriod] = useState('diario')
+  const [openAll, setOpenAll] = useState(true)
 
   const summary = useMemo(() => {
     const sum = k => entries.filter(e => e.type === k).reduce((a,b) => a + Number(b.amount||0), 0)
@@ -101,7 +103,35 @@ export default function App() {
     return accountsList.map(a => ({ account:a, saldo: map.get(a) }))
   }, [entries])
 
-  const filtered = useMemo(() => entries.filter(e => e.type === tab), [entries, tab])
+  const movGroups = useMemo(() => {
+    const toDate = s => new Date(s + 'T00:00:00')
+    const startOfMonth = d => new Date(d.getFullYear(), d.getMonth(), 1)
+    const startOfQuarter = d => new Date(d.getFullYear(), Math.floor(d.getMonth()/3)*3, 1)
+    const startOfWeek = d => { const x = new Date(d); const day = (x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x }
+    const keyFor = d => {
+      if (movPeriod === 'diario') return d.toISOString().slice(0,10)
+      if (movPeriod === 'semanal') { const s = startOfWeek(d); return `W${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,'0')}-${String(s.getDate()).padStart(2,'0')}` }
+      if (movPeriod === 'mensual') { const s = startOfMonth(d); return `${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,'0')}` }
+      const s = startOfQuarter(d); return `${s.getFullYear()}-Q${Math.floor(s.getMonth()/3)+1}`
+    }
+    const startFor = d => {
+      if (movPeriod === 'diario') { const x = new Date(d); x.setHours(0,0,0,0); return x }
+      if (movPeriod === 'semanal') return startOfWeek(d)
+      if (movPeriod === 'mensual') return startOfMonth(d)
+      return startOfQuarter(d)
+    }
+    const map = new Map()
+    entries.forEach(e => {
+      const d = toDate(e.date)
+      const k = keyFor(d)
+      const s = startFor(d).getTime()
+      if (!map.has(k)) map.set(k, { key:k, start:s, items:[] })
+      map.get(k).items.push(e)
+    })
+    const rows = Array.from(map.values())
+    rows.sort((a,b) => b.start - a.start)
+    return rows
+  }, [entries, movPeriod])
 
   const reportRows = useMemo(() => {
     const toDate = s => new Date(s + 'T00:00:00')
@@ -294,20 +324,84 @@ export default function App() {
       </div>
 
       <div className="card" style={{marginTop:16}}>
-        <h3 style={{marginTop:0}}>Movimientos</h3>
+        <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
+          <h3 style={{marginTop:0}}>Reportes</h3>
+          <select className="select" style={{maxWidth:220}} value={reportPeriod} onChange={e => setReportPeriod(e.target.value)}>
+            <option value="diario">Diarios</option>
+            <option value="semanal">Semanales</option>
+            <option value="mensual">Mensuales</option>
+            <option value="trimestral">Trimestrales</option>
+          </select>
+        </div>
         <div className="list">
-          {filtered.length === 0 && <div className="label">Sin registros</div>}
-          {filtered.map(e => (
-            <div key={e.id} className="item">
-              <div>
-                <div className="mono">{formatCurrency(e.amount)}</div>
-                <div className="label">{e.date}</div>
+          {reportRows.length === 0 && <div className="label">Sin datos</div>}
+          {reportRows.map(r => (
+            <div key={r.key} className="item">
+              <div style={{minWidth:140}}>
+                <div className="mono">{r.key}</div>
+                <div className="label">{new Date(r.start).toISOString().slice(0,10)}</div>
               </div>
-              <div style={{flex:1, marginLeft:10}}>
-                <div>{e.note || '-'}</div>
-                <div className="label">{e.account || e.who || e.category || e.type}{e.type==='deuda' && e.dueDate ? ` · Pagar: ${e.dueDate}` : ''}</div>
+              <div className="row" style={{gap:16, flex:1}}>
+                <div>
+                  <div className="label">Ingresos</div>
+                  <div className="mono">{formatCurrency(r.ingresos)}</div>
+                </div>
+                <div>
+                  <div className="label">Pagos</div>
+                  <div className="mono">{formatCurrency(r.pagos)}</div>
+                </div>
+                <div>
+                  <div className="label">Deudas</div>
+                  <div className="mono">{formatCurrency(r.deudas)}</div>
+                </div>
+                <div>
+                  <div className="label">Saldo</div>
+                  <div className="mono">{formatCurrency(r.saldo)}</div>
+                </div>
               </div>
-              <button className="btn danger" onClick={() => remove(e.id)}>Eliminar</button>
+              <div style={{minWidth:60, textAlign:'right'}}>
+                <div className="label">Movs</div>
+                <div className="mono">{r.count}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card" style={{marginTop:16}}>
+        <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
+          <h3 style={{marginTop:0}}>Movimientos</h3>
+          <div className="row" style={{gap:8}}>
+            <select className="select" style={{maxWidth:220}} value={movPeriod} onChange={e => setMovPeriod(e.target.value)}>
+              <option value="diario">Diarios</option>
+              <option value="semanal">Semanales</option>
+              <option value="mensual">Mensuales</option>
+              <option value="trimestral">Trimestrales</option>
+            </select>
+            <button className="btn" onClick={() => setOpenAll(v => !v)}>{openAll ? 'Contraer todo' : 'Desplegar todo'}</button>
+          </div>
+        </div>
+        <div className="list">
+          {movGroups.length === 0 && <div className="label">Sin registros</div>}
+          {movGroups.map(g => (
+            <div key={g.key}>
+              <div className="item" onClick={() => setOpenAll(v => v ? v : true)}>
+                <div className="mono">{g.key}</div>
+                <div className="label">{new Date(g.start).toISOString().slice(0,10)}</div>
+              </div>
+              {openAll && g.items.map(e => (
+                <div key={e.id} className="item">
+                  <div>
+                    <div className="mono">{formatCurrency(e.amount)}</div>
+                    <div className="label">{e.date}</div>
+                  </div>
+                  <div style={{flex:1, marginLeft:10}}>
+                    <div>{e.note || '-'}</div>
+                    <div className="label">{e.account || e.who || e.category || e.type}{e.type==='deuda' && e.dueDate ? ` · Pagar: ${e.dueDate}` : ''}</div>
+                  </div>
+                  <button className="btn danger" onClick={() => { if (confirm('¿Eliminar este movimiento?')) remove(e.id) }}>Eliminar</button>
+                </div>
+              ))}
             </div>
           ))}
         </div>
