@@ -44,6 +44,9 @@ function useEntries() {
 }
 
 function formatCurrency(n) { return new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', currencyDisplay:'symbol', maximumFractionDigits:0 }).format(Number(n||0)) }
+function formatThousands(n) { return new Intl.NumberFormat('es-CO', { maximumFractionDigits:0 }).format(Number(n||0)) }
+function toDigits(s) { return String(s||'').replace(/\D+/g, '') }
+function parseAmount(s) { const d = toDigits(s); return d ? Number(d) : 0 }
 function todayStr() { return new Date().toISOString().slice(0,10) }
 
 export default function App() {
@@ -113,8 +116,9 @@ export default function App() {
   }, [entries, reportPeriod])
 
   const submit = () => {
-    if (!form.amount || Number(form.amount) <= 0) return
-    add({ type:tab, amount:Number(form.amount), date:form.date, dueDate: form.dueDate || undefined, note:form.note, who:form.who, category:form.category, account:form.account, updatedAt: Date.now() })
+    const amt = parseAmount(form.amount)
+    if (amt <= 0) return
+    add({ type:tab, amount:amt, date:form.date, dueDate: form.dueDate || undefined, note:form.note, who:form.who, category:form.category, account:form.account, updatedAt: Date.now() })
     setForm({ amount:'', date:todayStr(), dueDate:'', note:'', who:'', category:'', account:'' })
   }
 
@@ -164,7 +168,10 @@ export default function App() {
           <div className="row">
             <div style={{flex:1}}>
               <div className="label">Monto</div>
-              <input className="input" type="number" value={form.amount} onChange={e => setForm(f => ({...f, amount:e.target.value}))} placeholder="0" />
+              <input className="input" type="text" value={form.amount} onChange={e => {
+                const digits = toDigits(e.target.value)
+                setForm(f => ({...f, amount: digits ? formatThousands(digits) : ''}))
+              }} placeholder="0" />
             </div>
             <div style={{width:160}}>
               <div className="label">Fecha</div>
