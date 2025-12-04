@@ -21,7 +21,9 @@ function useEntries() {
         if (!res.ok) throw new Error('API no disponible')
         const data = await res.json()
         setEntries(data)
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
+        if (Array.isArray(data) && data.length > 0) {
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
+        }
       } catch (e) {
         setError(e.message || 'Error de carga')
       }
@@ -60,7 +62,20 @@ function useEntries() {
     } catch {} }
   }
   const clear = () => setEntries([])
-  return { entries, add, remove, clear, reload, error }
+  const restoreFromCache = async () => {
+    let cached = []
+    try { cached = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch {}
+    if (!Array.isArray(cached) || cached.length === 0) return
+    setEntries(cached)
+    if (API_BASE_URL) {
+      for (const e of cached) {
+        try { await fetch(`${API_BASE_URL}/api/entries`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(e) }) } catch {}
+      }
+      try { await fetch(`${API_BASE_URL}/api/sync/push`, { method:'POST' }) } catch {}
+      try { localStorage.setItem('finanzas_last_sync', String(Date.now())) } catch {}
+    }
+  }
+  return { entries, add, remove, clear, reload, restoreFromCache, error }
 }
 
 function formatCurrency(n) { return new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', currencyDisplay:'symbol', maximumFractionDigits:0 }).format(Number(n||0)) }
@@ -70,7 +85,7 @@ function parseAmount(s) { const d = toDigits(s); return d ? Number(d) : 0 }
 function todayStr() { return new Date().toISOString().slice(0,10) }
 
 export default function App() {
-  const { entries, add, remove, clear, reload, error } = useEntries()
+  const { entries, add, remove, clear, reload, restoreFromCache, error } = useEntries()
   const [tab, setTab] = useState('ingreso')
   const [form, setForm] = useState({ amount:'', principal:'', date:todayStr(), dueDate:'', note:'', who:'', category:'', account:'' })
   const [reportPeriod, setReportPeriod] = useState('mensual')
@@ -80,6 +95,9 @@ export default function App() {
   })
   const [movPeriod, setMovPeriod] = useState('diario')
   const [openKeys, setOpenKeys] = useState(new Set())
+  const cacheCount = useMemo(() => {
+    try { const v = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); return Array.isArray(v) ? v.length : 0 } catch { return 0 }
+  }, [entries])
 
   const summary = useMemo(() => {
     const sum = k => entries.filter(e => e.type === k).reduce((a,b) => a + Number(b.amount||0), 0)
@@ -243,6 +261,7 @@ export default function App() {
         <h3 style={{marginTop:0}}>Sincronización</h3>
         <div className="row" style={{marginTop:10}}>
           <button className="btn" onClick={doSyncNow}>Sincronizar ahora</button>
+          {entries.length === 0 && cacheCount > 0 && <button className="btn" onClick={restoreFromCache}>Restaurar desde caché</button>}
           {syncStatus && <span className="label">{syncStatus}</span>}
           {!syncStatus && lastSyncAt > 0 && <span className="label">Última sincronización: {new Date(lastSyncAt).toLocaleString('es-CO')}</span>}
         </div>
