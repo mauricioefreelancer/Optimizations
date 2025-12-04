@@ -168,6 +168,28 @@ export default function App() {
     return rows
   }, [entries, reportPeriod])
 
+  const debts = useMemo(() => {
+    return entries.filter(e => e.type === 'deuda').sort((a,b) => {
+      const ad = String(a.dueDate || a.date || '')
+      const bd = String(b.dueDate || b.date || '')
+      return ad.localeCompare(bd)
+    })
+  }, [entries])
+
+  const toggleGroup = k => {
+    setOpenKeys(prev => {
+      const next = new Set(prev)
+      if (next.has(k)) next.delete(k); else next.add(k)
+      return next
+    })
+  }
+
+  const convertDebtToPayment = e => {
+    const amt = Number(e.amount||0)
+    add({ type:'pago', amount:amt, date:todayStr(), note: e.note ? `Pago deuda: ${e.note}` : 'Pago deuda', who:e.who, category:e.category, account:e.account, updatedAt: Date.now() })
+    remove(e.id)
+  }
+
   const submit = () => {
     const amt = parseAmount(form.amount)
     if (tab === 'deuda') {
@@ -435,24 +457,3 @@ export default function App() {
     </div>
   )
 }
-  const debts = useMemo(() => {
-    return entries.filter(e => e.type === 'deuda').sort((a,b) => {
-      const ad = a.dueDate || a.date
-      const bd = b.dueDate || b.date
-      return String(ad).localeCompare(String(bd))
-    })
-  }, [entries])
-
-  const toggleGroup = k => {
-    setOpenKeys(prev => {
-      const next = new Set(prev)
-      if (next.has(k)) next.delete(k); else next.add(k)
-      return next
-    })
-  }
-
-  const convertDebtToPayment = e => {
-    const amt = Number(e.amount||0)
-    add({ type:'pago', amount:amt, date:todayStr(), note: e.note ? `Pago deuda: ${e.note}` : 'Pago deuda', who:e.who, category:e.category, account:e.account, updatedAt: Date.now() })
-    remove(e.id)
-  }
