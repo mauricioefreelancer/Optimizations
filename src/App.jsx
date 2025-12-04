@@ -7,6 +7,7 @@ const types = [
   { key:'ingreso', label:'Ingresos' },
   { key:'pago', label:'Pagos' },
   { key:'deuda', label:'Deudas' },
+  { key:'cobro', label:'Cobros' },
 ]
 
 function useEntries() {
@@ -78,7 +79,7 @@ export default function App() {
     try { const v = localStorage.getItem('finanzas_last_sync'); return v ? Number(v) : 0 } catch { return 0 }
   })
   const [movPeriod, setMovPeriod] = useState('diario')
-  const [openAll, setOpenAll] = useState(true)
+  const [openKeys, setOpenKeys] = useState(new Set())
 
   const summary = useMemo(() => {
     const sum = k => entries.filter(e => e.type === k).reduce((a,b) => a + Number(b.amount||0), 0)
@@ -121,7 +122,7 @@ export default function App() {
       return startOfQuarter(d)
     }
     const map = new Map()
-    entries.forEach(e => {
+    entries.filter(e => e.type === 'ingreso' || e.type === 'pago').forEach(e => {
       const d = toDate(e.date)
       const k = keyFor(d)
       const s = startFor(d).getTime()
@@ -173,6 +174,9 @@ export default function App() {
       const princ = parseAmount(form.principal)
       if (amt <= 0 || princ <= 0) return
       add({ type:'deuda', amount:amt, principal:princ, date:form.date, dueDate: form.dueDate || undefined, note:form.note, who:form.who, category:form.category, account:form.account, updatedAt: Date.now() })
+    } else if (tab === 'cobro') {
+      if (amt <= 0) return
+      add({ type:'cobro', amount:amt, date:form.date, dueDate: form.dueDate || undefined, note:form.note, who:form.who, category:form.category, updatedAt: Date.now() })
     } else {
       if (amt <= 0) return
       add({ type:tab, amount:amt, date:form.date, dueDate: form.dueDate || undefined, note:form.note, who:form.who, category:form.category, account:form.account, updatedAt: Date.now() })
@@ -281,6 +285,19 @@ export default function App() {
             </div>
           )}
 
+          {tab === 'cobro' && (
+            <div className="row" style={{marginTop:10}}>
+              <div style={{flex:1}}>
+                <div className="label">Quién pagará</div>
+                <input className="input" value={form.who} onChange={e => setForm(f => ({...f, who:e.target.value}))} placeholder="Nombre" />
+              </div>
+              <div style={{width:200}}>
+                <div className="label">Fecha de cobro</div>
+                <input className="input" type="date" value={form.dueDate} onChange={e => setForm(f => ({...f, dueDate:e.target.value}))} />
+              </div>
+            </div>
+          )}
+
           {(tab === 'ingreso' || tab === 'pago') && (
             <div className="row" style={{marginTop:10}}>
               <div style={{flex:1}}>
@@ -325,43 +342,50 @@ export default function App() {
 
       <div className="card" style={{marginTop:16}}>
         <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
-          <h3 style={{marginTop:0}}>Reportes</h3>
-          <select className="select" style={{maxWidth:220}} value={reportPeriod} onChange={e => setReportPeriod(e.target.value)}>
-            <option value="diario">Diarios</option>
-            <option value="semanal">Semanales</option>
-            <option value="mensual">Mensuales</option>
-            <option value="trimestral">Trimestrales</option>
-          </select>
+          <h3 style={{marginTop:0}}>Deudas</h3>
         </div>
         <div className="list">
-          {reportRows.length === 0 && <div className="label">Sin datos</div>}
-          {reportRows.map(r => (
-            <div key={r.key} className="item">
-              <div style={{minWidth:140}}>
-                <div className="mono">{r.key}</div>
-                <div className="label">{new Date(r.start).toISOString().slice(0,10)}</div>
+          {debts.length === 0 && <div className="label">Sin deudas</div>}
+          {debts.map(e => (
+            <div key={e.id} className="item">
+              <div>
+                <div className="mono">{formatCurrency(e.amount)}</div>
+                <div className="label">{e.dueDate ? `Pagar: ${e.dueDate}` : e.date}</div>
               </div>
-              <div className="row" style={{gap:16, flex:1}}>
-                <div>
-                  <div className="label">Ingresos</div>
-                  <div className="mono">{formatCurrency(r.ingresos)}</div>
-                </div>
-                <div>
-                  <div className="label">Pagos</div>
-                  <div className="mono">{formatCurrency(r.pagos)}</div>
-                </div>
-                <div>
-                  <div className="label">Deudas</div>
-                  <div className="mono">{formatCurrency(r.deudas)}</div>
-                </div>
-                <div>
-                  <div className="label">Saldo</div>
-                  <div className="mono">{formatCurrency(r.saldo)}</div>
-                </div>
+              <div style={{flex:1, marginLeft:10}}>
+                <div>{e.note || '-'}</div>
+                <div className="label">{e.who || e.category || 'Deuda'}</div>
               </div>
-              <div style={{minWidth:60, textAlign:'right'}}>
-                <div className="label">Movs</div>
-                <div className="mono">{r.count}</div>
+              <div className="row" style={{gap:8}}>
+                <button className="btn" onClick={() => convertDebtToPayment(e)}>Convertir a pago</button>
+                <button className="btn danger" onClick={() => { if (confirm('¿Eliminar esta deuda?')) remove(e.id) }}>Eliminar</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card" style={{marginTop:16}}>
+        <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
+          <h3 style={{marginTop:0}}>Cobros</h3>
+        </div>
+        <div className="list">
+          {entries.filter(e => e.type==='cobro').length === 0 && <div className="label">Sin cobros</div>}
+          {entries.filter(e => e.type==='cobro').sort((a,b) => {
+            const ad = a.dueDate || a.date; const bd = b.dueDate || b.date; return String(ad).localeCompare(String(bd))
+          }).map(e => (
+            <div key={e.id} className="item">
+              <div>
+                <div className="mono">{formatCurrency(e.amount)}</div>
+                <div className="label">{e.dueDate ? `Cobrar: ${e.dueDate}` : e.date}</div>
+              </div>
+              <div style={{flex:1, marginLeft:10}}>
+                <div>{e.note || '-'}</div>
+                <div className="label">{e.who || e.category || 'Cobro'}</div>
+              </div>
+              <div className="row" style={{gap:8}}>
+                <button className="btn" onClick={() => { const amt = Number(e.amount||0); add({ type:'ingreso', amount:amt, date:todayStr(), note: e.note ? `Cobro: ${e.note}` : 'Cobro', who:e.who, category:e.category, account:e.account, updatedAt: Date.now() }); remove(e.id) }}>Convertir a ingreso</button>
+                <button className="btn danger" onClick={() => { if (confirm('¿Eliminar este cobro?')) remove(e.id) }}>Eliminar</button>
               </div>
             </div>
           ))}
@@ -378,26 +402,25 @@ export default function App() {
               <option value="mensual">Mensuales</option>
               <option value="trimestral">Trimestrales</option>
             </select>
-            <button className="btn" onClick={() => setOpenAll(v => !v)}>{openAll ? 'Contraer todo' : 'Desplegar todo'}</button>
           </div>
         </div>
         <div className="list">
           {movGroups.length === 0 && <div className="label">Sin registros</div>}
           {movGroups.map(g => (
             <div key={g.key}>
-              <div className="item" onClick={() => setOpenAll(v => v ? v : true)}>
+              <div className="item" onClick={() => toggleGroup(g.key)}>
                 <div className="mono">{g.key}</div>
                 <div className="label">{new Date(g.start).toISOString().slice(0,10)}</div>
               </div>
-              {openAll && g.items.map(e => (
+              {openKeys.has(g.key) && g.items.map(e => (
                 <div key={e.id} className="item">
                   <div>
-                    <div className="mono">{formatCurrency(e.amount)}</div>
+                    <div className="mono">{formatCurrency((e.type==='pago' ? -1 : 1) * Number(e.amount||0))}</div>
                     <div className="label">{e.date}</div>
                   </div>
                   <div style={{flex:1, marginLeft:10}}>
                     <div>{e.note || '-'}</div>
-                    <div className="label">{e.account || e.who || e.category || e.type}{e.type==='deuda' && e.dueDate ? ` · Pagar: ${e.dueDate}` : ''}</div>
+                    <div className="label">{e.account || e.who || e.category || e.type}</div>
                   </div>
                   <button className="btn danger" onClick={() => { if (confirm('¿Eliminar este movimiento?')) remove(e.id) }}>Eliminar</button>
                 </div>
@@ -407,52 +430,29 @@ export default function App() {
         </div>
       </div>
 
-      <div className="card" style={{marginTop:16}}>
-        <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
-          <h3 style={{marginTop:0}}>Reportes</h3>
-          <select className="select" style={{maxWidth:220}} value={reportPeriod} onChange={e => setReportPeriod(e.target.value)}>
-            <option value="diario">Diarios</option>
-            <option value="semanal">Semanales</option>
-            <option value="mensual">Mensuales</option>
-            <option value="trimestral">Trimestrales</option>
-          </select>
-        </div>
-        <div className="list">
-          {reportRows.length === 0 && <div className="label">Sin datos</div>}
-          {reportRows.map(r => (
-            <div key={r.key} className="item">
-              <div style={{minWidth:140}}>
-                <div className="mono">{r.key}</div>
-                <div className="label">{new Date(r.start).toISOString().slice(0,10)}</div>
-              </div>
-              <div className="row" style={{gap:16, flex:1}}>
-                <div>
-                  <div className="label">Ingresos</div>
-                  <div className="mono">{formatCurrency(r.ingresos)}</div>
-                </div>
-                <div>
-                  <div className="label">Pagos</div>
-                  <div className="mono">{formatCurrency(r.pagos)}</div>
-                </div>
-                <div>
-                  <div className="label">Deudas</div>
-                  <div className="mono">{formatCurrency(r.deudas)}</div>
-                </div>
-                <div>
-                  <div className="label">Saldo</div>
-                  <div className="mono">{formatCurrency(r.saldo)}</div>
-                </div>
-              </div>
-              <div style={{minWidth:60, textAlign:'right'}}>
-                <div className="label">Movs</div>
-                <div className="mono">{r.count}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
 
       <div className="footer">Datos guardados en tu navegador</div>
     </div>
   )
 }
+  const debts = useMemo(() => {
+    return entries.filter(e => e.type === 'deuda').sort((a,b) => {
+      const ad = a.dueDate || a.date
+      const bd = b.dueDate || b.date
+      return String(ad).localeCompare(String(bd))
+    })
+  }, [entries])
+
+  const toggleGroup = k => {
+    setOpenKeys(prev => {
+      const next = new Set(prev)
+      if (next.has(k)) next.delete(k); else next.add(k)
+      return next
+    })
+  }
+
+  const convertDebtToPayment = e => {
+    const amt = Number(e.amount||0)
+    add({ type:'pago', amount:amt, date:todayStr(), note: e.note ? `Pago deuda: ${e.note}` : 'Pago deuda', who:e.who, category:e.category, account:e.account, updatedAt: Date.now() })
+    remove(e.id)
+  }
