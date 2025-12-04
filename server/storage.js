@@ -16,6 +16,7 @@ export async function init() {
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL,
         amount NUMERIC NOT NULL,
+        principal NUMERIC,
         date DATE NOT NULL,
         due_date DATE,
         note TEXT,
@@ -26,6 +27,9 @@ export async function init() {
         updated_at BIGINT NOT NULL
       );
     `)
+    await pool.query(`ALTER TABLE entries ADD COLUMN IF NOT EXISTS principal NUMERIC`)
+    await pool.query(`ALTER TABLE entries ADD COLUMN IF NOT EXISTS due_date DATE`)
+    await pool.query(`ALTER TABLE entries ADD COLUMN IF NOT EXISTS account TEXT`)
   } else {
     fs.mkdirSync(path.dirname(filePath), { recursive: true })
     if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, '[]')
@@ -43,11 +47,12 @@ export async function all() {
 export async function upsert(e) {
   if (hasPg) {
     await pool.query(`
-      INSERT INTO entries(id,type,amount,date,due_date,note,who,category,account,tags,updated_at)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      INSERT INTO entries(id,type,amount,principal,date,due_date,note,who,category,account,tags,updated_at)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
       ON CONFLICT(id) DO UPDATE SET
         type=EXCLUDED.type,
         amount=EXCLUDED.amount,
+        principal=EXCLUDED.principal,
         date=EXCLUDED.date,
         due_date=EXCLUDED.due_date,
         note=EXCLUDED.note,
@@ -56,7 +61,7 @@ export async function upsert(e) {
         account=EXCLUDED.account,
         tags=EXCLUDED.tags,
         updated_at=EXCLUDED.updated_at
-    `, [e.id, e.type, e.amount, e.date, e.dueDate || null, e.note || null, e.who || null, e.category || null, e.account || null, Array.isArray(e.tags) ? e.tags.join(',') : null, e.updatedAt])
+    `, [e.id, e.type, e.amount, e.principal || null, e.date, e.dueDate || null, e.note || null, e.who || null, e.category || null, e.account || null, Array.isArray(e.tags) ? e.tags.join(',') : null, e.updatedAt])
     return e
   }
   const list = await all()

@@ -28,7 +28,7 @@ app.get('/api/entries', async (req, res) => {
 app.post('/api/entries', async (req, res) => {
   const e = req.body || {}
   if (!e.amount || !e.type || !e.date) return res.status(400).json({ error: 'Campos requeridos: type, amount, date' })
-  const entry = { id: e.id || uuid(), type: e.type, amount: Number(e.amount), date: e.date, dueDate: e.dueDate, note: e.note, who: e.who, category: e.category, account: e.account, tags: e.tags, updatedAt: Date.now() }
+  const entry = { id: e.id || uuid(), type: e.type, amount: Number(e.amount), principal: e.principal ? Number(e.principal) : null, date: e.date, dueDate: e.dueDate, note: e.note, who: e.who, category: e.category, account: e.account, tags: e.tags, updatedAt: Date.now() }
   await storage.upsert(entry)
   res.json(entry)
 })
@@ -40,7 +40,7 @@ app.delete('/api/entries/:id', async (req, res) => {
 
 app.get('/api/export/csv', async (req, res) => {
   const list = await storage.all()
-  const headers = ['id','type','amount','date','dueDate','note','who','category','account','tags','updatedAt']
+  const headers = ['id','type','amount','principal','date','dueDate','note','who','category','account','tags','updatedAt']
   const rows = [headers.join(',')].concat(list.map(e => headers.map(h => JSON.stringify(e[h] ?? '')).join(',')))
   const csv = rows.join('\n')
   res.setHeader('Content-Type', 'text/csv')

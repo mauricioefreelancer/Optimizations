@@ -30,17 +30,36 @@ function useEntries() {
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)) } catch {}
   }, [entries])
+  const reload = async () => {
+    if (!API_BASE_URL) return
+    const res = await fetch(`${API_BASE_URL}/api/entries`)
+    if (res.ok) {
+      const data = await res.json()
+      setEntries(data)
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
+    }
+  }
   const add = async e => {
     const entry = { id:crypto.randomUUID(), ...e }
     setEntries(prev => [entry, ...prev])
-    if (API_BASE_URL) { try { await fetch(`${API_BASE_URL}/api/entries`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(entry) }) } catch {} }
+    if (API_BASE_URL) {
+      try {
+        await fetch(`${API_BASE_URL}/api/entries`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(entry) })
+        await fetch(`${API_BASE_URL}/api/sync/push`, { method:'POST' })
+        try { localStorage.setItem('finanzas_last_sync', String(Date.now())) } catch {}
+      } catch {}
+    }
   }
   const remove = async id => {
     setEntries(prev => prev.filter(x => x.id !== id))
-    if (API_BASE_URL) { try { await fetch(`${API_BASE_URL}/api/entries/${id}`, { method:'DELETE' }) } catch {} }
+    if (API_BASE_URL) { try {
+      await fetch(`${API_BASE_URL}/api/entries/${id}`, { method:'DELETE' })
+      await fetch(`${API_BASE_URL}/api/sync/push`, { method:'POST' })
+      try { localStorage.setItem('finanzas_last_sync', String(Date.now())) } catch {}
+    } catch {} }
   }
   const clear = () => setEntries([])
-  return { entries, add, remove, clear, error }
+  return { entries, add, remove, clear, reload, error }
 }
 
 function formatCurrency(n) { return new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', currencyDisplay:'symbol', maximumFractionDigits:0 }).format(Number(n||0)) }
@@ -50,11 +69,14 @@ function parseAmount(s) { const d = toDigits(s); return d ? Number(d) : 0 }
 function todayStr() { return new Date().toISOString().slice(0,10) }
 
 export default function App() {
-  const { entries, add, remove, clear, error } = useEntries()
+  const { entries, add, remove, clear, reload, error } = useEntries()
   const [tab, setTab] = useState('ingreso')
-  const [form, setForm] = useState({ amount:'', date:todayStr(), dueDate:'', note:'', who:'', category:'', account:'' })
+  const [form, setForm] = useState({ amount:'', principal:'', date:todayStr(), dueDate:'', note:'', who:'', category:'', account:'' })
   const [reportPeriod, setReportPeriod] = useState('mensual')
   const [syncStatus, setSyncStatus] = useState('')
+  const [lastSyncAt, setLastSyncAt] = useState(() => {
+    try { const v = localStorage.getItem('finanzas_last_sync'); return v ? Number(v) : 0 } catch { return 0 }
+  })
 
   const summary = useMemo(() => {
     const sum = k => entries.filter(e => e.type === k).reduce((a,b) => a + Number(b.amount||0), 0)
@@ -117,9 +139,15 @@ export default function App() {
 
   const submit = () => {
     const amt = parseAmount(form.amount)
-    if (amt <= 0) return
-    add({ type:tab, amount:amt, date:form.date, dueDate: form.dueDate || undefined, note:form.note, who:form.who, category:form.category, account:form.account, updatedAt: Date.now() })
-    setForm({ amount:'', date:todayStr(), dueDate:'', note:'', who:'', category:'', account:'' })
+    if (tab === 'deuda') {
+      const princ = parseAmount(form.principal)
+      if (amt <= 0 || princ <= 0) return
+      add({ type:'deuda', amount:amt, principal:princ, date:form.date, dueDate: form.dueDate || undefined, note:form.note, who:form.who, category:form.category, account:form.account, updatedAt: Date.now() })
+    } else {
+      if (amt <= 0) return
+      add({ type:tab, amount:amt, date:form.date, dueDate: form.dueDate || undefined, note:form.note, who:form.who, category:form.category, account:form.account, updatedAt: Date.now() })
+    }
+    setForm({ amount:'', principal:'', date:todayStr(), dueDate:'', note:'', who:'', category:'', account:'' })
   }
 
   const doSyncNow = async () => {
@@ -128,8 +156,8 @@ export default function App() {
       if (API_BASE_URL) {
         await fetch(`${API_BASE_URL}/api/sync/pull`, { method:'POST' })
         await fetch(`${API_BASE_URL}/api/sync/push`, { method:'POST' })
-        const res = await fetch(`${API_BASE_URL}/api/entries`)
-        if (res.ok) setEntries(await res.json())
+        await reload()
+        const t = Date.now(); setLastSyncAt(t); try { localStorage.setItem('finanzas_last_sync', String(t)) } catch {}
       }
       setSyncStatus('OK')
     } catch (e) { setSyncStatus(`Error: ${e.message}`) } finally { setTimeout(()=>setSyncStatus(''), 1500) }
@@ -160,6 +188,7 @@ export default function App() {
         <div className="row" style={{marginTop:10}}>
           <button className="btn" onClick={doSyncNow}>Sincronizar ahora</button>
           {syncStatus && <span className="label">{syncStatus}</span>}
+          {!syncStatus && lastSyncAt > 0 && <span className="label">Última sincronización: {new Date(lastSyncAt).toLocaleString('es-CO')}</span>}
         </div>
       </div>
 
@@ -208,6 +237,13 @@ export default function App() {
 
           {tab === 'deuda' && (
             <div className="row" style={{marginTop:10}}>
+              <div style={{flex:1}}>
+                <div className="label">Monto pedido</div>
+                <input className="input" type="text" value={form.principal} onChange={e => {
+                  const digits = toDigits(e.target.value)
+                  setForm(f => ({...f, principal: digits ? formatThousands(digits) : ''}))
+                }} placeholder="0" />
+              </div>
               <div style={{width:200}}>
                 <div className="label">Fecha de pago</div>
                 <input className="input" type="date" value={form.dueDate} onChange={e => setForm(f => ({...f, dueDate:e.target.value}))} />
