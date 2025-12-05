@@ -95,10 +95,8 @@ export default function App() {
 
   const uploadToSheets = async () => {
     try {
-      const url = String(webAppUrl||'').trim()
-      if (!url) { setBackupStatus('Falta URL Apps Script'); return }
       setBackupStatus('Subiendo a Sheets...')
-      await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'replace' }) })
+      await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'replace' }) })
       setBackupStatus('Sheets actualizado')
     } catch (e) {
       setBackupStatus(`Error: ${e.message}`)
@@ -106,10 +104,8 @@ export default function App() {
   }
   const restoreFromSheets = async () => {
     try {
-      const url = String(webAppUrl||'').trim()
-      if (!url) { setBackupStatus('Falta URL Apps Script'); return }
       setBackupStatus('Restaurando Sheets...')
-      const r = await fetch(url)
+      const r = await fetch('/.netlify/functions/sheets')
       if (!r.ok) throw new Error('Sheets no disponible')
       const data = await r.json()
       if (!Array.isArray(data)) throw new Error('Formato inválido')
@@ -122,9 +118,7 @@ export default function App() {
 
   const refreshFromSheetsQuiet = async () => {
     try {
-      const url = String(webAppUrl||'').trim()
-      if (!url) return
-      const r = await fetch(url)
+      const r = await fetch('/.netlify/functions/sheets')
       if (!r.ok) return
       const data = await r.json()
       if (!Array.isArray(data)) return
@@ -139,7 +133,7 @@ export default function App() {
     if (pushTimer.current) clearTimeout(pushTimer.current)
     pushTimer.current = setTimeout(async () => {
       try {
-        await fetch(webAppUrl, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'replace' }) })
+        await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'replace' }) })
         const t = Date.now(); try { localStorage.setItem('finanzas_last_sync', String(t)) } catch {}
         setBackupStatus('Sheets actualizado')
       } catch (e) {
@@ -319,27 +313,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="card" style={{marginTop:8}}>
-        <h3 style={{marginTop:0}}>Google Sheets</h3>
-        <div className="row" style={{marginTop:10}}>
-          <button className="btn" onClick={restoreFromSheets}>Restaurar desde Google Sheets</button>
-          <button className="btn" onClick={uploadToSheets}>Subir a Google Sheets</button>
-          {backupStatus && <span className="label">{backupStatus}</span>}
-        </div>
-        <div className="row" style={{marginTop:10}}>
-          <div style={{flex:1}}>
-            <div className="label">URL del Web App de Apps Script</div>
-            <input className="input" value={webAppUrl} onChange={e => setWebAppUrl(e.target.value)} placeholder="https://script.google.com/macros/s/.../exec" />
-          </div>
-          <button className="btn" onClick={() => { try { localStorage.setItem('finanzas_sheets_webapp_url', webAppUrl); setBackupStatus('Web App guardado') } catch {} }}>Guardar URL</button>
-        </div>
-        <div className="row" style={{marginTop:10}}>
-          <div style={{flex:1}}>
-            <div className="label">Auto sincronizar con Google</div>
-            <input className="input" type="checkbox" checked={autoGoogle} onChange={e => { setAutoGoogle(e.target.checked); try { localStorage.setItem('finanzas_auto_sync_google', e.target.checked ? '1':'0') } catch {} }} />
-          </div>
-        </div>
-      </div>
+      
 
       <div className="grid">
         <div className="card">
