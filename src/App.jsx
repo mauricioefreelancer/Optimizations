@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { getSyncConfig, setSyncConfig, pullEntries, pushEntries, mergeEntries } from './sync.js'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+ 
 
 const STORAGE_KEY = 'finanzas_entries_v1'
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+const DEFAULT_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycby_iyaqDlvEq76GperwHaExuzT23sKnyk1RzAA1_bNtaM0Ik_6OwYJfLjzNzpXCl7L7/exec'
+const API_BASE_URL = ''
 const types = [
   { key:'ingreso', label:'Ingresos' },
   { key:'pago', label:'Pagos' },
@@ -14,52 +15,27 @@ function useEntries() {
   const [entries, setEntries] = useState([])
   const [error, setError] = useState('')
   useEffect(() => {
-    const load = async () => {
-      if (!API_BASE_URL) { setError('Falta VITE_API_BASE_URL'); return }
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/entries`)
-        if (!res.ok) throw new Error('API no disponible')
-        const data = await res.json()
-        setEntries(data)
-        if (Array.isArray(data) && data.length > 0) {
-          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
-        }
-      } catch (e) {
-        setError(e.message || 'Error de carga')
-      }
-    }
-    load()
+    try {
+      const v = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+      if (Array.isArray(v)) setEntries(v)
+    } catch {}
   }, [])
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)) } catch {}
   }, [entries])
   const reload = async () => {
-    if (!API_BASE_URL) return
-    const res = await fetch(`${API_BASE_URL}/api/entries`)
-    if (res.ok) {
-      const data = await res.json()
-      setEntries(data)
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
-    }
+    try {
+      const v = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+      if (Array.isArray(v)) setEntries(v)
+    } catch {}
   }
   const add = async e => {
     const entry = { id:crypto.randomUUID(), ...e }
     setEntries(prev => [entry, ...prev])
-    if (API_BASE_URL) {
-      try {
-        await fetch(`${API_BASE_URL}/api/entries`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(entry) })
-        await fetch(`${API_BASE_URL}/api/sync/push`, { method:'POST' })
-        try { localStorage.setItem('finanzas_last_sync', String(Date.now())) } catch {}
-      } catch {}
-    }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify([entry, ...entries])) } catch {}
   }
   const remove = async id => {
     setEntries(prev => prev.filter(x => x.id !== id))
-    if (API_BASE_URL) { try {
-      await fetch(`${API_BASE_URL}/api/entries/${id}`, { method:'DELETE' })
-      await fetch(`${API_BASE_URL}/api/sync/push`, { method:'POST' })
-      try { localStorage.setItem('finanzas_last_sync', String(Date.now())) } catch {}
-    } catch {} }
   }
   const clear = () => setEntries([])
   const restoreFromCache = async () => {
@@ -67,15 +43,13 @@ function useEntries() {
     try { cached = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch {}
     if (!Array.isArray(cached) || cached.length === 0) return
     setEntries(cached)
-    if (API_BASE_URL) {
-      for (const e of cached) {
-        try { await fetch(`${API_BASE_URL}/api/entries`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(e) }) } catch {}
-      }
-      try { await fetch(`${API_BASE_URL}/api/sync/push`, { method:'POST' }) } catch {}
-      try { localStorage.setItem('finanzas_last_sync', String(Date.now())) } catch {}
-    }
   }
-  return { entries, add, remove, clear, reload, restoreFromCache, error }
+  const setAll = list => {
+    if (!Array.isArray(list)) return
+    setEntries(list)
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)) } catch {}
+  }
+  return { entries, add, remove, clear, reload, restoreFromCache, error, setAll }
 }
 
 function formatCurrency(n) { return new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', currencyDisplay:'symbol', maximumFractionDigits:0 }).format(Number(n||0)) }
@@ -85,7 +59,7 @@ function parseAmount(s) { const d = toDigits(s); return d ? Number(d) : 0 }
 function todayStr() { return new Date().toISOString().slice(0,10) }
 
 export default function App() {
-  const { entries, add, remove, clear, reload, restoreFromCache, error } = useEntries()
+  const { entries, add, remove, clear, reload, restoreFromCache, error, setAll } = useEntries()
   const [tab, setTab] = useState('ingreso')
   const [form, setForm] = useState({ amount:'', principal:'', date:todayStr(), dueDate:'', note:'', who:'', category:'', account:'' })
   const [reportPeriod, setReportPeriod] = useState('mensual')
@@ -98,6 +72,96 @@ export default function App() {
   const cacheCount = useMemo(() => {
     try { const v = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); return Array.isArray(v) ? v.length : 0 } catch { return 0 }
   }, [entries])
+  
+  const [backupStatus, setBackupStatus] = useState('')
+  const [webAppUrl, setWebAppUrl] = useState(() => {
+    try {
+      const saved = localStorage.getItem('finanzas_sheets_webapp_url') || ''
+      return saved || DEFAULT_WEBAPP_URL
+    } catch { return DEFAULT_WEBAPP_URL }
+  })
+  const [autoGoogle, setAutoGoogle] = useState(() => {
+    try {
+      const v = localStorage.getItem('finanzas_auto_sync_google')
+      if (v !== null) return v === '1'
+      const w = (localStorage.getItem('finanzas_sheets_webapp_url') || DEFAULT_WEBAPP_URL)
+      return !!w
+    } catch { return true }
+  })
+
+  useEffect(() => {
+    try { localStorage.setItem('finanzas_sheets_webapp_url', webAppUrl) } catch {}
+  }, [webAppUrl])
+
+  const uploadToSheets = async () => {
+    try {
+      const url = String(webAppUrl||'').trim()
+      if (!url) { setBackupStatus('Falta URL Apps Script'); return }
+      setBackupStatus('Subiendo a Sheets...')
+      await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'replace' }) })
+      setBackupStatus('Sheets actualizado')
+    } catch (e) {
+      setBackupStatus(`Error: ${e.message}`)
+    }
+  }
+  const restoreFromSheets = async () => {
+    try {
+      const url = String(webAppUrl||'').trim()
+      if (!url) { setBackupStatus('Falta URL Apps Script'); return }
+      setBackupStatus('Restaurando Sheets...')
+      const r = await fetch(url)
+      if (!r.ok) throw new Error('Sheets no disponible')
+      const data = await r.json()
+      if (!Array.isArray(data)) throw new Error('Formato inválido')
+      setAll(data)
+      setBackupStatus('Sheets OK')
+    } catch (e) {
+      setBackupStatus(`Error: ${e.message}`)
+    }
+  }
+
+  const refreshFromSheetsQuiet = async () => {
+    try {
+      const url = String(webAppUrl||'').trim()
+      if (!url) return
+      const r = await fetch(url)
+      if (!r.ok) return
+      const data = await r.json()
+      if (!Array.isArray(data)) return
+      setAll(data)
+    } catch {}
+  }
+
+  const pushTimer = useRef(null)
+  useEffect(() => {
+    if (!autoGoogle) return
+    if (!webAppUrl) return
+    if (pushTimer.current) clearTimeout(pushTimer.current)
+    pushTimer.current = setTimeout(async () => {
+      try {
+        await fetch(webAppUrl, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'replace' }) })
+        const t = Date.now(); try { localStorage.setItem('finanzas_last_sync', String(t)) } catch {}
+        setBackupStatus('Sheets actualizado')
+      } catch (e) {
+        setBackupStatus(`Error: ${e.message}`)
+      }
+    }, 800)
+    return () => { if (pushTimer.current) clearTimeout(pushTimer.current) }
+  }, [entries, autoGoogle, webAppUrl])
+
+  useEffect(() => {
+    if (entries.length === 0 && webAppUrl) {
+      restoreFromSheets()
+    }
+  }, [webAppUrl])
+
+  const pollTimer = useRef(null)
+  useEffect(() => {
+    if (!webAppUrl) return
+    if (pollTimer.current) clearInterval(pollTimer.current)
+    pollTimer.current = setInterval(() => { refreshFromSheetsQuiet() }, 30000)
+    return () => { if (pollTimer.current) clearInterval(pollTimer.current) }
+  }, [webAppUrl])
 
   const summary = useMemo(() => {
     const sum = k => entries.filter(e => e.type === k).reduce((a,b) => a + Number(b.amount||0), 0)
@@ -224,18 +288,7 @@ export default function App() {
     setForm({ amount:'', principal:'', date:todayStr(), dueDate:'', note:'', who:'', category:'', account:'' })
   }
 
-  const doSyncNow = async () => {
-    try {
-      setSyncStatus('Sincronizando...')
-      if (API_BASE_URL) {
-        await fetch(`${API_BASE_URL}/api/sync/pull`, { method:'POST' })
-        await fetch(`${API_BASE_URL}/api/sync/push`, { method:'POST' })
-        await reload()
-        const t = Date.now(); setLastSyncAt(t); try { localStorage.setItem('finanzas_last_sync', String(t)) } catch {}
-      }
-      setSyncStatus('OK')
-    } catch (e) { setSyncStatus(`Error: ${e.message}`) } finally { setTimeout(()=>setSyncStatus(''), 1500) }
-  }
+  
 
   return (
     <div className="container">
@@ -260,10 +313,31 @@ export default function App() {
       <div className="card" style={{marginTop:8}}>
         <h3 style={{marginTop:0}}>Sincronización</h3>
         <div className="row" style={{marginTop:10}}>
-          <button className="btn" onClick={doSyncNow}>Sincronizar ahora</button>
           {entries.length === 0 && cacheCount > 0 && <button className="btn" onClick={restoreFromCache}>Restaurar desde caché</button>}
           {syncStatus && <span className="label">{syncStatus}</span>}
           {!syncStatus && lastSyncAt > 0 && <span className="label">Última sincronización: {new Date(lastSyncAt).toLocaleString('es-CO')}</span>}
+        </div>
+      </div>
+
+      <div className="card" style={{marginTop:8}}>
+        <h3 style={{marginTop:0}}>Google Sheets</h3>
+        <div className="row" style={{marginTop:10}}>
+          <button className="btn" onClick={restoreFromSheets}>Restaurar desde Google Sheets</button>
+          <button className="btn" onClick={uploadToSheets}>Subir a Google Sheets</button>
+          {backupStatus && <span className="label">{backupStatus}</span>}
+        </div>
+        <div className="row" style={{marginTop:10}}>
+          <div style={{flex:1}}>
+            <div className="label">URL del Web App de Apps Script</div>
+            <input className="input" value={webAppUrl} onChange={e => setWebAppUrl(e.target.value)} placeholder="https://script.google.com/macros/s/.../exec" />
+          </div>
+          <button className="btn" onClick={() => { try { localStorage.setItem('finanzas_sheets_webapp_url', webAppUrl); setBackupStatus('Web App guardado') } catch {} }}>Guardar URL</button>
+        </div>
+        <div className="row" style={{marginTop:10}}>
+          <div style={{flex:1}}>
+            <div className="label">Auto sincronizar con Google</div>
+            <input className="input" type="checkbox" checked={autoGoogle} onChange={e => { setAutoGoogle(e.target.checked); try { localStorage.setItem('finanzas_auto_sync_google', e.target.checked ? '1':'0') } catch {} }} />
+          </div>
         </div>
       </div>
 

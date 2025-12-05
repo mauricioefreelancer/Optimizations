@@ -94,6 +94,71 @@ app.post('/api/sync/push', async (req, res) => {
   }
 })
 
+app.post('/api/sync/sheets/pull', async (req, res) => {
+  try {
+    const url = (req.body && req.body.url) || process.env.SHEETS_CSV_URL
+    if (!url) return res.status(400).json({ error: 'Falta SHEETS_CSV_URL' })
+    const r = await fetch(url)
+    if (!r.ok) throw new Error(`Sheets ${r.status}`)
+    const text = await r.text()
+    const wb = XLSX.read(text, { type: 'string' })
+    const ws = wb.Sheets[wb.SheetNames[0]]
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' })
+    const normType = t => String(t||'').toLowerCase().trim()
+    let imported = 0
+    for (const row of rows) {
+      const entry = {
+        id: row.id || uuid(),
+        type: (() => {
+          const t = normType(row.type || row.tipo)
+          if (t.startsWith('ing')) return 'ingreso'
+          if (t.startsWith('pag')) return 'pago'
+          if (t.startsWith('deu')) return 'deuda'
+          if (t.startsWith('cob')) return 'cobro'
+          return 'pago'
+        })(),
+        amount: Number(row.amount || row.monto || 0),
+        principal: row.principal ? Number(row.principal) : null,
+        date: String(row.date || row.fecha || new Date().toISOString().slice(0,10)),
+        dueDate: row.dueDate || row.vencer || '',
+        note: row.note || row.nota || '',
+        who: row.who || row.quien || row['quién'] || '',
+        category: row.category || row.categoria || '',
+        account: row.account || row.cuenta || '',
+        tags: null,
+        updatedAt: Date.now()
+      }
+      await storage.upsert(entry)
+      imported += 1
+    }
+    res.json({ ok: true, imported })
+  } catch (e) {
+    res.status(400).json({ error: String(e.message || e) })
+  }
+})
+
+// Push current entries to Google Sheets via Apps Script Web App
+app.post('/api/sync/sheets/push', async (req, res) => {
+  try {
+    const url = (req.body && req.body.url) || process.env.SHEETS_WEBAPP_URL
+    if (!url) return res.status(400).json({ error: 'Falta SHEETS_WEBAPP_URL' })
+    const mode = (req.body && req.body.mode) || 'upsert'
+    const list = await storage.all()
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entries: list, mode })
+    })
+    if (!r.ok) throw new Error(`Sheets push ${r.status}`)
+    const text = await r.text()
+    let json
+    try { json = JSON.parse(text) } catch { json = { ok: true } }
+    res.json({ ok: true, result: json })
+  } catch (e) {
+    res.status(400).json({ error: String(e.message || e) })
+  }
+})
+
 app.listen(port, '0.0.0.0', () => {
   console.log(`API escuchando en http://localhost:${port}`)
 })
