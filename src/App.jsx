@@ -446,55 +446,59 @@ export default function App() {
       </div>
 
       <div className="card" style={{marginTop:16}}>
-        <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
+        <div className="row" style={{justifyContent:'space-between', alignItems:'center'}} onClick={() => toggleGroup('DEUDAS')}>
           <h3 style={{marginTop:0}}>Deudas</h3>
         </div>
-        <div className="list">
-          {debts.length === 0 && <div className="label">Sin deudas</div>}
-          {debts.map(e => (
-            <div key={e.id} className="item">
-              <div>
-                <div className="mono">{formatCurrency(e.amount)}</div>
-                <div className="label">{e.dueDate ? `Pagar: ${e.dueDate}` : e.date}</div>
+        {openKeys.has('DEUDAS') && (
+          <div className="list">
+            {debts.length === 0 && <div className="label">Sin deudas</div>}
+            {debts.map(e => (
+              <div key={e.id} className="item">
+                <div>
+                  <div className="mono">{formatCurrency(e.amount)}</div>
+                  <div className="label">{e.dueDate ? `Pagar: ${e.dueDate}` : e.date}</div>
+                </div>
+                <div style={{flex:1, marginLeft:10}}>
+                  <div>{e.note || '-'}</div>
+                  <div className="label">{e.who || e.category || 'Deuda'}</div>
+                </div>
+                <div className="row" style={{gap:8}}>
+                  <button className="btn" onClick={() => convertDebtToPayment(e)}>Convertir a pago</button>
+                  <button className="btn danger" onClick={() => { if (confirm('¿Eliminar esta deuda?')) remove(e.id) }}>Eliminar</button>
+                </div>
               </div>
-              <div style={{flex:1, marginLeft:10}}>
-                <div>{e.note || '-'}</div>
-                <div className="label">{e.who || e.category || 'Deuda'}</div>
-              </div>
-              <div className="row" style={{gap:8}}>
-                <button className="btn" onClick={() => convertDebtToPayment(e)}>Convertir a pago</button>
-                <button className="btn danger" onClick={() => { if (confirm('¿Eliminar esta deuda?')) remove(e.id) }}>Eliminar</button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="card" style={{marginTop:16}}>
-        <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
+        <div className="row" style={{justifyContent:'space-between', alignItems:'center'}} onClick={() => toggleGroup('COBROS')}>
           <h3 style={{marginTop:0}}>Cobros</h3>
         </div>
-        <div className="list">
-          {entries.filter(e => e.type==='cobro').length === 0 && <div className="label">Sin cobros</div>}
-          {entries.filter(e => e.type==='cobro').sort((a,b) => {
-            const ad = a.dueDate || a.date; const bd = b.dueDate || b.date; return String(ad).localeCompare(String(bd))
-          }).map(e => (
-            <div key={e.id} className="item">
-              <div>
-                <div className="mono">{formatCurrency(e.amount)}</div>
-                <div className="label">{e.dueDate ? `Cobrar: ${e.dueDate}` : e.date}</div>
+        {openKeys.has('COBROS') && (
+          <div className="list">
+            {entries.filter(e => e.type==='cobro').length === 0 && <div className="label">Sin cobros</div>}
+            {entries.filter(e => e.type==='cobro').sort((a,b) => {
+              const ad = a.dueDate || a.date; const bd = b.dueDate || b.date; return String(ad).localeCompare(String(bd))
+            }).map(e => (
+              <div key={e.id} className="item">
+                <div>
+                  <div className="mono">{formatCurrency(e.amount)}</div>
+                  <div className="label">{e.dueDate ? `Cobrar: ${e.dueDate}` : e.date}</div>
+                </div>
+                <div style={{flex:1, marginLeft:10}}>
+                  <div>{e.note || '-'}</div>
+                  <div className="label">{e.who || e.category || 'Cobro'}</div>
+                </div>
+                <div className="row" style={{gap:8}}>
+                  <button className="btn" onClick={() => { const amt = Number(e.amount||0); add({ type:'ingreso', amount:amt, date:todayStr(), note: e.note ? `Cobro: ${e.note}` : 'Cobro', who:e.who, category:e.category, account:e.account, updatedAt: Date.now() }); remove(e.id) }}>Convertir a ingreso</button>
+                  <button className="btn danger" onClick={() => { if (confirm('¿Eliminar este cobro?')) remove(e.id) }}>Eliminar</button>
+                </div>
               </div>
-              <div style={{flex:1, marginLeft:10}}>
-                <div>{e.note || '-'}</div>
-                <div className="label">{e.who || e.category || 'Cobro'}</div>
-              </div>
-              <div className="row" style={{gap:8}}>
-                <button className="btn" onClick={() => { const amt = Number(e.amount||0); add({ type:'ingreso', amount:amt, date:todayStr(), note: e.note ? `Cobro: ${e.note}` : 'Cobro', who:e.who, category:e.category, account:e.account, updatedAt: Date.now() }); remove(e.id) }}>Convertir a ingreso</button>
-                <button className="btn danger" onClick={() => { if (confirm('¿Eliminar este cobro?')) remove(e.id) }}>Eliminar</button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="card" style={{marginTop:16}}>
