@@ -111,23 +111,32 @@ export default function App() {
   }, [webAppUrl])
 
   const mergeEntries = (local, remote) => {
+    const L = Array.isArray(local) ? local : []
+    const R = Array.isArray(remote) ? remote : []
     const byId = new Map()
     const put = e => byId.set(e.id, e)
-    ;(Array.isArray(local)?local:[]).forEach(put)
-    ;(Array.isArray(remote)?remote:[]).forEach(e => {
+    L.forEach(put)
+    R.forEach(e => {
       const a = byId.get(e.id)
       if (!a) return put(e)
       const au = a.updatedAt || 0
       const bu = e.updatedAt || 0
       put(bu >= au ? e : a)
     })
+    const remoteIds = new Set(R.map(e => e.id))
+    const missingLocal = L.filter(e => !remoteIds.has(e.id))
+    const DELETE_LIMIT = 10
+    const allowMassDelete = R.length === 0 ? false : (missingLocal.length <= DELETE_LIMIT)
+    if (!allowMassDelete) {
+      missingLocal.forEach(e => put(e))
+    }
     return Array.from(byId.values())
   }
 
   const uploadToSheets = async () => {
     try {
       setBackupStatus('Subiendo a Sheets...')
-      await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'replace' }) })
+      await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'upsert' }) })
       setBackupStatus('Sheets actualizado')
     } catch (e) {
       setBackupStatus(`Error: ${e.message}`)
@@ -166,7 +175,7 @@ export default function App() {
     if (pushTimer.current) clearTimeout(pushTimer.current)
     pushTimer.current = setTimeout(async () => {
       try {
-        await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'replace' }) })
+        await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'upsert' }) })
         const t = Date.now(); try { localStorage.setItem('finanzas_last_sync', String(t)) } catch {}
         setBackupStatus('Sheets actualizado')
       } catch (e) {
