@@ -73,11 +73,12 @@ function parseAmount(s) { const d = toDigits(s); return d ? Number(d) : 0 }
 function todayStr() { return new Date().toISOString().slice(0,10) }
 function parseDateOrToday(s) { const raw = String(s||'').split('T')[0]; const d = new Date(raw + 'T00:00:00'); return isNaN(d.getTime()) ? new Date() : d }
 function validDateStr(s) { return parseDateOrToday(s).toISOString().slice(0,10) }
+function addMonthsSameDay(s, m) { const d = parseDateOrToday(s); const day = d.getDate(); const x = new Date(d.getFullYear(), d.getMonth()+m, day); if (x.getDate() !== day) { const last = new Date(d.getFullYear(), d.getMonth()+m+1, 0); return last } return x }
 
 export default function App() {
   const { entries, add, remove, clear, reload, restoreFromCache, error, setAll } = useEntries()
   const [tab, setTab] = useState('ingreso')
-  const [form, setForm] = useState({ amount:'', principal:'', date:todayStr(), dueDate:'', note:'', who:'', category:'', account:'' })
+  const [form, setForm] = useState({ amount:'', installments:'', date:todayStr(), dueDate:'', note:'', who:'', category:'', account:'' })
   const [reportPeriod, setReportPeriod] = useState('mensual')
   const [syncStatus, setSyncStatus] = useState('')
   const [lastSyncAt, setLastSyncAt] = useState(() => {
@@ -109,6 +110,20 @@ export default function App() {
     try { localStorage.setItem('finanzas_sheets_webapp_url', webAppUrl) } catch {}
   }, [webAppUrl])
 
+  const mergeEntries = (local, remote) => {
+    const byId = new Map()
+    const put = e => byId.set(e.id, e)
+    ;(Array.isArray(local)?local:[]).forEach(put)
+    ;(Array.isArray(remote)?remote:[]).forEach(e => {
+      const a = byId.get(e.id)
+      if (!a) return put(e)
+      const au = a.updatedAt || 0
+      const bu = e.updatedAt || 0
+      put(bu >= au ? e : a)
+    })
+    return Array.from(byId.values())
+  }
+
   const uploadToSheets = async () => {
     try {
       setBackupStatus('Subiendo a Sheets...')
@@ -125,7 +140,8 @@ export default function App() {
       if (!r.ok) throw new Error('Sheets no disponible')
       const data = await r.json()
       if (!Array.isArray(data)) throw new Error('Formato inválido')
-      setAll(data)
+      const merged = mergeEntries(entries, data)
+      setAll(merged)
       setBackupStatus('Sheets OK')
     } catch (e) {
       setBackupStatus(`Error: ${e.message}`)
@@ -138,7 +154,8 @@ export default function App() {
       if (!r.ok) return
       const data = await r.json()
       if (!Array.isArray(data)) return
-      setAll(data)
+      const merged = mergeEntries(entries, data)
+      setAll(merged)
     } catch {}
   }
 
@@ -160,9 +177,8 @@ export default function App() {
   }, [entries, autoGoogle, webAppUrl])
 
   useEffect(() => {
-    if (entries.length === 0 && webAppUrl) {
-      restoreFromSheets()
-    }
+    if (!webAppUrl) return
+    restoreFromSheets()
   }, [webAppUrl])
 
   const pollTimer = useRef(null)
@@ -285,17 +301,26 @@ export default function App() {
   const submit = () => {
     const amt = parseAmount(form.amount)
     if (tab === 'deuda') {
-      const princ = parseAmount(form.principal)
-      if (amt <= 0 || princ <= 0) return
-      add({ type:'deuda', amount:amt, principal:princ, date:form.date, dueDate: form.dueDate || undefined, note:form.note, who:form.who, category:form.category, account:form.account, updatedAt: Date.now() })
+      const cuotas = Number(form.installments || 0)
+      const first = String(form.dueDate || '')
+      if (amt <= 0 || cuotas <= 0 || !first) return
+      const base = Math.floor(amt / cuotas)
+      const rem = amt - base * cuotas
+      for (let i = 0; i < cuotas; i++) {
+        const part = base + (i === cuotas - 1 ? rem : 0)
+        const due = addMonthsSameDay(first, i)
+        const dueStr = validDateStr(due.toISOString().slice(0,10))
+        add({ type:'deuda', amount:part, date:dueStr, dueDate: dueStr, note:form.note, who:form.who, category:form.category, account:form.account, updatedAt: Date.now() })
+      }
     } else if (tab === 'cobro') {
       if (amt <= 0) return
-      add({ type:'cobro', amount:amt, date:form.date, dueDate: form.dueDate || undefined, note:form.note, who:form.who, category:form.category, updatedAt: Date.now() })
+      const dueStr = validDateStr(form.dueDate || todayStr())
+      add({ type:'cobro', amount:amt, date:dueStr, dueDate: dueStr, note:form.note, who:form.who, category:form.category, updatedAt: Date.now() })
     } else {
       if (amt <= 0) return
       add({ type:tab, amount:amt, date:form.date, dueDate: form.dueDate || undefined, note:form.note, who:form.who, category:form.category, account:form.account, updatedAt: Date.now() })
     }
-    setForm({ amount:'', principal:'', date:todayStr(), dueDate:'', note:'', who:'', category:'', account:'' })
+    setForm({ amount:'', installments:'', date:todayStr(), dueDate:'', note:'', who:'', category:'', account:'' })
   }
 
   
@@ -341,10 +366,12 @@ export default function App() {
                 setForm(f => ({...f, amount: digits ? formatThousands(digits) : ''}))
               }} placeholder="0" />
             </div>
-            <div style={{width:160}}>
-              <div className="label">Fecha</div>
-              <input className="input" type="date" value={form.date} onChange={e => setForm(f => ({...f, date:e.target.value}))} />
-            </div>
+            {(tab === 'ingreso' || tab === 'pago') && (
+              <div style={{width:160}}>
+                <div className="label">Fecha</div>
+                <input className="input" type="date" value={form.date} onChange={e => setForm(f => ({...f, date:e.target.value}))} />
+              </div>
+            )}
           </div>
 
           {tab === 'ingreso' && (
@@ -376,12 +403,9 @@ export default function App() {
 
           {tab === 'deuda' && (
             <div className="row" style={{marginTop:10}}>
-              <div style={{flex:1}}>
-                <div className="label">Monto pedido</div>
-                <input className="input" type="text" value={form.principal} onChange={e => {
-                  const digits = toDigits(e.target.value)
-                  setForm(f => ({...f, principal: digits ? formatThousands(digits) : ''}))
-                }} placeholder="0" />
+              <div style={{width:160}}>
+                <div className="label">Número de cuotas</div>
+                <input className="input" type="number" min="1" value={form.installments} onChange={e => setForm(f => ({...f, installments:e.target.value}))} placeholder="1" />
               </div>
               <div style={{width:200}}>
                 <div className="label">Fecha de pago</div>
