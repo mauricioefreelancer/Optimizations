@@ -74,6 +74,8 @@ function todayStr() { return new Date().toISOString().slice(0,10) }
 function parseDateOrToday(s) { const raw = String(s||'').split('T')[0]; const d = new Date(raw + 'T00:00:00'); return isNaN(d.getTime()) ? new Date() : d }
 function validDateStr(s) { return parseDateOrToday(s).toISOString().slice(0,10) }
 function addMonthsSameDay(s, m) { const d = parseDateOrToday(s); const day = d.getDate(); const x = new Date(d.getFullYear(), d.getMonth()+m, day); if (x.getDate() !== day) { const last = new Date(d.getFullYear(), d.getMonth()+m+1, 0); return last } return x }
+function getPendingIds() { try { const v = JSON.parse(localStorage.getItem('finanzas_pending_ids')||'[]'); return Array.isArray(v) ? v : [] } catch { return [] } }
+function setPendingIds(ids) { try { localStorage.setItem('finanzas_pending_ids', JSON.stringify(Array.from(new Set(ids)))) } catch {} }
 
 export default function App() {
   const { entries, add, remove, clear, reload, restoreFromCache, error, setAll } = useEntries()
@@ -124,22 +126,20 @@ export default function App() {
       put(bu >= au ? e : a)
     })
     const remoteIds = new Set(R.map(e => e.id))
-    const missingLocal = L.filter(e => !remoteIds.has(e.id))
-    const DELETE_LIMIT = 10
-    const allowMassDelete = R.length === 0 ? false : (missingLocal.length <= DELETE_LIMIT)
-    if (!allowMassDelete) {
-      missingLocal.forEach(e => put(e))
-    }
+    const pending = new Set(getPendingIds())
+    L.filter(e => !remoteIds.has(e.id) && pending.has(e.id)).forEach(e => byId.set(e.id, e))
     return Array.from(byId.values())
   }
 
   const uploadToSheets = async () => {
     try {
       setBackupStatus('Subiendo a Sheets...')
-      const rc = (() => { try { return Number(localStorage.getItem('finanzas_remote_count')||'0') } catch { return 0 } })()
-      if ((entries||[]).length === 0) return
-      if (rc > 0 && (rc - (entries||[]).length) > 10) return
-      await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'replace' }) })
+      const remoteIds = (() => { try { return JSON.parse(localStorage.getItem('finanzas_remote_ids')||'[]') } catch { return [] } })()
+      const remoteSet = new Set(Array.isArray(remoteIds)?remoteIds:[])
+      const toPush = (entries||[]).filter(e => !remoteSet.has(e.id))
+      if (toPush.length === 0) return
+      await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries: toPush, mode:'append' }) })
+      setPendingIds(getPendingIds().concat(toPush.map(e => e.id)))
       setBackupStatus('Sheets actualizado')
     } catch (e) {
       setBackupStatus(`Error: ${e.message}`)
@@ -152,7 +152,9 @@ export default function App() {
       if (!r.ok) throw new Error('Sheets no disponible')
       const data = await r.json()
       if (!Array.isArray(data)) throw new Error('Formato inválido')
-      try { localStorage.setItem('finanzas_remote_count', String(data.length)) } catch {}
+      try { localStorage.setItem('finanzas_remote_ids', JSON.stringify(data.map(e => e.id))) } catch {}
+      const rset = new Set(data.map(e => e.id))
+      setPendingIds(getPendingIds().filter(id => !rset.has(id)))
       const merged = mergeEntries(entries, data)
       setAll(merged)
       setBackupStatus('Sheets OK')
@@ -167,7 +169,9 @@ export default function App() {
       if (!r.ok) return
       const data = await r.json()
       if (!Array.isArray(data)) return
-      try { localStorage.setItem('finanzas_remote_count', String(data.length)) } catch {}
+      try { localStorage.setItem('finanzas_remote_ids', JSON.stringify(data.map(e => e.id))) } catch {}
+      const rset2 = new Set(data.map(e => e.id))
+      setPendingIds(getPendingIds().filter(id => !rset2.has(id)))
       const merged = mergeEntries(entries, data)
       setAll(merged)
     } catch {}
@@ -180,10 +184,12 @@ export default function App() {
     if (pushTimer.current) clearTimeout(pushTimer.current)
     pushTimer.current = setTimeout(async () => {
       try {
-        const rc = (() => { try { return Number(localStorage.getItem('finanzas_remote_count')||'0') } catch { return 0 } })()
-        if ((entries||[]).length === 0) return
-        if (rc > 0 && (rc - (entries||[]).length) > 10) return
-        await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'replace' }) })
+        const remoteIds = (() => { try { return JSON.parse(localStorage.getItem('finanzas_remote_ids')||'[]') } catch { return [] } })()
+        const remoteSet = new Set(Array.isArray(remoteIds)?remoteIds:[])
+        const toPush = (entries||[]).filter(e => !remoteSet.has(e.id))
+        if (toPush.length === 0) return
+        await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries: toPush, mode:'append' }) })
+        setPendingIds(getPendingIds().concat(toPush.map(e => e.id)))
         const t = Date.now(); try { localStorage.setItem('finanzas_last_sync', String(t)) } catch {}
         setBackupStatus('Sheets actualizado')
       } catch (e) {
@@ -312,7 +318,6 @@ export default function App() {
   const convertDebtToPayment = e => {
     const amt = Number(e.amount||0)
     add({ type:'pago', amount:amt, date:todayStr(), note: e.note ? `Pago deuda: ${e.note}` : 'Pago deuda', who:e.who, category:e.category, account:e.account, updatedAt: Date.now() })
-    remove(e.id)
   }
 
   const submit = () => {
@@ -463,7 +468,6 @@ export default function App() {
 
           <div style={{marginTop:12}} className="row">
             <button className="btn" onClick={submit}>Guardar</button>
-            <button className="btn danger" onClick={clear}>Limpiar todo</button>
           </div>
         </div>
 
@@ -505,7 +509,6 @@ export default function App() {
                 </div>
                 <div className="row" style={{gap:8}}>
                   <button className="btn" onClick={() => convertDebtToPayment(e)}>Convertir a pago</button>
-                  <button className="btn danger" onClick={() => { if (confirm('¿Eliminar esta deuda?')) remove(e.id) }}>Eliminar</button>
                 </div>
               </div>
             ))}
@@ -533,8 +536,7 @@ export default function App() {
                   <div className="label">{e.who || e.category || 'Cobro'}</div>
                 </div>
                 <div className="row" style={{gap:8}}>
-                  <button className="btn" onClick={() => { const amt = Number(e.amount||0); add({ type:'ingreso', amount:amt, date:todayStr(), note: e.note ? `Cobro: ${e.note}` : 'Cobro', who:e.who, category:e.category, account:e.account, updatedAt: Date.now() }); remove(e.id) }}>Convertir a ingreso</button>
-                  <button className="btn danger" onClick={() => { if (confirm('¿Eliminar este cobro?')) remove(e.id) }}>Eliminar</button>
+                  <button className="btn" onClick={() => { const amt = Number(e.amount||0); add({ type:'ingreso', amount:amt, date:todayStr(), note: e.note ? `Cobro: ${e.note}` : 'Cobro', who:e.who, category:e.category, account:e.account, updatedAt: Date.now() }) }}>Convertir a ingreso</button>
                 </div>
               </div>
             ))}
@@ -572,7 +574,7 @@ export default function App() {
                     <div>{e.note || '-'}</div>
                     <div className="label">{e.account || e.who || e.category || e.type}</div>
                   </div>
-                  <button className="btn danger" onClick={() => { if (confirm('¿Eliminar este movimiento?')) remove(e.id) }}>Eliminar</button>
+                  
                 </div>
               ))}
             </div>
