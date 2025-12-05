@@ -136,7 +136,10 @@ export default function App() {
   const uploadToSheets = async () => {
     try {
       setBackupStatus('Subiendo a Sheets...')
-      await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'upsert' }) })
+      const rc = (() => { try { return Number(localStorage.getItem('finanzas_remote_count')||'0') } catch { return 0 } })()
+      if ((entries||[]).length === 0) return
+      if (rc > 0 && (rc - (entries||[]).length) > 10) return
+      await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'replace' }) })
       setBackupStatus('Sheets actualizado')
     } catch (e) {
       setBackupStatus(`Error: ${e.message}`)
@@ -149,6 +152,7 @@ export default function App() {
       if (!r.ok) throw new Error('Sheets no disponible')
       const data = await r.json()
       if (!Array.isArray(data)) throw new Error('Formato inválido')
+      try { localStorage.setItem('finanzas_remote_count', String(data.length)) } catch {}
       const merged = mergeEntries(entries, data)
       setAll(merged)
       setBackupStatus('Sheets OK')
@@ -163,6 +167,7 @@ export default function App() {
       if (!r.ok) return
       const data = await r.json()
       if (!Array.isArray(data)) return
+      try { localStorage.setItem('finanzas_remote_count', String(data.length)) } catch {}
       const merged = mergeEntries(entries, data)
       setAll(merged)
     } catch {}
@@ -175,7 +180,10 @@ export default function App() {
     if (pushTimer.current) clearTimeout(pushTimer.current)
     pushTimer.current = setTimeout(async () => {
       try {
-        await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'upsert' }) })
+        const rc = (() => { try { return Number(localStorage.getItem('finanzas_remote_count')||'0') } catch { return 0 } })()
+        if ((entries||[]).length === 0) return
+        if (rc > 0 && (rc - (entries||[]).length) > 10) return
+        await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries, mode:'replace' }) })
         const t = Date.now(); try { localStorage.setItem('finanzas_last_sync', String(t)) } catch {}
         setBackupStatus('Sheets actualizado')
       } catch (e) {
