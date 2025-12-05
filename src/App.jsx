@@ -46,8 +46,22 @@ function useEntries() {
   }
   const setAll = list => {
     if (!Array.isArray(list)) return
-    setEntries(list)
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)) } catch {}
+    const normType = t => { const x = String(t||'').toLowerCase().trim(); if (x.startsWith('ing')) return 'ingreso'; if (x.startsWith('pag')||x.startsWith('gas')) return 'pago'; if (x.startsWith('deu')) return 'deuda'; if (x.startsWith('cob')) return 'cobro'; return 'pago' }
+    const safe = list.map(e => ({
+      id: e.id || crypto.randomUUID(),
+      type: normType(e.type),
+      amount: Number(e.amount || 0),
+      principal: e.principal != null ? Number(e.principal) : null,
+      date: validDateStr(e.date || e.dueDate || todayStr()),
+      dueDate: e.dueDate ? validDateStr(e.dueDate) : '',
+      note: String(e.note||''),
+      who: String(e.who||''),
+      category: String(e.category||''),
+      account: String(e.account||''),
+      updatedAt: Number(e.updatedAt || Date.now())
+    }))
+    setEntries(safe)
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(safe)) } catch {}
   }
   return { entries, add, remove, clear, reload, restoreFromCache, error, setAll }
 }
@@ -57,6 +71,8 @@ function formatThousands(n) { return new Intl.NumberFormat('es-CO', { maximumFra
 function toDigits(s) { return String(s||'').replace(/\D+/g, '') }
 function parseAmount(s) { const d = toDigits(s); return d ? Number(d) : 0 }
 function todayStr() { return new Date().toISOString().slice(0,10) }
+function parseDateOrToday(s) { const raw = String(s||'').split('T')[0]; const d = new Date(raw + 'T00:00:00'); return isNaN(d.getTime()) ? new Date() : d }
+function validDateStr(s) { return parseDateOrToday(s).toISOString().slice(0,10) }
 
 export default function App() {
   const { entries, add, remove, clear, reload, restoreFromCache, error, setAll } = useEntries()
@@ -181,7 +197,7 @@ export default function App() {
   }, [entries])
 
   const movGroups = useMemo(() => {
-    const toDate = s => new Date(s + 'T00:00:00')
+    const toDate = s => parseDateOrToday(s)
     const startOfMonth = d => new Date(d.getFullYear(), d.getMonth(), 1)
     const startOfQuarter = d => new Date(d.getFullYear(), Math.floor(d.getMonth()/3)*3, 1)
     const startOfWeek = d => { const x = new Date(d); const day = (x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x }
@@ -201,7 +217,7 @@ export default function App() {
     entries.filter(e => e.type === 'ingreso' || e.type === 'pago').forEach(e => {
       const d = toDate(e.date)
       const k = keyFor(d)
-      const s = startFor(d).getTime()
+      let s = startFor(d).getTime(); if (isNaN(s)) s = Date.now()
       if (!map.has(k)) map.set(k, { key:k, start:s, items:[] })
       map.get(k).items.push(e)
     })
@@ -211,7 +227,7 @@ export default function App() {
   }, [entries, movPeriod])
 
   const reportRows = useMemo(() => {
-    const toDate = s => new Date(s + 'T00:00:00')
+    const toDate = s => parseDateOrToday(s)
     const startOfMonth = d => new Date(d.getFullYear(), d.getMonth(), 1)
     const startOfQuarter = d => new Date(d.getFullYear(), Math.floor(d.getMonth()/3)*3, 1)
     const startOfWeek = d => { const x = new Date(d); const day = (x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x }
@@ -231,7 +247,7 @@ export default function App() {
     entries.forEach(e => {
       const d = toDate(e.date)
       const k = keyFor(d)
-      const s = startFor(d).getTime()
+      let s = startFor(d).getTime(); if (isNaN(s)) s = Date.now()
       if (!agg.has(k)) agg.set(k, { key:k, start:s, ingresos:0, pagos:0, deudas:0, count:0 })
       const row = agg.get(k)
       if (e.type === 'ingreso') row.ingresos += Number(e.amount||0)
@@ -499,7 +515,7 @@ export default function App() {
             <div key={g.key}>
               <div className="item" onClick={() => toggleGroup(g.key)}>
                 <div className="mono">{g.key}</div>
-                <div className="label">{new Date(g.start).toISOString().slice(0,10)}</div>
+                <div className="label">{new Date(g.start || Date.now()).toISOString().slice(0,10)}</div>
               </div>
               {openKeys.has(g.key) && g.items.map(e => (
                 <div key={e.id} className="item">
