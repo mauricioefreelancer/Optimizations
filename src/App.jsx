@@ -48,7 +48,7 @@ function useEntries() {
     if (!Array.isArray(list)) return
     const normType = t => { const x = String(t||'').toLowerCase().trim(); if (x.startsWith('ing')) return 'ingreso'; if (x.startsWith('pag')||x.startsWith('gas')) return 'pago'; if (x.startsWith('deu')) return 'deuda'; if (x.startsWith('cob')) return 'cobro'; return 'pago' }
     const safe = list.map(e => ({
-      id: e.id || crypto.randomUUID(),
+      id: e.id || stableId(e),
       type: normType(e.type),
       amount: Number(e.amount || 0),
       principal: e.principal != null ? Number(e.principal) : null,
@@ -74,8 +74,12 @@ function todayStr() { return new Date().toISOString().slice(0,10) }
 function parseDateOrToday(s) { const raw = String(s||'').split('T')[0]; const d = new Date(raw + 'T00:00:00'); return isNaN(d.getTime()) ? new Date() : d }
 function validDateStr(s) { return parseDateOrToday(s).toISOString().slice(0,10) }
 function addMonthsSameDay(s, m) { const d = parseDateOrToday(s); const day = d.getDate(); const x = new Date(d.getFullYear(), d.getMonth()+m, day); if (x.getDate() !== day) { const last = new Date(d.getFullYear(), d.getMonth()+m+1, 0); return last } return x }
+function stableId(e) { const t = String(e.type||'').toLowerCase().trim(); const d = String(e.dueDate || e.date || ''); const a = String(Number(e.amount||0)); const n = String(e.note||'').trim(); const w = String(e.who||'').trim(); const c = String(e.category||'').trim(); const acc = String(e.account||'').trim(); return `${t}|${d}|${a}|${n}|${w}|${c}|${acc}` }
 function getPendingIds() { try { const v = JSON.parse(localStorage.getItem('finanzas_pending_ids')||'[]'); return Array.isArray(v) ? v : [] } catch { return [] } }
 function setPendingIds(ids) { try { localStorage.setItem('finanzas_pending_ids', JSON.stringify(Array.from(new Set(ids)))) } catch {} }
+function getAppendQueue() { try { const v = JSON.parse(localStorage.getItem('finanzas_append_queue')||'[]'); return Array.isArray(v) ? v : [] } catch { return [] } }
+function setAppendQueue(list) { try { localStorage.setItem('finanzas_append_queue', JSON.stringify(list)) } catch {} }
+function enqueueEntries(items) { const q = getAppendQueue(); setAppendQueue(q.concat(items)) }
 
 export default function App() {
   const { entries, add, remove, clear, reload, restoreFromCache, error, setAll } = useEntries()
@@ -134,12 +138,11 @@ export default function App() {
   const uploadToSheets = async () => {
     try {
       setBackupStatus('Subiendo a Sheets...')
-      const remoteIds = (() => { try { return JSON.parse(localStorage.getItem('finanzas_remote_ids')||'[]') } catch { return [] } })()
-      const remoteSet = new Set(Array.isArray(remoteIds)?remoteIds:[])
-      const toPush = (entries||[]).filter(e => !remoteSet.has(e.id))
-      if (toPush.length === 0) return
+      const toPush = getAppendQueue()
+      if (!Array.isArray(toPush) || toPush.length === 0) return
       await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries: toPush, mode:'append' }) })
-      setPendingIds(getPendingIds().concat(toPush.map(e => e.id)))
+      setAppendQueue([])
+      await restoreFromSheets()
       setBackupStatus('Sheets actualizado')
     } catch (e) {
       setBackupStatus(`Error: ${e.message}`)
@@ -152,11 +155,8 @@ export default function App() {
       if (!r.ok) throw new Error('Sheets no disponible')
       const data = await r.json()
       if (!Array.isArray(data)) throw new Error('Formato inválido')
-      try { localStorage.setItem('finanzas_remote_ids', JSON.stringify(data.map(e => e.id))) } catch {}
-      const rset = new Set(data.map(e => e.id))
-      setPendingIds(getPendingIds().filter(id => !rset.has(id)))
-      const merged = mergeEntries(entries, data)
-      setAll(merged)
+      try { localStorage.setItem('finanzas_remote_ids', JSON.stringify(data.map(e => e.id || stableId(e)))) } catch {}
+      setAll(data)
       setBackupStatus('Sheets OK')
     } catch (e) {
       setBackupStatus(`Error: ${e.message}`)
@@ -169,11 +169,8 @@ export default function App() {
       if (!r.ok) return
       const data = await r.json()
       if (!Array.isArray(data)) return
-      try { localStorage.setItem('finanzas_remote_ids', JSON.stringify(data.map(e => e.id))) } catch {}
-      const rset2 = new Set(data.map(e => e.id))
-      setPendingIds(getPendingIds().filter(id => !rset2.has(id)))
-      const merged = mergeEntries(entries, data)
-      setAll(merged)
+      try { localStorage.setItem('finanzas_remote_ids', JSON.stringify(data.map(e => e.id || stableId(e)))) } catch {}
+      setAll(data)
     } catch {}
   }
 
@@ -184,12 +181,10 @@ export default function App() {
     if (pushTimer.current) clearTimeout(pushTimer.current)
     pushTimer.current = setTimeout(async () => {
       try {
-        const remoteIds = (() => { try { return JSON.parse(localStorage.getItem('finanzas_remote_ids')||'[]') } catch { return [] } })()
-        const remoteSet = new Set(Array.isArray(remoteIds)?remoteIds:[])
-        const toPush = (entries||[]).filter(e => !remoteSet.has(e.id))
-        if (toPush.length === 0) return
+        const toPush = getAppendQueue()
+        if (!Array.isArray(toPush) || toPush.length === 0) return
         await fetch('/.netlify/functions/sheets', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ entries: toPush, mode:'append' }) })
-        setPendingIds(getPendingIds().concat(toPush.map(e => e.id)))
+        setAppendQueue([])
         const t = Date.now(); try { localStorage.setItem('finanzas_last_sync', String(t)) } catch {}
         setBackupStatus('Sheets actualizado')
       } catch (e) {
@@ -234,6 +229,37 @@ export default function App() {
     })
     return accountsList.map(a => ({ account:a, saldo: map.get(a) }))
   }, [entries])
+
+  const [catPeriod, setCatPeriod] = useState('mensual')
+  const categoryReport = useMemo(() => {
+    const toDate = s => parseDateOrToday(s)
+    const startOfMonth = d => new Date(d.getFullYear(), d.getMonth(), 1)
+    const startOfWeek = d => { const x = new Date(d); const day = (x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x }
+    const startOfQuincena = d => { const first = new Date(d.getFullYear(), d.getMonth(), 1); const second = new Date(d.getFullYear(), d.getMonth(), 16); return (d.getDate() <= 15) ? first : second }
+    const keyFor = d => {
+      if (catPeriod === 'semanal') { const s = startOfWeek(d); return `W${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,'0')}-${String(s.getDate()).padStart(2,'0')}` }
+      if (catPeriod === 'quincenal') { const s = startOfQuincena(d); const q = s.getDate()===1 ? 'Q1' : 'Q2'; return `${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,'0')}-${q}` }
+      const s = startOfMonth(d); return `${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,'0')}`
+    }
+    const startFor = d => {
+      if (catPeriod === 'semanal') return startOfWeek(d)
+      if (catPeriod === 'quincenal') return startOfQuincena(d)
+      return startOfMonth(d)
+    }
+    const map = new Map()
+    entries.filter(e => e.type === 'pago').forEach(e => {
+      const d = toDate(e.date)
+      const k = keyFor(d)
+      let s = startFor(d).getTime(); if (isNaN(s)) s = Date.now()
+      const cat = String(e.category||'Otros')
+      if (!map.has(k)) map.set(k, { key:k, start:s, cats:new Map() })
+      const row = map.get(k)
+      row.cats.set(cat, Number(row.cats.get(cat)||0) + Number(e.amount||0))
+    })
+    const rows = Array.from(map.values()).map(r => ({ key:r.key, start:r.start, cats: Array.from(r.cats.entries()).map(([category, amount]) => ({ category, amount })).sort((a,b) => b.amount - a.amount) }))
+    rows.sort((a,b) => b.start - a.start)
+    return rows
+  }, [entries, catPeriod])
 
   const movGroups = useMemo(() => {
     const toDate = s => parseDateOrToday(s)
@@ -317,7 +343,9 @@ export default function App() {
 
   const convertDebtToPayment = e => {
     const amt = Number(e.amount||0)
-    add({ type:'pago', amount:amt, date:todayStr(), note: e.note ? `Pago deuda: ${e.note}` : 'Pago deuda', who:e.who, category:e.category, account:e.account, updatedAt: Date.now() })
+    const entry = { id: crypto.randomUUID(), type:'pago', amount:amt, date:todayStr(), note: e.note ? `Pago deuda: ${e.note}` : 'Pago deuda', who:e.who, category:e.category, account:e.account, updatedAt: Date.now() }
+    enqueueEntries([entry])
+    uploadToSheets()
   }
 
   const submit = () => {
@@ -328,19 +356,24 @@ export default function App() {
       if (amt <= 0 || cuotas <= 0 || !first) return
       const base = Math.floor(amt / cuotas)
       const rem = amt - base * cuotas
+      const items = []
       for (let i = 0; i < cuotas; i++) {
         const part = base + (i === cuotas - 1 ? rem : 0)
         const due = addMonthsSameDay(first, i)
         const dueStr = validDateStr(due.toISOString().slice(0,10))
-        add({ type:'deuda', amount:part, date:dueStr, dueDate: dueStr, note:form.note, who:form.who, category:form.category, account:form.account, updatedAt: Date.now() })
+        items.push({ id: crypto.randomUUID(), type:'deuda', amount:part, date:dueStr, dueDate: dueStr, note:form.note, who:form.who, category:form.category, account:form.account, updatedAt: Date.now() })
       }
+      enqueueEntries(items)
+      uploadToSheets()
     } else if (tab === 'cobro') {
       if (amt <= 0) return
       const dueStr = validDateStr(form.dueDate || todayStr())
-      add({ type:'cobro', amount:amt, date:dueStr, dueDate: dueStr, note:form.note, who:form.who, category:form.category, updatedAt: Date.now() })
+      enqueueEntries([{ id: crypto.randomUUID(), type:'cobro', amount:amt, date:dueStr, dueDate: dueStr, note:form.note, who:form.who, category:form.category, updatedAt: Date.now() }])
+      uploadToSheets()
     } else {
       if (amt <= 0) return
-      add({ type:tab, amount:amt, date:form.date, dueDate: form.dueDate || undefined, note:form.note, who:form.who, category:form.category, account:form.account, updatedAt: Date.now() })
+      enqueueEntries([{ id: crypto.randomUUID(), type:tab, amount:amt, date:form.date, dueDate: form.dueDate || undefined, note:form.note, who:form.who, category:form.category, account:form.account, updatedAt: Date.now() }])
+      uploadToSheets()
     }
     setForm({ amount:'', installments:'', date:todayStr(), dueDate:'', note:'', who:'', category:'', account:'' })
   }
@@ -536,7 +569,7 @@ export default function App() {
                   <div className="label">{e.who || e.category || 'Cobro'}</div>
                 </div>
                 <div className="row" style={{gap:8}}>
-                  <button className="btn" onClick={() => { const amt = Number(e.amount||0); add({ type:'ingreso', amount:amt, date:todayStr(), note: e.note ? `Cobro: ${e.note}` : 'Cobro', who:e.who, category:e.category, account:e.account, updatedAt: Date.now() }) }}>Convertir a ingreso</button>
+                  <button className="btn" onClick={() => { const amt = Number(e.amount||0); enqueueEntries([{ id: crypto.randomUUID(), type:'ingreso', amount:amt, date:todayStr(), note: e.note ? `Cobro: ${e.note}` : 'Cobro', who:e.who, category:e.category, account:e.account, updatedAt: Date.now() }]); uploadToSheets() }}>Convertir a ingreso</button>
                 </div>
               </div>
             ))}
@@ -582,6 +615,39 @@ export default function App() {
         </div>
       </div>
 
+      <div className="card" style={{marginTop:16}}>
+        <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
+          <h3 style={{marginTop:0}}>Reporte por categoría</h3>
+          <div className="row" style={{gap:8}}>
+            <select className="select" style={{maxWidth:220}} value={catPeriod} onChange={e => setCatPeriod(e.target.value)}>
+              <option value="semanal">Semanales</option>
+              <option value="quincenal">Quincenales</option>
+              <option value="mensual">Mensuales</option>
+            </select>
+          </div>
+        </div>
+        <div className="list">
+          {categoryReport.length === 0 && <div className="label">Sin registros</div>}
+          {categoryReport.map(g => (
+            <div key={g.key}>
+              <div className="item" onClick={() => toggleGroup(`CAT_${g.key}`)}>
+                <div className="mono">{g.key}</div>
+                <div className="label">{new Date(g.start || Date.now()).toISOString().slice(0,10)}</div>
+              </div>
+              {openKeys.has(`CAT_${g.key}`) && (
+                <div>
+                  {g.cats.map(c => (
+                    <div key={c.category} className="item">
+                      <div className="label">{c.category}</div>
+                      <div className="mono">{formatCurrency(c.amount)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="footer">Datos guardados en tu navegador</div>
     </div>
