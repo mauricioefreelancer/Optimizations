@@ -80,6 +80,7 @@ function setPendingIds(ids) { try { localStorage.setItem('finanzas_pending_ids',
 function getAppendQueue() { try { const v = JSON.parse(localStorage.getItem('finanzas_append_queue')||'[]'); return Array.isArray(v) ? v : [] } catch { return [] } }
 function setAppendQueue(list) { try { localStorage.setItem('finanzas_append_queue', JSON.stringify(list)) } catch {} }
 function enqueueEntries(items) { const q = getAppendQueue(); setAppendQueue(q.concat(items)) }
+function periodRange(period, startMs) { const s = new Date(startMs); let e; if (period === 'semanal') { e = new Date(s); e.setDate(s.getDate()+6) } else if (period === 'quincenal') { e = s.getDate()===1 ? new Date(s.getFullYear(), s.getMonth(), 15) : new Date(s.getFullYear(), s.getMonth()+1, 0) } else { e = new Date(s.getFullYear(), s.getMonth()+1, 0) } e.setHours(23,59,59,999); return { s, e } }
 
 export default function App() {
   const { entries, add, remove, clear, reload, restoreFromCache, error, setAll } = useEntries()
@@ -256,7 +257,12 @@ export default function App() {
       const row = map.get(k)
       row.cats.set(cat, Number(row.cats.get(cat)||0) + Number(e.amount||0))
     })
-    const rows = Array.from(map.values()).map(r => ({ key:r.key, start:r.start, cats: Array.from(r.cats.entries()).map(([category, amount]) => ({ category, amount })).sort((a,b) => b.amount - a.amount) }))
+    const rows = Array.from(map.values()).map(r => {
+      const cats = Array.from(r.cats.entries()).map(([category, amount]) => ({ category, amount }))
+      const total = cats.reduce((a,b) => a + Number(b.amount||0), 0)
+      const withPct = cats.map(x => ({ ...x, pct: total > 0 ? (Number(x.amount)/total*100) : 0 })).sort((a,b) => b.amount - a.amount)
+      return { key:r.key, start:r.start, total, cats: withPct }
+    })
     rows.sort((a,b) => b.start - a.start)
     return rows
   }, [entries, catPeriod])
@@ -632,14 +638,39 @@ export default function App() {
             <div key={g.key}>
               <div className="item" onClick={() => toggleGroup(`CAT_${g.key}`)}>
                 <div className="mono">{g.key}</div>
-                <div className="label">{new Date(g.start || Date.now()).toISOString().slice(0,10)}</div>
+                <div className="mono">{formatCurrency(g.total)}</div>
               </div>
               {openKeys.has(`CAT_${g.key}`) && (
                 <div>
                   {g.cats.map(c => (
-                    <div key={c.category} className="item">
-                      <div className="label">{c.category}</div>
-                      <div className="mono">{formatCurrency(c.amount)}</div>
+                    <div key={c.category}>
+                      <div className="item" onClick={() => toggleGroup(`CAT_${g.key}_${c.category}`)}>
+                        <div className="label">{c.category}</div>
+                        <div className="mono">{formatCurrency(c.amount)} ({String(Math.round(c.pct)).padStart(1,'0')}%)</div>
+                      </div>
+                      {openKeys.has(`CAT_${g.key}_${c.category}`) && (
+                        <div>
+                          {entries.filter(e => {
+                            if (e.type !== 'pago') return false
+                            const cat = String(e.category||'Otros')
+                            if (cat !== c.category) return false
+                            const { s, e: end } = periodRange(catPeriod, g.start)
+                            const t = parseDateOrToday(e.date).getTime()
+                            return t >= s.getTime() && t <= end.getTime()
+                          }).map(e => (
+                            <div key={e.id} className="item">
+                              <div>
+                                <div className="mono">{formatCurrency(-Number(e.amount||0))}</div>
+                                <div className="label">{e.date}</div>
+                              </div>
+                              <div style={{flex:1, marginLeft:10}}>
+                                <div>{e.note || '-'}</div>
+                                <div className="label">{e.account || e.who || e.category || e.type}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
